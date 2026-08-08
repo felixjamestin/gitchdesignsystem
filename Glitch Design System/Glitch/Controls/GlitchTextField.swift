@@ -81,7 +81,7 @@ public struct GlitchTextField: View {
         }
         .padding(.horizontal, metrics.hInset)
         .frame(height: metrics.rowHeight)
-        .background(shape.fill(state.trackFill(theme.palette)))
+        .glitchSurface(shape, fill: state.trackFill(theme.palette))
         .overlay { shape.strokeBorder(state.strokeColor(theme.palette), lineWidth: state.strokeWidth) }
         .opacity(state.contentOpacity)
         .contentShape(Rectangle())
@@ -169,7 +169,7 @@ public struct GlitchSearchField: View {
         }
         .padding(.horizontal, metrics.hInset)
         .frame(height: metrics.rowHeight)
-        .background(shape.fill(state.trackFill(theme.palette)))
+        .glitchSurface(shape, fill: state.trackFill(theme.palette))
         .overlay { shape.strokeBorder(state.strokeColor(theme.palette), lineWidth: state.strokeWidth) }
         .opacity(state.contentOpacity)
         .contentShape(Rectangle())

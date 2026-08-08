@@ -178,6 +178,8 @@ struct GalleryView: View {
             "Instrument-like: light chassis, black legends, one hot orange carrying every active state, and tight machined radii."
         case .brutalist:
             "No radii, two-point borders, monospaced throughout. The structure is left showing rather than smoothed over."
+        case .liquidGlass:
+            "Every surface is the platform's glass material, tinted by the same tokens the other styles fill with. Radii open right up — glass with tight corners reads as a chip of it."
         }
     }
 
@@ -186,7 +188,7 @@ struct GalleryView: View {
         case .off:
             "Free movement — the value quantises to its step and nothing else. This is the reference panel's behaviour."
         case .magnetic:
-            "Notches attract from within 3.5% of the range. Round numbers become easy to hit, and everything between them stays reachable."
+            "Notches attract from within 1% of the range — a reward for aiming at one, never a force acting on values you set deliberately in between."
         case .locked:
             "Every drag lands on a notch. For values where the positions in between aren't meaningful."
         }

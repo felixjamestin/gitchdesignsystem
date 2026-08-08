@@ -18,7 +18,7 @@ public struct GlitchPanel<Content: View>: View {
             content
         }
         .padding(metrics.panelPadding)
-        .background(shape.fill(theme.palette.panel))
+        .glitchSurface(shape, fill: theme.palette.panel)
         .overlay { shape.strokeBorder(theme.palette.stroke, lineWidth: theme.metrics.borderWidth) }
     }
 }
@@ -50,15 +50,39 @@ public struct GlitchSection<Content: View>: View {
 
             if isExpanded {
                 VStack(alignment: .leading, spacing: theme.metrics.spacing) {
-                    content
+                    // Each row is reached individually so it can carry its own
+                    // delay. A section that opens all at once tells you it
+                    // changed; one that unrolls tells you what it contains and
+                    // in what order.
+                    Group(subviews: content) { rows in
+                        ForEach(rows.indices, id: \.self) { index in
+                            rows[index]
+                                .transition(stagger(index: index, of: rows.count))
+                        }
+                    }
                 }
-                // Slides out from under the header rather than fading in
-                // place, so the disclosure reads as one movement.
-                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
         .clipped()
         .accessibilityElement(children: .contain)
+    }
+
+    /// Opens downward from the header and closes upward toward it, so the
+    /// section always appears to move from the thing you clicked. Closing runs
+    /// on the quicker token — waiting out a leisurely stagger to get rid of
+    /// something you just dismissed is irritating.
+    private func stagger(index: Int, of count: Int) -> AnyTransition {
+        let entering = AnyTransition
+            .offset(y: -10)
+            .combined(with: .opacity)
+            .animation(motion.staggered(motion.drift, index: index))
+
+        let leaving = AnyTransition
+            .offset(y: -6)
+            .combined(with: .opacity)
+            .animation(motion.staggered(motion.snap, index: count - 1 - index))
+
+        return .asymmetric(insertion: entering, removal: leaving)
     }
 
     private var header: some View {

@@ -18,9 +18,12 @@ public enum GlitchNotchSnapping: String, CaseIterable, Sendable, Hashable {
     case locked
 
     /// How close a value must come, as a fraction of the range, before a notch
-    /// pulls it in. Roughly 3.5% — near enough that landing on a round number
-    /// feels like aim rather than luck, far enough that it doesn't fight you.
-    public static let pullTolerance: Double = 0.035
+    /// pulls it in.
+    ///
+    /// One percent. Tight enough that the notch is a reward for aiming at it
+    /// rather than a force acting on values you were deliberately setting in
+    /// between — magnetism you can feel but never fight.
+    public static let pullTolerance: Double = 0.01
 
     public var title: String {
         switch self {
@@ -142,8 +145,8 @@ public struct GlitchSlider: View {
         let palette = theme.palette
         let shape = RoundedRectangle(cornerRadius: metrics.controlRadius, style: .continuous)
 
-        return shape
-            .fill(palette.track)
+        return Color.clear
+            .glitchSurface(shape, fill: palette.track)
             .overlay {
                 // Styles that draw their edges outline the track; the default
                 // one separates surfaces by tone alone.
@@ -263,7 +266,10 @@ public struct GlitchSlider: View {
 
     // MARK: - Derived geometry
 
-    private var isActive: Bool { (isHovering || isPressed) && isEnabled }
+    /// Focus counts as active, so tabbing to a slider reveals its notches and
+    /// handle exactly as pointing at it does. It is the only focus indicator
+    /// the system has.
+    private var isActive: Bool { (isHovering || isPressed || isFocused) && isEnabled }
 
     private var decimals: Int {
         decimalsOverride ?? GlitchNumberParsing.decimals(forStep: step)

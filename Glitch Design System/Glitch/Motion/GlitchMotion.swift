@@ -24,29 +24,43 @@ public struct GlitchMotion: Equatable, Sendable {
     /// Color and opacity crossfades only. (ease-out 0.15s)
     public var tint: Animation
 
-    /// The click-jump spring, expressed the way the reference declares it.
-    /// Converted to duration/bounce so the global speed control can scale it
-    /// like every other token.
-    private static let jumpSpring = Spring(mass: 0.8, stiffness: 300, damping: 25)
+    /// Seconds between one staggered sibling and the next. Zero under Reduce
+    /// Motion, which collapses a stagger into a single simultaneous change.
+    public var staggerDelay: Double
 
     /// `scale` stretches every duration — 1.0 normal, 0.1 for inspection.
     /// `reduceMotion` collapses all five to a short curve with no spring
     /// overshoot and no positional character.
+    ///
+    /// The bounce figures are deliberately higher than the reference panel's,
+    /// which is critically damped to the point of feeling struck rather than
+    /// sprung. Overshoot is what makes a value look like it has mass; the
+    /// amounts here are small enough to read as weight rather than as wobble.
     public static func resolve(scale: Double, reduceMotion: Bool) -> GlitchMotion {
         let s = max(0.05, scale)
 
         guard !reduceMotion else {
             let flat = Animation.easeOut(duration: 0.10 * s)
-            return GlitchMotion(snap: flat, glide: flat, pop: flat, drift: flat, tint: flat)
+            return GlitchMotion(
+                snap: flat, glide: flat, pop: flat, drift: flat, tint: flat,
+                staggerDelay: 0
+            )
         }
 
         return GlitchMotion(
-            snap: .spring(duration: 0.20 * s, bounce: 0.15),
-            glide: .spring(duration: jumpSpring.duration * s, bounce: jumpSpring.bounce),
-            pop: .spring(duration: 0.25 * s, bounce: 0.15),
-            drift: .spring(duration: 0.35 * s, bounce: 0.15),
-            tint: .easeOut(duration: 0.15 * s)
+            snap: .spring(duration: 0.22 * s, bounce: 0.22),
+            glide: .spring(duration: 0.42 * s, bounce: 0.34),
+            pop: .spring(duration: 0.28 * s, bounce: 0.30),
+            drift: .spring(duration: 0.40 * s, bounce: 0.28),
+            tint: .easeOut(duration: 0.15 * s),
+            staggerDelay: 0.035 * s
         )
+    }
+
+    /// A token delayed by its position in a staggered group.
+    public func staggered(_ animation: Animation, index: Int) -> Animation {
+        guard staggerDelay > 0, index > 0 else { return animation }
+        return animation.delay(staggerDelay * Double(index))
     }
 
     public static let standard = GlitchMotion.resolve(scale: 1, reduceMotion: false)

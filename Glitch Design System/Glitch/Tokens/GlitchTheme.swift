@@ -6,6 +6,8 @@ public struct GlitchTheme: Equatable, Sendable {
     public var palette: GlitchPalette
     public var metrics: GlitchMetrics
     public var typography: GlitchTypography
+    /// Whether surfaces are filled or made of glass.
+    public var surface: GlitchSurface
 
     /// Used when a control is rendered outside a `.glitchTheme()` subtree —
     /// a bare Preview, for instance. Controls stay legible instead of blank.
@@ -13,7 +15,8 @@ public struct GlitchTheme: Equatable, Sendable {
         style: .glitch,
         palette: .dark,
         metrics: .resolve(.compact, style: .glitch),
-        typography: GlitchThemeStyle.glitch.typography
+        typography: GlitchThemeStyle.glitch.typography,
+        surface: .solid
     )
 
     /// A label as this style writes it.
@@ -49,7 +52,8 @@ private struct GlitchThemeModifier: ViewModifier {
                     style: style,
                     palette: palette,
                     metrics: .resolve(density, style: style),
-                    typography: style.typography
+                    typography: style.typography,
+                    surface: style.surface
                 )
             )
             .environment(\.glitchDensity, density)

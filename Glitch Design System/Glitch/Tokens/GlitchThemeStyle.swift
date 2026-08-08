@@ -17,13 +17,23 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
     /// Brutalist: no radii anywhere, hard two-point borders, monospaced
     /// uppercase throughout, and no soft fills. Structure left showing.
     case brutalist
+    /// Liquid glass: the platform material, generous radii, and a palette of
+    /// tints rather than fills — every surface refracts what is behind it.
+    case liquidGlass
 
     public var title: String {
         switch self {
         case .glitch: "Glitch"
         case .engineering: "Engineering"
         case .brutalist: "Brutalist"
+        case .liquidGlass: "Glass"
         }
+    }
+
+    /// Glass is the only style whose surfaces are a material rather than a
+    /// colour. Everything else in the system is unaware of the distinction.
+    public var surface: GlitchSurface {
+        self == .liquidGlass ? .glass : .solid
     }
 
     // MARK: - Colour
@@ -36,6 +46,8 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
             return scheme == .dark ? Self.engineeringDark : Self.engineeringLight
         case .brutalist:
             return scheme == .dark ? Self.brutalistDark : Self.brutalistLight
+        case .liquidGlass:
+            return scheme == .dark ? Self.glassDark : Self.glassLight
         }
     }
 
@@ -61,6 +73,14 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
             metrics.borderWidth = 2
             metrics.tracksAreOutlined = true
             metrics.sharpEdges = true
+
+        case .liquidGlass:
+            // Glass reads as a lens, and a lens with tight corners looks like
+            // a chip of it. The rim is what sells the thickness.
+            metrics.controlRadius = round(metrics.rowHeight / 2)
+            metrics.panelRadius = round(metrics.panelRadius * 1.6)
+            metrics.borderWidth = 1
+            metrics.tracksAreOutlined = true
         }
     }
 
@@ -97,6 +117,18 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
                 titleWeight: .black,
                 tracking: 0.5,
                 uppercaseLabels: true
+            )
+        case .liquidGlass:
+            // Slightly heavier than the default: text over a refracting
+            // surface needs more weight to hold its edge.
+            GlitchTypography(
+                labelDesign: .rounded,
+                valueDesign: .monospaced,
+                labelWeight: .semibold,
+                valueWeight: .semibold,
+                titleWeight: .bold,
+                tracking: 0,
+                uppercaseLabels: false
             )
         }
     }
@@ -164,6 +196,48 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
         accent: Color(glitchHex: 0xFF2D00),
         onAccent: .white,
         danger: Color(glitchHex: 0xFF2D00)
+    )
+
+    /// Tints, not fills. Each value is what the glass is *coloured* by, so the
+    /// alphas are lower than a solid style's — the material supplies the rest.
+    private static let glassDark = GlitchPalette(
+        background: Color(glitchHex: 0x0C1018),
+        panel: .white.opacity(0.06),
+        track: .white.opacity(0.10),
+        trackHover: .white.opacity(0.16),
+        trackActive: .white.opacity(0.22),
+        fill: .white.opacity(0.24),
+        fillActive: .white.opacity(0.36),
+        handle: .white.opacity(0.95),
+        hashmark: .white.opacity(0.35),
+        textPrimary: .white,
+        label: .white.opacity(0.85),
+        labelSecondary: .white.opacity(0.60),
+        stroke: .white.opacity(0.22),
+        strokeHover: .white.opacity(0.34),
+        accent: .white.opacity(0.95),
+        onAccent: Color(glitchHex: 0x0C1018),
+        danger: Color(glitchHex: 0xFF6B6B)
+    )
+
+    private static let glassLight = GlitchPalette(
+        background: Color(glitchHex: 0xE7ECF3),
+        panel: .white.opacity(0.35),
+        track: .white.opacity(0.45),
+        trackHover: .white.opacity(0.62),
+        trackActive: .white.opacity(0.78),
+        fill: .black.opacity(0.10),
+        fillActive: .black.opacity(0.16),
+        handle: .black.opacity(0.70),
+        hashmark: .black.opacity(0.25),
+        textPrimary: .black.opacity(0.90),
+        label: .black.opacity(0.70),
+        labelSecondary: .black.opacity(0.45),
+        stroke: .white.opacity(0.60),
+        strokeHover: .white.opacity(0.80),
+        accent: .black.opacity(0.70),
+        onAccent: .white,
+        danger: Color(glitchHex: 0xD1293D)
     )
 
     private static let brutalistDark = GlitchPalette(

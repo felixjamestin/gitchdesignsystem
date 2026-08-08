@@ -63,7 +63,7 @@ public struct GlitchSwitch: View {
         }
         .padding(.horizontal, metrics.hInset)
         .frame(height: metrics.rowHeight)
-        .background(shape.fill(state.trackFill(theme.palette)))
+        .glitchSurface(shape, fill: state.trackFill(theme.palette))
         .opacity(state.contentOpacity)
         .glitchPressable(isPressed: $isPressed, isEnabled: isEnabled, onTap: toggle)
         .glitchHover { hovering in
@@ -148,7 +148,7 @@ public struct GlitchCheckbox: View {
         }
         .padding(.horizontal, metrics.hInset)
         .frame(height: metrics.rowHeight)
-        .background(shape.fill(state.trackFill(theme.palette)))
+        .glitchSurface(shape, fill: state.trackFill(theme.palette))
         .contentShape(Rectangle())
         .opacity(state.contentOpacity)
         .glitchPressable(isPressed: $isPressed, isEnabled: isEnabled, onTap: toggle)

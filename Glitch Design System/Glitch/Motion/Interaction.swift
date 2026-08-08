@@ -94,32 +94,21 @@ extension View {
 // MARK: - Focus ring
 
 private struct GlitchFocusRing: ViewModifier {
-    @Environment(\.glitchTheme) private var theme
-    @Environment(\.glitchMotion) private var motion
-
-    var isFocused: Bool
-    var radius: CGFloat
-
     func body(content: Content) -> some View {
-        content
-            // The platform's own focus ring is suppressed here rather than at
-            // each call site: every control that draws this ring would
-            // otherwise get a blue halo around it as well, in a system that
-            // has no blue in it.
-            .focusEffectDisabled()
-            .overlay {
-                RoundedRectangle(cornerRadius: radius + 2, style: .continuous)
-                    .stroke(theme.palette.accent.opacity(isFocused ? 0.45 : 0), lineWidth: 2)
-                    .padding(-2.5)
-            }
-            .animation(motion.snap, value: isFocused)
+        // No ring, of ours or the platform's.
+        //
+        // Keyboard focus is still shown — every control treats being focused
+        // the same way it treats being hovered, so the surface itself lifts.
+        // That keeps a tabbing user oriented without drawing a box around
+        // anything, which is what an outline always ends up looking like.
+        content.focusEffectDisabled()
     }
 }
 
 extension View {
-    /// The system's keyboard-focus indicator: an accent halo just outside the
-    /// control's own edge, so it reads as focus rather than as a border change.
+    /// Suppresses the platform focus ring. Focus is expressed by the control's
+    /// own surface state instead — see `ControlState.trackFill`.
     public func glitchFocusRing(isFocused: Bool, radius: CGFloat) -> some View {
-        modifier(GlitchFocusRing(isFocused: isFocused, radius: radius))
+        modifier(GlitchFocusRing())
     }
 }

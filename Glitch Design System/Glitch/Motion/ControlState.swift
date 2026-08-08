@@ -31,24 +31,29 @@ public struct ControlState: Equatable, Sendable {
         self.isErrored = isErrored
     }
 
-    /// Precedence: disabled → active → hovering → resting.
+    /// Precedence: disabled → active → hovering or focused → resting.
+    ///
+    /// Focus deliberately resolves to the same lift as hover. With no focus
+    /// ring anywhere in the system, the surface is the only thing left to say
+    /// "the keyboard is pointed here", and a tabbing user gets exactly the
+    /// feedback a pointer user already had.
     public func trackFill(_ palette: GlitchPalette) -> Color {
         if isDisabled { return palette.track.opacity(0.4) }
         if isDragging || isPressed { return palette.trackActive }
-        if isHovering { return palette.trackHover }
+        if isHovering || isFocused { return palette.trackHover }
         return palette.track
     }
 
-    /// Precedence: disabled → errored → focused → resting.
+    /// Precedence: disabled → errored → resting. Focus is carried by the fill,
+    /// not by the border.
     public func strokeColor(_ palette: GlitchPalette) -> Color {
         if isDisabled { return palette.stroke.opacity(0.5) }
         if isErrored { return palette.danger }
-        if isFocused { return palette.accent }
         return palette.stroke
     }
 
     public var strokeWidth: CGFloat {
-        (isFocused || isErrored) && !isDisabled ? 1.5 : 1
+        isErrored && !isDisabled ? 1.5 : 1
     }
 
     /// Deliberately subtle. A press should register, not perform.

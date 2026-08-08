@@ -52,7 +52,7 @@ public struct GlitchButton: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, metrics.hInset)
         .frame(height: metrics.rowHeight)
-        .background(shape.fill(background))
+        .glitchSurface(shape, fill: background)
         .overlay { shape.strokeBorder(border, lineWidth: metrics.borderWidth) }
         .opacity(isEnabled ? 1 : 0.4)
         .scaleEffect(isPressed && isEnabled ? 0.97 : 1)

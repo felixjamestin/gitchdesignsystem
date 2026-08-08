@@ -40,6 +40,26 @@ make the controls strictly worse: **keyboard operation, VoiceOver support, and i
 - The platform focus ring is suppressed system-wide inside `glitchFocusRing`, so no control shows
   a blue halo in a system that contains no blue.
 
+**Fourth pass — glass, bounce, stagger.**
+
+- **No focus outline at all**, ours included. Focus now resolves to the same surface lift as hover
+  (`ControlState.trackFill`), and a focused slider counts as active — so tabbing to one reveals its
+  notches and handle exactly as pointing at it does. Keyboard users keep an indicator; nothing gets
+  a box drawn around it.
+- **`.liquidGlass` style**, built on a new `GlitchSurface` axis. Surfaces are the only thing a
+  style can change *structurally* rather than by token: `.solid` fills, `.glass` applies the
+  platform material tinted by the same colour a solid style would have filled with. Radii open to
+  half the row height, since glass with tight corners reads as a chip of it.
+- **Magnetic pull is 1%** of the range, down from 3.5% — a reward for aiming at a notch rather than
+  a force acting on values set deliberately between them.
+- **Bounce.** Every spring token gains overshoot (`glide` 0.42/0.34, `pop` 0.28/0.30, `drift`
+  0.40/0.28, `snap` 0.22/0.22), departing from the reference's near-critical damping, which reads
+  as struck rather than sprung. Dragging is still literal — rule 7 is unaffected.
+- **Staggered disclosure.** `GlitchSection` reaches its children individually via
+  `Group(subviews:)` and gives each a delayed transition: opening unrolls top-down on `drift`,
+  closing rolls up bottom-first on the quicker `snap`. `GlitchMotion.staggerDelay` is 35ms, and
+  zero under Reduce Motion — which collapses a stagger into one simultaneous change.
+
 Controls must feel responsive and deliberate, not merely animated. Motion follows a fixed set of
 rules (Section 4) rather than per-control improvisation.
 

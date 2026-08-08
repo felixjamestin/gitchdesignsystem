@@ -47,7 +47,7 @@ public struct GlitchSegmented<Value: Hashable>: View {
         }
         .padding(.leading, label == nil ? 0 : metrics.hInset)
         .frame(height: metrics.rowHeight)
-        .background(shape.fill(isHovering && isEnabled ? theme.palette.trackHover : theme.palette.track))
+        .glitchSurface(shape, fill: isHovering && isEnabled ? theme.palette.trackHover : theme.palette.track)
         .clipShape(shape)
         .overlay {
             shape.strokeBorder(

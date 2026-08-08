@@ -48,7 +48,7 @@ public struct GlitchStepper: View {
         .padding(.leading, metrics.hInset)
         .padding(.trailing, 4)
         .frame(height: metrics.rowHeight)
-        .background(shape.fill(state.trackFill(theme.palette)))
+        .glitchSurface(shape, fill: state.trackFill(theme.palette))
         .overlay { shape.strokeBorder(state.strokeColor(theme.palette), lineWidth: state.strokeWidth) }
         .opacity(state.contentOpacity)
         .glitchHover { hovering in
