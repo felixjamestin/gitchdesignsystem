@@ -9,8 +9,13 @@ import SwiftUI
 /// produce by pointing at them: disabled, errored, and both densities.
 struct GalleryView: View {
     @Environment(\.glitchTheme) private var theme
+
+    @Binding var style: GlitchThemeStyle
+    @Binding var scheme: ColorScheme
     @Binding var density: GlitchDensity
 
+    @State private var notches: GlitchNotchSnapping = .magnetic
+    @State private var notched = 40.0
     @State private var flow = 73.0
     @State private var coarse = 0.4
     @State private var precise = 12.0
@@ -39,13 +44,25 @@ struct GalleryView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                densitySwitch
+                appearancePanel
+
+                group("Notches") {
+                    GlitchSegmented(
+                        "Snapping",
+                        selection: $notches,
+                        options: GlitchNotchSnapping.allCases.map {
+                            GlitchOption($0.title, value: $0)
+                        }
+                    )
+                    GlitchSlider("Try it", value: $notched, notches: notches)
+                    explain(notchExplanation)
+                }
 
                 group("Slider") {
                     GlitchSlider("Flow", value: $flow)
                     GlitchSlider("Fine", value: $flow, in: 0...1, step: 0.01)
-                    // Ten steps or fewer, so every step gets its own tick and a
-                    // click lands exactly on one.
+                    // Ten steps or fewer, so every step gets its own notch and
+                    // a click lands exactly on one.
                     GlitchSlider("Coarse", value: $coarse, in: 0...1, step: 0.1)
                     GlitchSlider("Disabled", value: $flow).disabled(true)
                 }
@@ -127,18 +144,59 @@ struct GalleryView: View {
         .background(theme.palette.background)
     }
 
-    private var densitySwitch: some View {
+    private var appearancePanel: some View {
         GlitchPanel {
-            GlitchSegmented(
-                "Density",
-                selection: $density,
-                options: GlitchDensity.allCases.map { GlitchOption($0.title, value: $0) }
-            )
-            Text("Compact is the pointer default, comfortable the touch default. Both are always available — this switch is what a Mac app would expose as a display preference.")
-                .font(.system(size: theme.metrics.labelSize))
-                .foregroundStyle(theme.palette.labelSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+            GlitchSection("Appearance") {
+                GlitchSegmented(
+                    "Theme",
+                    selection: $style,
+                    options: GlitchThemeStyle.allCases.map { GlitchOption($0.title, value: $0) }
+                )
+                GlitchSegmented(
+                    "Mode",
+                    selection: $scheme,
+                    options: [
+                        GlitchOption("Dark", value: ColorScheme.dark),
+                        GlitchOption("Light", value: ColorScheme.light),
+                    ]
+                )
+                GlitchSegmented(
+                    "Density",
+                    selection: $density,
+                    options: GlitchDensity.allCases.map { GlitchOption($0.title, value: $0) }
+                )
+                explain(styleExplanation)
+            }
         }
+    }
+
+    private var styleExplanation: String {
+        switch style {
+        case .glitch:
+            "Neutral white alphas over near-black. No colour does any signalling, so a panel of twenty controls stays legible."
+        case .engineering:
+            "Instrument-like: light chassis, black legends, one hot orange carrying every active state, and tight machined radii."
+        case .brutalist:
+            "No radii, two-point borders, monospaced throughout. The structure is left showing rather than smoothed over."
+        }
+    }
+
+    private var notchExplanation: String {
+        switch notches {
+        case .off:
+            "Free movement — the value quantises to its step and nothing else. This is the reference panel's behaviour."
+        case .magnetic:
+            "Notches attract from within 3.5% of the range. Round numbers become easy to hit, and everything between them stays reachable."
+        case .locked:
+            "Every drag lands on a notch. For values where the positions in between aren't meaningful."
+        }
+    }
+
+    private func explain(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: theme.metrics.labelSize))
+            .foregroundStyle(theme.palette.labelSecondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private func group<Content: View>(
@@ -154,11 +212,13 @@ struct GalleryView: View {
 }
 
 #Preview {
+    @Previewable @State var style = GlitchThemeStyle.glitch
+    @Previewable @State var scheme = ColorScheme.dark
     @Previewable @State var density = GlitchDensity.compact
 
-    GalleryView(density: $density)
-        .glitchTheme(density: density)
+    GalleryView(style: $style, scheme: $scheme, density: $density)
+        .glitchTheme(style, density: density)
         .glitchMotion()
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(scheme)
         .frame(width: 640, height: 800)
 }

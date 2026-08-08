@@ -26,6 +26,20 @@ the user's direction. That supersedes the original "refined, with grit" directio
 Three things the reference lacks are kept as deliberate additions, because removing them would
 make the controls strictly worse: **keyboard operation, VoiceOver support, and iOS haptics.**
 
+**Third pass — themes and notch snapping.**
+
+- **`GlitchThemeStyle`** adds a style dimension orthogonal to density: `.glitch` (the above),
+  `.engineering` (Teenage Engineering — light chassis, black legends, one hot orange, tight radii,
+  uppercase labels), and `.brutalist` (no radii, 2pt borders, monospaced uppercase). A style
+  changes colour, radius, border weight and typography — **never behaviour**. Any style works at
+  any density, in either colour scheme.
+- **`GlitchNotchSnapping`** controls whether dragging sticks to the notches: `.off` (the
+  reference's behaviour, and the default), `.magnetic` (notches attract from within 3.5% of the
+  range), `.locked` (every drag lands on a notch). The notches are the drawn hashmarks, so what
+  snaps is always something visible.
+- The platform focus ring is suppressed system-wide inside `glitchFocusRing`, so no control shows
+  a blue halo in a system that contains no blue.
+
 Controls must feel responsive and deliberate, not merely animated. Motion follows a fixed set of
 rules (Section 4) rather than per-control improvisation.
 

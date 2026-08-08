@@ -43,7 +43,7 @@ public struct GlitchChips: View {
 
         return HStack(spacing: 5) {
             Text(item)
-                .font(GlitchType.label(metrics))
+                .font(GlitchType.label(theme))
                 .tracking(0.3)
                 .foregroundStyle(theme.palette.label)
 

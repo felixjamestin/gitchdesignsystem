@@ -49,6 +49,12 @@ public struct GlitchSegmented<Value: Hashable>: View {
         .frame(height: metrics.rowHeight)
         .background(shape.fill(isHovering && isEnabled ? theme.palette.trackHover : theme.palette.track))
         .clipShape(shape)
+        .overlay {
+            shape.strokeBorder(
+                metrics.tracksAreOutlined ? theme.palette.stroke : .clear,
+                lineWidth: metrics.borderWidth
+            )
+        }
         .opacity(isEnabled ? 1 : 0.4)
         .glitchHover { hovering in
             withAnimation(motion.tint) { isHovering = hovering }
@@ -89,8 +95,7 @@ public struct GlitchSegmented<Value: Hashable>: View {
                     Image(systemName: systemImage)
                         .font(.system(size: metrics.iconSize, weight: .medium))
                 }
-                Text(option.title)
-                    .font(GlitchType.label(metrics))
+                GlitchType.labelText(option.title, theme)
                     .lineLimit(1)
             }
             .foregroundStyle(isSelected ? theme.palette.textPrimary : theme.palette.label)

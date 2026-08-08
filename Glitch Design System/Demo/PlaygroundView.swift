@@ -65,15 +65,15 @@ struct PlaygroundView: View {
                 GlitchDivider()
 
                 GlitchSection("Parameters") {
-                    GlitchSlider("Flow", value: $parameters.flow)
-                    GlitchSlider("Elasticity", value: $parameters.elasticity)
-                    GlitchSlider("Noise", value: $parameters.noise)
-                    GlitchSlider("Speed", value: $parameters.speed)
-                    GlitchSlider("Echoes", value: $parameters.echoes)
-                    GlitchSlider("Tension", value: $parameters.tension)
-                    GlitchSlider("Clump", value: $parameters.clump)
-                    GlitchSlider("Variation", value: $parameters.variation)
-                    GlitchSlider("Stroke", value: $parameters.stroke)
+                    GlitchSlider("Flow", value: $parameters.flow, notches: .magnetic)
+                    GlitchSlider("Elasticity", value: $parameters.elasticity, notches: .magnetic)
+                    GlitchSlider("Noise", value: $parameters.noise, notches: .magnetic)
+                    GlitchSlider("Speed", value: $parameters.speed, notches: .magnetic)
+                    GlitchSlider("Echoes", value: $parameters.echoes, notches: .magnetic)
+                    GlitchSlider("Tension", value: $parameters.tension, notches: .magnetic)
+                    GlitchSlider("Clump", value: $parameters.clump, notches: .magnetic)
+                    GlitchSlider("Variation", value: $parameters.variation, notches: .magnetic)
+                    GlitchSlider("Stroke", value: $parameters.stroke, notches: .magnetic)
                 }
 
                 GlitchDivider()

@@ -13,11 +13,16 @@ struct GlitchDesignSystemApp: App {
 }
 
 struct RootView: View {
-    /// Held here rather than inside the Motion Lab so the slowdown applies to
-    /// every tab — you can slow the system down, then go watch the Playground.
+    /// Appearance state lives here rather than in the Gallery so that changing
+    /// it there also changes the Playground you go and look at next.
+    @State private var style: GlitchThemeStyle = .glitch
+    @State private var scheme: ColorScheme = .dark
+    @State private var density: GlitchDensity = .platformDefault
+
+    /// Held here for the same reason: a slowdown set in the Motion Lab applies
+    /// everywhere.
     @State private var motionScale: Double = 1
     @State private var forceReduceMotion = false
-    @State private var density: GlitchDensity = .platformDefault
 
     var body: some View {
         TabView {
@@ -25,7 +30,7 @@ struct RootView: View {
                 PlaygroundView()
             }
             Tab("Gallery", systemImage: "square.grid.2x2") {
-                GalleryView(density: $density)
+                GalleryView(style: $style, scheme: $scheme, density: $density)
             }
             Tab("Motion Lab", systemImage: "waveform.path") {
                 MotionLabView(
@@ -34,10 +39,9 @@ struct RootView: View {
                 )
             }
         }
-        .background(GlitchPalette.dark.background)
-        .glitchTheme(density: density)
+        .glitchTheme(style, density: density)
         .glitchMotion(scale: motionScale, reduceMotion: forceReduceMotion)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(scheme)
     }
 }
 

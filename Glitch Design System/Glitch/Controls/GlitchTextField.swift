@@ -74,7 +74,8 @@ public struct GlitchTextField: View {
                 prompt: Text(placeholder).foregroundStyle(theme.palette.labelSecondary)
             )
             .textFieldStyle(.plain)
-            .font(GlitchType.value(metrics))
+            .focusEffectDisabled()
+            .font(GlitchType.value(theme))
             .foregroundStyle(theme.palette.label)
             .focused($isFocused)
         }
@@ -145,7 +146,8 @@ public struct GlitchSearchField: View {
                 prompt: Text(placeholder).foregroundStyle(theme.palette.labelSecondary)
             )
             .textFieldStyle(.plain)
-            .font(GlitchType.value(metrics))
+            .focusEffectDisabled()
+            .font(GlitchType.value(theme))
             .foregroundStyle(theme.palette.label)
             .focused($isFocused)
             .onKeyPress(.escape) {

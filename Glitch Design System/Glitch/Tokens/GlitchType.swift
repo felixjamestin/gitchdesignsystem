@@ -2,26 +2,48 @@ import SwiftUI
 
 /// The system's three text roles.
 ///
-/// One size for everything in a row — label and value are both 13pt medium —
-/// so a panel reads as a list rather than a hierarchy. The only distinction
-/// between them is the typeface: names are proportional, numbers are not.
+/// Each resolves against the theme rather than against metrics alone, because
+/// a style changes not just the size of type but its case, weight, tracking
+/// and typeface. `labelText` is the one that matters: it is the single place
+/// that decides whether labels are shouted, so no call site has to remember.
 public enum GlitchType {
 
-    /// Control labels. Sentence case, never uppercased: these are names, and a
-    /// dense panel of shouted names is harder to scan, not easier.
-    public static func label(_ metrics: GlitchMetrics) -> Font {
-        .system(size: metrics.labelSize, weight: .medium)
+    public static func label(_ theme: GlitchTheme) -> Font {
+        .system(
+            size: theme.metrics.labelSize,
+            weight: theme.typography.labelWeight,
+            design: theme.typography.labelDesign
+        )
     }
 
-    /// Numeric readouts. Monospaced so a changing value doesn't reflow the row
-    /// it sits in — no layout jitter, motion rule 3.
-    public static func value(_ metrics: GlitchMetrics) -> Font {
-        .system(size: metrics.valueSize, weight: .medium, design: .monospaced)
+    /// Numeric readouts. Monospaced in every style, so a changing value never
+    /// reflows the row it sits in — no layout jitter, motion rule 3.
+    public static func value(_ theme: GlitchTheme) -> Font {
+        .system(
+            size: theme.metrics.valueSize,
+            weight: theme.typography.valueWeight,
+            design: theme.typography.valueDesign
+        )
     }
 
-    /// Section and panel headers.
-    public static func title(_ metrics: GlitchMetrics) -> Font {
-        .system(size: metrics.titleSize, weight: .semibold)
+    public static func title(_ theme: GlitchTheme) -> Font {
+        .system(
+            size: theme.metrics.titleSize,
+            weight: theme.typography.titleWeight,
+            design: theme.typography.labelDesign
+        )
+    }
+
+    /// A label, cased and tracked as the current style writes it.
+    public static func labelText(_ text: String, _ theme: GlitchTheme) -> Text {
+        Text(theme.display(text))
+            .font(label(theme))
+            .tracking(theme.typography.tracking)
+    }
+
+    /// A numeric readout in the current style.
+    public static func valueText(_ text: String, _ theme: GlitchTheme) -> Text {
+        Text(text).font(value(theme))
     }
 }
 
@@ -38,10 +60,9 @@ public struct GlitchLabel: View {
     }
 
     public var body: some View {
-        Text(text)
-            .font(GlitchType.label(theme.metrics))
-            .lineLimit(1)
+        GlitchType.labelText(text, theme)
             .foregroundStyle(secondary ? theme.palette.labelSecondary : theme.palette.label)
+            .lineLimit(1)
     }
 }
 
@@ -58,8 +79,7 @@ public struct GlitchValueText: View {
     }
 
     public var body: some View {
-        Text(text)
-            .font(GlitchType.value(theme.metrics))
+        GlitchType.valueText(text, theme)
             .foregroundStyle(prominent ? theme.palette.textPrimary : theme.palette.label)
             .lineLimit(1)
     }

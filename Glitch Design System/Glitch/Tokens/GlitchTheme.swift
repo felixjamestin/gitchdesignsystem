@@ -1,43 +1,73 @@
 import SwiftUI
 
-/// Everything a control needs to draw itself: colors and dimensions.
+/// Everything a control needs to draw itself: colours, dimensions and voice.
 public struct GlitchTheme: Equatable, Sendable {
+    public var style: GlitchThemeStyle
     public var palette: GlitchPalette
     public var metrics: GlitchMetrics
+    public var typography: GlitchTypography
 
     /// Used when a control is rendered outside a `.glitchTheme()` subtree —
     /// a bare Preview, for instance. Controls stay legible instead of blank.
-    public static let fallback = GlitchTheme(palette: .dark, metrics: .compact)
+    public static let fallback = GlitchTheme(
+        style: .glitch,
+        palette: .dark,
+        metrics: .resolve(.compact, style: .glitch),
+        typography: GlitchThemeStyle.glitch.typography
+    )
+
+    /// A label as this style writes it.
+    public func display(_ text: String) -> String {
+        typography.uppercaseLabels ? text.uppercased() : text
+    }
 }
 
 extension EnvironmentValues {
     @Entry public var glitchTheme: GlitchTheme = .fallback
     @Entry public var glitchDensity: GlitchDensity = .platformDefault
+    @Entry public var glitchThemeStyle: GlitchThemeStyle = .glitch
 }
 
 private struct GlitchThemeModifier: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
 
+    var style: GlitchThemeStyle
     var accent: Color?
     var density: GlitchDensity?
 
     func body(content: Content) -> some View {
-        var palette = GlitchPalette.resolve(colorScheme)
-        if let accent { palette.accent = accent }
+        var palette = style.palette(colorScheme)
+        if let accent {
+            palette.accent = accent
+        }
         let density = density ?? .platformDefault
 
         return content
-            .environment(\.glitchTheme, GlitchTheme(palette: palette, metrics: .resolve(density)))
+            .environment(
+                \.glitchTheme,
+                GlitchTheme(
+                    style: style,
+                    palette: palette,
+                    metrics: .resolve(density, style: style),
+                    typography: style.typography
+                )
+            )
             .environment(\.glitchDensity, density)
+            .environment(\.glitchThemeStyle, style)
             .tint(palette.accent)
     }
 }
 
 extension View {
-    /// Resolves the palette from the current color scheme and installs the
-    /// theme for this subtree. Apply once at the root — or again lower down to
-    /// override the accent or density for a section.
-    public func glitchTheme(accent: Color? = nil, density: GlitchDensity? = nil) -> some View {
-        modifier(GlitchThemeModifier(accent: accent, density: density))
+    /// Installs a style, palette and metrics for this subtree.
+    ///
+    /// Apply once at the root — or again lower down to give a section its own
+    /// style, accent or density.
+    public func glitchTheme(
+        _ style: GlitchThemeStyle = .glitch,
+        accent: Color? = nil,
+        density: GlitchDensity? = nil
+    ) -> some View {
+        modifier(GlitchThemeModifier(style: style, accent: accent, density: density))
     }
 }

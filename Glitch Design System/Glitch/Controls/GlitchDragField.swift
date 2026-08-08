@@ -83,7 +83,8 @@ public struct GlitchDragField: View {
         if isEditing {
             TextField("", text: $draft)
                 .textFieldStyle(.plain)
-                .font(GlitchType.value(theme.metrics))
+                .focusEffectDisabled()
+                .font(GlitchType.value(theme))
                 .foregroundStyle(theme.palette.label)
                 .multilineTextAlignment(.trailing)
                 .focused($isFieldFocused)

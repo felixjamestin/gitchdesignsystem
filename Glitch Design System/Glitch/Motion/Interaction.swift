@@ -102,6 +102,11 @@ private struct GlitchFocusRing: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            // The platform's own focus ring is suppressed here rather than at
+            // each call site: every control that draws this ring would
+            // otherwise get a blue halo around it as well, in a system that
+            // has no blue in it.
+            .focusEffectDisabled()
             .overlay {
                 RoundedRectangle(cornerRadius: radius + 2, style: .continuous)
                     .stroke(theme.palette.accent.opacity(isFocused ? 0.45 : 0), lineWidth: 2)

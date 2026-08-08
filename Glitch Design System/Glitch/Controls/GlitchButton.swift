@@ -45,8 +45,7 @@ public struct GlitchButton: View {
                 Image(systemName: systemImage)
                     .font(.system(size: metrics.iconSize, weight: .semibold))
             }
-            Text(title)
-                .font(GlitchType.label(metrics))
+            GlitchType.labelText(title, theme)
                 .lineLimit(1)
         }
         .foregroundStyle(foreground)
@@ -54,7 +53,7 @@ public struct GlitchButton: View {
         .padding(.horizontal, metrics.hInset)
         .frame(height: metrics.rowHeight)
         .background(shape.fill(background))
-        .overlay { shape.strokeBorder(border, lineWidth: 1) }
+        .overlay { shape.strokeBorder(border, lineWidth: metrics.borderWidth) }
         .opacity(isEnabled ? 1 : 0.4)
         .scaleEffect(isPressed && isEnabled ? 0.97 : 1)
         .glitchPressable(isPressed: $isPressed, isEnabled: isEnabled, onTap: fire)
@@ -107,7 +106,9 @@ public struct GlitchButton: View {
         }
     }
 
-    private var border: Color { .clear }
+    private var border: Color {
+        theme.metrics.tracksAreOutlined ? theme.palette.stroke : .clear
+    }
 }
 
 #Preview("Buttons") {

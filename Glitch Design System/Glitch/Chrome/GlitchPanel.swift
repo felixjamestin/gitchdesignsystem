@@ -19,7 +19,7 @@ public struct GlitchPanel<Content: View>: View {
         }
         .padding(metrics.panelPadding)
         .background(shape.fill(theme.palette.panel))
-        .overlay { shape.strokeBorder(theme.palette.stroke, lineWidth: 1) }
+        .overlay { shape.strokeBorder(theme.palette.stroke, lineWidth: theme.metrics.borderWidth) }
     }
 }
 
@@ -64,7 +64,7 @@ public struct GlitchSection<Content: View>: View {
     private var header: some View {
         HStack {
             Text(title)
-                .font(GlitchType.title(theme.metrics))
+                .font(GlitchType.title(theme))
                 .foregroundStyle(theme.palette.textPrimary)
             Spacer()
             Image(systemName: "chevron.down")

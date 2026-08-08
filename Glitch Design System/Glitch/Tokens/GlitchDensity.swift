@@ -71,6 +71,22 @@ public struct GlitchMetrics: Equatable, Sendable {
     public var hashmarkWidth: CGFloat
     public var hashmarkHeight: CGFloat
 
+    // MARK: Style-supplied
+
+    /// Outline weight for panels and, where a style asks for them, tracks.
+    public var borderWidth: CGFloat = 1
+    /// Whether control tracks carry a visible outline. The default style's
+    /// surfaces separate by tone alone; the other two draw their edges.
+    public var tracksAreOutlined: Bool = false
+    /// Squares off the handle and hashmarks, which are otherwise capsules.
+    public var sharpEdges: Bool = false
+
+    /// The radius for small parts — handle, hashmarks — which a sharp-edged
+    /// style flattens to nothing.
+    public func partRadius(_ width: CGFloat) -> CGFloat {
+        sharpEdges ? 0 : width / 2
+    }
+
     /// The reference's exact geometry: 36pt rows, 8pt radius, 13pt type.
     public static let compact = GlitchMetrics(
         rowHeight: 36, controlRadius: 8, panelRadius: 14,
@@ -93,10 +109,16 @@ public struct GlitchMetrics: Equatable, Sendable {
         hashmarkWidth: 1.5, hashmarkHeight: 10
     )
 
-    public static func resolve(_ density: GlitchDensity) -> GlitchMetrics {
+    public static func resolve(
+        _ density: GlitchDensity,
+        style: GlitchThemeStyle = .glitch
+    ) -> GlitchMetrics {
+        var metrics: GlitchMetrics
         switch density {
-        case .compact: .compact
-        case .comfortable: .comfortable
+        case .compact: metrics = .compact
+        case .comfortable: metrics = .comfortable
         }
+        style.adjust(&metrics)
+        return metrics
     }
 }

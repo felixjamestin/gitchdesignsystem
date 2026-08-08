@@ -49,7 +49,7 @@ public struct GlitchSelect<Value: Hashable>: View {
             }
             Spacer(minLength: 4)
             Text(selectedTitle)
-                .font(GlitchType.value(metrics))
+                .font(GlitchType.value(theme))
                 .foregroundStyle(theme.palette.label)
                 .lineLimit(1)
             Image(systemName: "chevron.down")
@@ -106,7 +106,10 @@ public struct GlitchSelect<Value: Hashable>: View {
         .padding(4)
         .frame(minWidth: 180)
         .background(theme.palette.panel)
+        // Focusable purely to receive arrow keys — it must not draw a ring of
+        // its own around the whole list.
         .focusable()
+        .focusEffectDisabled()
         .onKeyPress(keys: [.upArrow, .downArrow]) { press in
             moveHighlight(by: press.key == .downArrow ? 1 : -1)
             return .handled
@@ -134,7 +137,7 @@ public struct GlitchSelect<Value: Hashable>: View {
                     .foregroundStyle(theme.palette.labelSecondary)
             }
             Text(option.title)
-                .font(GlitchType.value(metrics))
+                .font(GlitchType.value(theme))
                 .foregroundStyle(theme.palette.label)
             Spacer(minLength: 12)
             Image(systemName: "checkmark")

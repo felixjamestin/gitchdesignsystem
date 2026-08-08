@@ -1,5 +1,36 @@
 import SwiftUI
 
+/// Whether dragging a slider sticks to its notches.
+///
+/// The notches are the drawn hashmarks, so whatever a slider snaps to is
+/// something you can see. Which mode is right depends on what the value is
+/// for: a percentage people set to round numbers wants magnetism, a physical
+/// dimension being matched to something else wants none.
+public enum GlitchNotchSnapping: String, CaseIterable, Sendable, Hashable {
+    /// Free movement — the value quantises to `step` and nothing else.
+    /// The reference panel's behaviour.
+    case off
+    /// Notches attract, but only from close by. Round numbers become easy to
+    /// hit while every value in between stays reachable.
+    case magnetic
+    /// Every drag lands on a notch. Use when the in-between values are not
+    /// meaningful.
+    case locked
+
+    /// How close a value must come, as a fraction of the range, before a notch
+    /// pulls it in. Roughly 3.5% — near enough that landing on a round number
+    /// feels like aim rather than luck, far enough that it doesn't fight you.
+    public static let pullTolerance: Double = 0.035
+
+    public var title: String {
+        switch self {
+        case .off: "Off"
+        case .magnetic: "Magnetic"
+        case .locked: "Locked"
+        }
+    }
+}
+
 /// The system's signature control: label, fill and value in a single row.
 ///
 /// Behaviour follows the reference panel exactly, and three of its decisions
@@ -27,6 +58,7 @@ public struct GlitchSlider: View {
     private let range: ClosedRange<Double>
     private let step: Double
     private let decimalsOverride: Int?
+    private let notchSnapping: GlitchNotchSnapping
 
     /// Movement beyond this many points turns a press into a drag.
     private let dragThreshold: CGFloat = 3
@@ -53,13 +85,15 @@ public struct GlitchSlider: View {
         value: Binding<Double>,
         in range: ClosedRange<Double> = 0...100,
         step: Double = 1,
-        decimals: Int? = nil
+        decimals: Int? = nil,
+        notches: GlitchNotchSnapping = .off
     ) {
         self.label = label
         self._value = value
         self.range = range
         self.step = step
         self.decimalsOverride = decimals
+        self.notchSnapping = notches
     }
 
     public var body: some View {
@@ -110,6 +144,14 @@ public struct GlitchSlider: View {
 
         return shape
             .fill(palette.track)
+            .overlay {
+                // Styles that draw their edges outline the track; the default
+                // one separates surfaces by tone alone.
+                shape.strokeBorder(
+                    metrics.tracksAreOutlined ? palette.stroke : .clear,
+                    lineWidth: metrics.borderWidth
+                )
+            }
             .overlay(alignment: .leading) { hashmarks }
             .overlay(alignment: .leading) {
                 Rectangle()
@@ -119,8 +161,7 @@ public struct GlitchSlider: View {
             }
             .overlay(alignment: .leading) { handle }
             .overlay(alignment: .leading) {
-                Text(label)
-                    .font(GlitchType.label(metrics))
+                GlitchType.labelText(label, theme)
                     .foregroundStyle(palette.label)
                     .lineLimit(1)
                     .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { labelWidth = $0 }
@@ -140,7 +181,9 @@ public struct GlitchSlider: View {
     private var hashmarks: some View {
         GeometryReader { proxy in
             ForEach(Array(tickFractions.enumerated()), id: \.offset) { _, fraction in
-                Capsule()
+                RoundedRectangle(
+                    cornerRadius: theme.metrics.partRadius(theme.metrics.hashmarkWidth)
+                )
                     .fill(theme.palette.hashmark.opacity(isActive ? 1 : 0))
                     .frame(width: theme.metrics.hashmarkWidth, height: theme.metrics.hashmarkHeight)
                     .position(
@@ -154,7 +197,7 @@ public struct GlitchSlider: View {
     }
 
     private var handle: some View {
-        Capsule()
+        RoundedRectangle(cornerRadius: theme.metrics.partRadius(theme.metrics.handleWidth))
             .fill(theme.palette.handle)
             .frame(width: theme.metrics.handleWidth, height: theme.metrics.handleHeight)
             // Retracted to a quarter width at rest and grown on engagement, so
@@ -177,7 +220,8 @@ public struct GlitchSlider: View {
         if isEditing {
             TextField("", text: $draft)
                 .textFieldStyle(.plain)
-                .font(GlitchType.value(theme.metrics))
+                .focusEffectDisabled()
+                .font(GlitchType.value(theme))
                 .foregroundStyle(theme.palette.textPrimary)
                 .multilineTextAlignment(.trailing)
                 .frame(width: 56)
@@ -198,7 +242,7 @@ public struct GlitchSlider: View {
                 }
         } else {
             Text(formattedValue)
-                .font(GlitchType.value(theme.metrics))
+                .font(GlitchType.value(theme))
                 .foregroundStyle(isActive ? theme.palette.textPrimary : theme.palette.label)
                 .lineLimit(1)
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { valueWidth = $0 }
@@ -268,16 +312,10 @@ public struct GlitchSlider: View {
         step > 0 ? step : (range.upperBound - range.lowerBound) / 100
     }
 
+    /// Drawn from the same list the snapping uses, so a notch you can see is
+    /// always a notch you can land on.
     private var tickFractions: [CGFloat] {
-        let span = range.upperBound - range.lowerBound
-        guard span > 0 else { return [] }
-
-        if step > 0, span / step <= 10 + 1e-9 {
-            let count = Int((span / step).rounded()) - 1
-            guard count > 0 else { return [] }
-            return (1...count).map { CGFloat(Double($0) * step / span) }
-        }
-        return (1...9).map { CGFloat($0) / 10 }
+        GlitchValueMath.notchFractions(in: range, step: step).map { CGFloat($0) }
     }
 
     // MARK: - Gesture
@@ -316,9 +354,10 @@ public struct GlitchSlider: View {
 
                 if !isDragging {
                     // A click: help it onto a tick, and animate there.
-                    let target = GlitchValueMath.snapToClick(
-                        rawValue(at: gesture.location.x), in: range, step: step
-                    )
+                    let raw = rawValue(at: gesture.location.x)
+                    let target = notchSnapping == .locked
+                        ? GlitchValueMath.nearestNotch(to: raw, in: range, step: step)
+                        : GlitchValueMath.snapToClick(raw, in: range, step: step)
                     if target != value {
                         withAnimation(motion.glide) { value = target }
                         GlitchHaptics.selection()
@@ -351,7 +390,26 @@ public struct GlitchSlider: View {
     }
 
     private func valueAt(_ x: CGFloat) -> Double {
-        GlitchValueMath.snap(rawValue(at: x), step: step, in: range)
+        let raw = rawValue(at: x)
+
+        switch notchSnapping {
+        case .off:
+            return GlitchValueMath.snap(raw, step: step, in: range)
+
+        case .magnetic:
+            let notch = GlitchValueMath.nearestNotch(to: raw, in: range, step: step)
+            let span = range.upperBound - range.lowerBound
+            // A notch is returned as-is rather than re-quantised, because a
+            // notch at 10% of the range is not necessarily a multiple of the
+            // step, and rounding it again would push it back off.
+            if span > 0, abs(notch - raw) / span <= GlitchNotchSnapping.pullTolerance {
+                return notch
+            }
+            return GlitchValueMath.snap(raw, step: step, in: range)
+
+        case .locked:
+            return GlitchValueMath.nearestNotch(to: raw, in: range, step: step)
+        }
     }
 
     private func commit(_ next: Double) {

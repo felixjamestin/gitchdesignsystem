@@ -103,11 +103,11 @@ struct MotionLabView: View {
     private func tokenRow(_ name: String, _ numbers: String, _ use: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(name)
-                .font(GlitchType.value(theme.metrics))
+                .font(GlitchType.value(theme))
                 .foregroundStyle(theme.palette.accent)
                 .frame(width: 48, alignment: .leading)
             Text(numbers)
-                .font(GlitchType.value(theme.metrics))
+                .font(GlitchType.value(theme))
                 .foregroundStyle(theme.palette.label)
                 .frame(width: 80, alignment: .leading)
             Text(use)

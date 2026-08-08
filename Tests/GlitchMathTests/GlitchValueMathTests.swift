@@ -188,4 +188,65 @@ struct GlitchValueMathTests {
         #expect(!v.isNaN)
         #expect(v == 5)
     }
+
+    // MARK: - Notches
+
+    @Test("a fine range gets nine notches at every tenth")
+    func notchesForFineRange() {
+        let fractions = GlitchValueMath.notchFractions(in: 0...100, step: 1)
+        #expect(fractions.count == 9)
+        #expect(abs(fractions.first! - 0.1) < 1e-9)
+        #expect(abs(fractions.last! - 0.9) < 1e-9)
+    }
+
+    @Test("a coarse range gets one notch per step")
+    func notchesForCoarseRange() {
+        let fractions = GlitchValueMath.notchFractions(in: 0...4, step: 1)
+        #expect(fractions.count == 3)
+        #expect(abs(fractions[0] - 0.25) < 1e-9)
+        #expect(abs(fractions[1] - 0.50) < 1e-9)
+        #expect(abs(fractions[2] - 0.75) < 1e-9)
+    }
+
+    @Test("notches exclude the bounds, which are drawn by the track's own ends")
+    func notchesExcludeBounds() {
+        let fractions = GlitchValueMath.notchFractions(in: 0...1, step: 0.1)
+        #expect(!fractions.contains { $0 <= 0 || $0 >= 1 })
+    }
+
+    @Test("a degenerate range has no notches")
+    func notchesDegenerate() {
+        #expect(GlitchValueMath.notchFractions(in: 5...5, step: 1).isEmpty)
+    }
+
+    @Test("the nearest notch includes both bounds")
+    func nearestNotchIncludesBounds() {
+        #expect(GlitchValueMath.nearestNotch(to: 3, in: 0...100, step: 1) == 0)
+        #expect(GlitchValueMath.nearestNotch(to: 97, in: 0...100, step: 1) == 100)
+    }
+
+    @Test("the nearest notch is the closest tenth for a fine range")
+    func nearestNotchFineRange() {
+        #expect(abs(GlitchValueMath.nearestNotch(to: 42, in: 0...100, step: 1) - 40) < 1e-9)
+        #expect(abs(GlitchValueMath.nearestNotch(to: 46, in: 0...100, step: 1) - 50) < 1e-9)
+    }
+
+    @Test("magnetism pulls a value onto a notch only within its tolerance")
+    func magnetismRespectsTolerance() {
+        // 42% is 2% from the 40% notch, inside a 3% pull.
+        #expect(abs(GlitchValueMath.magnetize(42, in: 0...100, step: 1, tolerance: 0.03) - 40) < 1e-9)
+        // 45% is 5% away, outside it, and must be left alone.
+        #expect(abs(GlitchValueMath.magnetize(45, in: 0...100, step: 1, tolerance: 0.03) - 45) < 1e-9)
+    }
+
+    @Test("a zero tolerance never pulls")
+    func magnetismZeroTolerance() {
+        #expect(abs(GlitchValueMath.magnetize(42, in: 0...100, step: 1, tolerance: 0) - 42) < 1e-9)
+    }
+
+    @Test("magnetism keeps the value inside the range")
+    func magnetismClamps() {
+        #expect(GlitchValueMath.magnetize(-10, in: 0...100, step: 1, tolerance: 0.03) == 0)
+        #expect(GlitchValueMath.magnetize(150, in: 0...100, step: 1, tolerance: 0.03) == 100)
+    }
 }

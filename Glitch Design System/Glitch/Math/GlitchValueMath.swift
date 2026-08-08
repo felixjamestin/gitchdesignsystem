@@ -72,6 +72,66 @@ public enum GlitchValueMath {
         return maximum * (min(beyond / ramp, 1)).squareRoot()
     }
 
+    /// The notches a slider shows, as fractions of its track.
+    ///
+    /// One per step while the range is coarse enough for that to stay
+    /// readable, and every 10% once it isn't. The same list drives the drawn
+    /// hashmarks and every kind of snapping, so what you see is exactly what
+    /// you can land on.
+    ///
+    /// The bounds are excluded: the ends of the track already mark themselves.
+    public static func notchFractions(
+        in range: ClosedRange<Double>,
+        step: Double
+    ) -> [Double] {
+        let span = range.upperBound - range.lowerBound
+        guard span > 0 else { return [] }
+
+        if step > 0, span / step <= 10 + 1e-9 {
+            let count = Int((span / step).rounded()) - 1
+            guard count > 0 else { return [] }
+            return (1...count).map { Double($0) * step / span }
+        }
+        return (1...9).map { Double($0) / 10 }
+    }
+
+    /// The notch closest to `value`, including the range's own bounds — which
+    /// aren't drawn, but are the most useful positions to be able to hit.
+    public static func nearestNotch(
+        to value: Double,
+        in range: ClosedRange<Double>,
+        step: Double
+    ) -> Double {
+        let span = range.upperBound - range.lowerBound
+        guard span > 0 else { return range.lowerBound }
+
+        let fraction = normalize(value, in: range)
+        let candidates = [0] + notchFractions(in: range, step: step) + [1]
+        let nearest = candidates.min { abs($0 - fraction) < abs($1 - fraction) } ?? fraction
+        return denormalize(nearest, in: range)
+    }
+
+    /// Pulls `value` onto a notch when it is within `tolerance` of one, and
+    /// otherwise leaves it exactly where it is.
+    ///
+    /// `tolerance` is a fraction of the whole range, so the pull covers the
+    /// same proportion of the track whatever the units. Zero disables it.
+    public static func magnetize(
+        _ value: Double,
+        in range: ClosedRange<Double>,
+        step: Double,
+        tolerance: Double
+    ) -> Double {
+        guard tolerance > 0 else { return clamp(value, to: range) }
+
+        let span = range.upperBound - range.lowerBound
+        guard span > 0 else { return range.lowerBound }
+
+        let notch = nearestNotch(to: value, in: range, step: step)
+        guard abs(notch - value) / span <= tolerance else { return clamp(value, to: range) }
+        return notch
+    }
+
     /// Where a click — as opposed to a drag — should land.
     ///
     /// A drag is a continuous statement of intent and is taken literally. A
@@ -94,13 +154,7 @@ public enum GlitchValueMath {
         if step > 0, span / step <= 10 + 1e-9 {
             return snap(value, step: step, in: range)
         }
-
-        let fraction = (value - range.lowerBound) / span
-        let nearestTick = (fraction * 10).rounded() / 10
-        guard abs(fraction - nearestTick) <= tolerance else {
-            return clamp(value, to: range)
-        }
-        return clamp(range.lowerBound + nearestTick * span, to: range)
+        return magnetize(value, in: range, step: step, tolerance: tolerance)
     }
 
     /// Diminishing-returns resistance for dragging past a limit.
