@@ -1,0 +1,12 @@
+{
+  "": {
+    "swift-dependencies": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/primary.swiftdeps"
+  },
+  "/Users/felixjamestin/Documents/Glitch Design System/Tests/GlitchMathTests/GlitchValueMathTests.swift": {
+    "dependencies": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/GlitchValueMathTests.d",
+    "object": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/GlitchValueMathTests.swift.o",
+    "swiftmodule": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/GlitchValueMathTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/GlitchValueMathTests.swiftdeps",
+    "diagnostics": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/GlitchValueMathTests.dia"
+  }
+}

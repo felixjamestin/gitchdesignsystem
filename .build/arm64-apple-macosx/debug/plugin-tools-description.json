@@ -1,0 +1,602 @@
+{
+  "builtTestProducts" : [
+    {
+      "binaryPath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.xctest/Contents/MacOS/GlitchMathPackageTests",
+      "packagePath" : "/Users/felixjamestin/Documents/Glitch Design System",
+      "productName" : "GlitchMathPackageTests"
+    }
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.GlitchMath-arm64-apple-macosx-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/sources",
+      "importPath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchValueMath.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "GlitchMath",
+      "moduleOutputPath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules/GlitchMath.swiftmodule",
+      "objects" : [
+        "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchValueMath.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-j11",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/include/GlitchMath-Swift.h",
+        "-swift-version",
+        "5",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "glitch_design_system"
+      ],
+      "outputFileMapPath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchValueMath.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules/GlitchMath.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchValueMath.swift"
+      ],
+      "tempsPath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build",
+      "wholeModuleOptimization" : false
+    },
+    "C.GlitchMathPackageTests-arm64-apple-macosx-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.build/sources",
+      "importPath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.derived/runner.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules/GlitchMathTests.swiftmodule"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "GlitchMathPackageTests",
+      "moduleOutputPath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules/GlitchMathPackageTests.swiftmodule",
+      "objects" : [
+        "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.build/runner.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-Xfrontend",
+        "-enable-cross-import-overlays",
+        "-j11",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.build/include/GlitchMathPackageTests-Swift.h",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "glitch_design_system"
+      ],
+      "outputFileMapPath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.build/runner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules/GlitchMathPackageTests.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.derived/runner.swift"
+      ],
+      "tempsPath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.build",
+      "wholeModuleOptimization" : false
+    },
+    "C.GlitchMathTests-arm64-apple-macosx-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/sources",
+      "importPath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/Tests/GlitchMathTests/GlitchValueMathTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules/GlitchMath.swiftmodule"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "GlitchMathTests",
+      "moduleOutputPath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules/GlitchMathTests.swiftmodule",
+      "objects" : [
+        "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/GlitchValueMathTests.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-Xfrontend",
+        "-enable-cross-import-overlays",
+        "-j11",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-swift-version",
+        "5",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "glitch_design_system"
+      ],
+      "outputFileMapPath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/GlitchValueMathTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules/GlitchMathTests.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/felixjamestin/Documents/Glitch Design System/Tests/GlitchMathTests/GlitchValueMathTests.swift"
+      ],
+      "tempsPath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "GlitchMath" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "GlitchMath",
+      "-package-name",
+      "glitch_design_system",
+      "-c",
+      "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchValueMath.swift",
+      "-I",
+      "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-j11",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/include/GlitchMath-Swift.h",
+      "-swift-version",
+      "5",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "glitch_design_system",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ],
+    "GlitchMathPackageTests" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "GlitchMathPackageTests",
+      "-package-name",
+      "glitch_design_system",
+      "-c",
+      "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.derived/runner.swift",
+      "-I",
+      "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-Xfrontend",
+      "-enable-cross-import-overlays",
+      "-j11",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.build/include/GlitchMathPackageTests-Swift.h",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "glitch_design_system",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ],
+    "GlitchMathTests" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "GlitchMathTests",
+      "-package-name",
+      "glitch_design_system",
+      "-c",
+      "/Users/felixjamestin/Documents/Glitch Design System/Tests/GlitchMathTests/GlitchValueMathTests.swift",
+      "-I",
+      "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-Xfrontend",
+      "-enable-cross-import-overlays",
+      "-j11",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-swift-version",
+      "5",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "glitch_design_system",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "GlitchMath" : [
+
+    ],
+    "GlitchMathPackageTests" : [
+      "GlitchMathTests",
+      "GlitchMath"
+    ],
+    "GlitchMathTests" : [
+      "GlitchMath"
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+    "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.derived/runner.swift" : {
+      "inputs" : [
+
+      ],
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.derived/runner.swift"
+        }
+      ]
+    }
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchValueMath.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/sources"
+    },
+    "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.derived/runner.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.build/sources"
+    },
+    "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchValueMath.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.build/runner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/GlitchValueMathTests.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.product/Objects.LinkFileList"
+    },
+    "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/Tests/GlitchMathTests/GlitchValueMathTests.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/sources"
+    },
+    "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+    }
+  }
+}
