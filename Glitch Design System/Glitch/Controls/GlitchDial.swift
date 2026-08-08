@@ -114,9 +114,6 @@ public struct GlitchDial: View {
             adjust(by: press.key == .leftArrow ? -magnitude : magnitude)
             return .handled
         }
-        .glitchScrollWheel(isActive: isHovering && isEnabled) { delta in
-            adjust(by: Double(delta) * effectiveStep * 0.25)
-        }
     }
 
     // MARK: - Geometry

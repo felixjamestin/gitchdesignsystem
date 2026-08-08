@@ -60,6 +60,19 @@ make the controls strictly worse: **keyboard operation, VoiceOver support, and i
   closing rolls up bottom-first on the quicker `snap`. `GlitchMotion.staggerDelay` is 35ms, and
   zero under Reduce Motion — which collapses a stagger into one simultaneous change.
 
+**Sixth pass.**
+
+- **The brutalist style is gone**, replaced by `.film` (VSCO-inspired): no containers, no borders,
+  no filled wells. This needed structural tokens rather than colours — `trackLineHeight` draws the
+  track as a hairline centred in a full-height row, `labelPlacement: .aboveTrack` moves the legend
+  onto its own line, and `handleIsRound` / `handleAlwaysVisible` make the handle a permanent dot.
+  The row keeps its height in both placements, so the drag target stays large while the drawing
+  gets small.
+- **Scroll-wheel adjustment is removed.** `ScrollWheel.swift` installed an `NSEvent` local monitor
+  that *consumed* scroll events while a control was hovered — which is exactly why scrolling over
+  a panel failed to scroll the form. The file is deleted rather than gated: a control should not
+  capture a gesture that belongs to its container.
+
 **Fifth pass — game feel.**
 
 - **`GlitchGlassVariant`** selects `.regular` or `.clear` glass, passed as `.glitchTheme(_:glass:)`

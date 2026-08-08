@@ -14,9 +14,9 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
     /// Teenage Engineering: light body, black text, one hot orange doing all
     /// the signalling, tight radii, uppercase micro-labels. Instrument-like.
     case engineering
-    /// Brutalist: no radii anywhere, hard two-point borders, monospaced
-    /// uppercase throughout, and no soft fills. Structure left showing.
-    case brutalist
+    /// VSCO: near-total absence. No containers, no borders, no fills — a
+    /// hairline, a dot, and a great deal of white space.
+    case film
     /// Liquid glass: the platform material, generous radii, and a palette of
     /// tints rather than fills — every surface refracts what is behind it.
     case liquidGlass
@@ -25,7 +25,7 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
         switch self {
         case .glitch: "Glitch"
         case .engineering: "Engineering"
-        case .brutalist: "Brutalist"
+        case .film: "Film"
         case .liquidGlass: "Glass"
         }
     }
@@ -44,8 +44,8 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
             return GlitchPalette.resolve(scheme)
         case .engineering:
             return scheme == .dark ? Self.engineeringDark : Self.engineeringLight
-        case .brutalist:
-            return scheme == .dark ? Self.brutalistDark : Self.brutalistLight
+        case .film:
+            return scheme == .dark ? Self.filmDark : Self.filmLight
         case .liquidGlass:
             return scheme == .dark ? Self.glassDark : Self.glassLight
         }
@@ -76,12 +76,28 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
             metrics.handleHeight = metrics.rowHeight - 8
             metrics.handleInset = 0
 
-        case .brutalist:
-            metrics.controlRadius = 0
+        case .film:
+            // Nothing is a container. The panel has no edge, controls have no
+            // wells, and separation is done with space rather than with lines.
+            metrics.controlRadius = 2
             metrics.panelRadius = 0
-            metrics.borderWidth = 2
-            metrics.tracksAreOutlined = true
-            metrics.sharpEdges = true
+            metrics.borderWidth = 0
+            metrics.tracksAreOutlined = false
+            metrics.panelPadding = metrics.panelPadding * 1.6
+            metrics.spacing = metrics.spacing * 2.2
+            metrics.labelSize = max(9, metrics.labelSize - 3)
+
+            // The slider becomes a mark: a hairline with a dot on it, and its
+            // legend on a line of its own above. The row keeps its full height
+            // so the drag target stays large while the drawing gets small.
+            metrics.trackLineHeight = 2
+            metrics.labelPlacement = .aboveTrack
+            metrics.handleIsRound = true
+            metrics.handleAlwaysVisible = true
+            metrics.handleWidth = 11
+            metrics.handleHeight = 11
+            metrics.handleInset = 5.5
+            metrics.hashmarkHeight = 5
 
         case .liquidGlass:
             // Glass reads as a lens, and a lens with tight corners looks like
@@ -119,14 +135,16 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
                 tracking: 1.6,
                 uppercaseLabels: true
             )
-        case .brutalist:
+        case .film:
+            // Small, light, and spaced far apart. The type is a caption on a
+            // photograph, not a control label.
             GlitchTypography(
-                labelDesign: .monospaced,
-                valueDesign: .monospaced,
-                labelWeight: .bold,
-                valueWeight: .bold,
-                titleWeight: .black,
-                tracking: 0.5,
+                labelDesign: .default,
+                valueDesign: .default,
+                labelWeight: .regular,
+                valueWeight: .regular,
+                titleWeight: .medium,
+                tracking: 1.8,
                 uppercaseLabels: true
             )
         case .liquidGlass:
@@ -203,29 +221,61 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
         onSelection: Color(glitchHex: 0x1A1A1A)
     )
 
-    /// Paper and ink. The border does the work that colour does elsewhere.
-    private static let brutalistLight = GlitchPalette(
+    /// Almost nothing.
+    ///
+    /// VSCO's whole argument is that the interface should get out of the way
+    /// of the image, so it removes containers entirely: no cards, no borders,
+    /// no filled wells. What is left is a hairline, a dot, a very small
+    /// letter-spaced caption, and a lot of paper.
+    ///
+    /// The palette is correspondingly thin. `track` is barely visible and
+    /// `fill` is nearly black, because on a two-point line contrast is the
+    /// only thing carrying the reading.
+    private static let filmLight = GlitchPalette(
         background: .white,
         panel: .white,
-        track: .black.opacity(0.05),
-        trackHover: .black.opacity(0.10),
-        trackActive: .black.opacity(0.14),
-        fill: .black.opacity(0.18),
-        fillActive: .black.opacity(0.28),
-        handle: .black,
-        hashmark: .black.opacity(0.40),
-        textPrimary: .black,
-        label: .black.opacity(0.85),
-        labelSecondary: .black.opacity(0.55),
-        stroke: .black,
-        strokeHover: .black,
-        accent: Color(glitchHex: 0xFF2D00),
+        track: .black.opacity(0.12),
+        trackHover: .black.opacity(0.16),
+        trackActive: .black.opacity(0.20),
+        fill: .black.opacity(0.82),
+        fillActive: .black.opacity(0.92),
+        handle: .black.opacity(0.88),
+        hashmark: .black.opacity(0.16),
+        textPrimary: .black.opacity(0.82),
+        label: .black.opacity(0.42),
+        labelSecondary: .black.opacity(0.30),
+        stroke: .black.opacity(0.07),
+        strokeHover: .black.opacity(0.12),
+        accent: .black.opacity(0.82),
         onAccent: .white,
-        danger: Color(glitchHex: 0xFF2D00)
+        danger: Color(glitchHex: 0xC0392B),
+        selectionFill: .black.opacity(0.86),
+        onSelection: .white
     )
 
-    /// Tints, not fills. Each value is what the glass is *coloured* by, so the
-    /// alphas are lower than a solid style's — the material supplies the rest.
+    /// The darkroom. Same construction, inverted.
+    private static let filmDark = GlitchPalette(
+        background: Color(glitchHex: 0x0A0A0A),
+        panel: Color(glitchHex: 0x0A0A0A),
+        track: .white.opacity(0.16),
+        trackHover: .white.opacity(0.22),
+        trackActive: .white.opacity(0.28),
+        fill: .white.opacity(0.86),
+        fillActive: .white,
+        handle: .white.opacity(0.92),
+        hashmark: .white.opacity(0.18),
+        textPrimary: .white.opacity(0.86),
+        label: .white.opacity(0.45),
+        labelSecondary: .white.opacity(0.32),
+        stroke: .white.opacity(0.09),
+        strokeHover: .white.opacity(0.15),
+        accent: .white.opacity(0.86),
+        onAccent: Color(glitchHex: 0x0A0A0A),
+        danger: Color(glitchHex: 0xE74C3C),
+        selectionFill: .white.opacity(0.90),
+        onSelection: Color(glitchHex: 0x0A0A0A)
+    )
+
     private static let glassDark = GlitchPalette(
         background: Color(glitchHex: 0x0C1018),
         panel: .white.opacity(0.06),
@@ -266,25 +316,6 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
         danger: Color(glitchHex: 0xD1293D)
     )
 
-    private static let brutalistDark = GlitchPalette(
-        background: .black,
-        panel: .black,
-        track: .white.opacity(0.08),
-        trackHover: .white.opacity(0.13),
-        trackActive: .white.opacity(0.18),
-        fill: .white.opacity(0.20),
-        fillActive: .white.opacity(0.32),
-        handle: .white,
-        hashmark: .white.opacity(0.45),
-        textPrimary: .white,
-        label: .white.opacity(0.85),
-        labelSecondary: .white.opacity(0.55),
-        stroke: .white,
-        strokeHover: .white,
-        accent: Color(glitchHex: 0xFF3D14),
-        onAccent: .black,
-        danger: Color(glitchHex: 0xFF3D14)
-    )
 }
 
 /// A style's typographic voice.

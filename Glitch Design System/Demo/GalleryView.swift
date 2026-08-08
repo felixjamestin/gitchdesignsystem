@@ -201,8 +201,8 @@ struct GalleryView: View {
             "Neutral white alphas over near-black. No colour does any signalling, so a panel of twenty controls stays legible."
         case .engineering:
             "Instrument-like: light chassis, black legends, one hot orange carrying every active state, and tight machined radii."
-        case .brutalist:
-            "No radii, two-point borders, monospaced throughout. The structure is left showing rather than smoothed over."
+        case .film:
+            "Almost nothing: no containers, no borders, no wells. A slider becomes a hairline with a dot on it and its caption on the line above — the interface getting out of the way of the work."
         case .liquidGlass:
             "Every surface is the platform's glass material, tinted by the same tokens the other styles fill with. Radii open right up — glass with tight corners reads as a chip of it."
         }

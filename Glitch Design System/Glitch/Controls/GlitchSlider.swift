@@ -114,6 +114,27 @@ public struct GlitchSlider: View {
     }
 
     public var body: some View {
+        if theme.metrics.labelPlacement == .aboveTrack {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    GlitchType.labelText(label, theme)
+                        .foregroundStyle(theme.palette.label)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    readout
+                }
+                interactiveTrack
+            }
+            .opacity(isEnabled ? 1 : 0.4)
+        } else {
+            interactiveTrack
+        }
+    }
+
+    /// The part you actually touch. Its height is the full row in both
+    /// placements, so a style that draws a two-point hairline still gets a
+    /// finger-sized target.
+    private var interactiveTrack: some View {
         Color.clear
             .frame(height: theme.metrics.rowHeight)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { trackWidth = $0 }
@@ -127,9 +148,6 @@ public struct GlitchSlider: View {
             .contentShape(Rectangle())
             .gesture(dragGesture)
             .glitchHover(onHoverChange)
-            .glitchScrollWheel(isActive: isHovering && isEnabled && !isEditing) { delta in
-                adjust(by: Double(delta) * effectiveStep * 0.25)
-            }
             .focusable(isEnabled)
             .focused($isFocused)
             .glitchFocusRing(isFocused: isFocused, radius: theme.metrics.controlRadius)
@@ -158,42 +176,57 @@ public struct GlitchSlider: View {
         let metrics = theme.metrics
         let palette = theme.palette
         let shape = RoundedRectangle(cornerRadius: metrics.controlRadius, style: .continuous)
+        // A hairline style paints only a thin band; everything else fills the
+        // row. Both are clipped to the same shape so the fill can never round
+        // differently from the well it sits in.
+        let bandHeight = metrics.trackLineHeight ?? metrics.rowHeight
+        let bandShape = metrics.trackLineHeight == nil
+            ? shape
+            : RoundedRectangle(cornerRadius: bandHeight / 2, style: .continuous)
 
-        return Color.clear
-            .glitchSurface(shape, fill: palette.track)
-            .overlay {
-                // Styles that draw their edges outline the track; the default
-                // one separates surfaces by tone alone.
-                shape.strokeBorder(
-                    metrics.tracksAreOutlined ? palette.stroke : .clear,
-                    lineWidth: metrics.borderWidth
-                )
-            }
-            .overlay(alignment: .leading) { hashmarks }
-            .overlay(alignment: .leading) { ghost }
-            .overlay(alignment: .leading) {
-                Rectangle()
-                    .fill(isActive ? palette.fillActive : palette.fill)
-                    // Inertia, not latency: the fill lags a fast drag by a
-                    // couple of points and catches up as it slows. Same idea
-                    // as a camera trailing a sprinting character.
-                    .frame(width: max(0, fillWidth + fillTrail))
-                    .animation(motion.tint, value: isActive)
-            }
-            .overlay(alignment: .leading) { handle }
-            .overlay(alignment: .leading) {
+        return ZStack(alignment: .leading) {
+            Color.clear
+                .glitchSurface(bandShape, fill: palette.track)
+                .overlay {
+                    bandShape.strokeBorder(
+                        metrics.tracksAreOutlined ? palette.stroke : .clear,
+                        lineWidth: metrics.borderWidth
+                    )
+                }
+                .overlay(alignment: .leading) { hashmarks }
+                .overlay(alignment: .leading) { ghost }
+                .overlay(alignment: .leading) {
+                    Rectangle()
+                        .fill(isActive ? palette.fillActive : palette.fill)
+                        // Inertia, not latency: the fill lags a fast drag by a
+                        // couple of points and catches up as it slows. Same
+                        // idea as a camera trailing a sprinting character.
+                        .frame(width: max(0, fillWidth + fillTrail))
+                        .animation(motion.tint, value: isActive)
+                }
+                .frame(height: bandHeight)
+                .clipShape(bandShape)
+
+            if metrics.labelPlacement == .insideTrack {
                 GlitchType.labelText(label, theme)
                     .foregroundStyle(palette.label)
                     .lineLimit(1)
                     .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { labelWidth = $0 }
                     .padding(.leading, metrics.labelInset)
                     .allowsHitTesting(false)
+
+                HStack {
+                    Spacer()
+                    readout.padding(.trailing, metrics.labelInset)
+                }
             }
-            .overlay(alignment: .trailing) {
-                readout.padding(.trailing, metrics.labelInset)
-            }
-            .clipShape(shape)
-            .opacity(isEnabled ? 1 : 0.4)
+
+            // Outside the clip: a round handle overhangs a two-point line, and
+            // clipping it would slice the dot in half.
+            handle
+        }
+        .frame(height: metrics.rowHeight)
+        .opacity(isEnabled ? 1 : 0.4)
     }
 
     /// Ticks the click-snapping actually lands on: one per step when the range
@@ -238,22 +271,29 @@ public struct GlitchSlider: View {
     }
 
     private var handle: some View {
-        RoundedRectangle(cornerRadius: theme.metrics.partRadius(theme.metrics.handleWidth))
-            .fill(theme.palette.handle)
-            .frame(width: theme.metrics.handleWidth, height: theme.metrics.handleHeight)
-            // Retracted to a quarter width at rest and grown on engagement, so
-            // the row reads as a bar until you touch it and as a slider the
-            // moment you do.
-            .scaleEffect(
-                x: isActive ? 1 : 0.25,
-                y: (isActive && handleCollidesWithText) ? 0.75 : 1,
-                anchor: .center
-            )
-            .opacity(handleOpacity)
-            .offset(x: handleX)
-            .animation(motion.pop, value: isActive)
-            .animation(motion.tint, value: handleOpacity)
-            .allowsHitTesting(false)
+        let metrics = theme.metrics
+        // A round handle is a mark in its own right and keeps its size; a bar
+        // handle is retracted to a quarter width at rest, so the row reads as
+        // a bar until you touch it and as a slider the moment you do.
+        let restingScaleX: CGFloat = metrics.handleIsRound ? 1 : 0.25
+
+        return RoundedRectangle(
+            cornerRadius: metrics.handleIsRound
+                ? metrics.handleHeight / 2
+                : metrics.partRadius(metrics.handleWidth)
+        )
+        .fill(theme.palette.handle)
+        .frame(width: metrics.handleWidth, height: metrics.handleHeight)
+        .scaleEffect(
+            x: isActive ? 1 : restingScaleX,
+            y: (isActive && handleCollidesWithText) ? 0.75 : 1,
+            anchor: .center
+        )
+        .opacity(handleOpacity)
+        .offset(x: handleX)
+        .animation(motion.pop, value: isActive)
+        .animation(motion.tint, value: handleOpacity)
+        .allowsHitTesting(false)
     }
 
     @ViewBuilder
@@ -339,6 +379,8 @@ public struct GlitchSlider: View {
     /// It fades almost away rather than crossing them, because a 3pt bar
     /// through the middle of a word is worse than no handle at all.
     private var handleCollidesWithText: Bool {
+        // Nothing to collide with when the legend lives on its own line.
+        guard theme.metrics.labelPlacement == .insideTrack else { return false }
         guard stretchedWidth > 0 else { return false }
         let gap: CGFloat = 8
         let labelEdge = theme.metrics.labelInset + labelWidth + gap
@@ -347,7 +389,7 @@ public struct GlitchSlider: View {
     }
 
     private var handleOpacity: Double {
-        guard isActive else { return 0 }
+        guard isActive else { return theme.metrics.handleAlwaysVisible ? 1 : 0 }
         if handleCollidesWithText { return 0.1 }
         return isDragging ? 0.9 : 0.5
     }
