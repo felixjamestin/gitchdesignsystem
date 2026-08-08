@@ -226,17 +226,35 @@ public struct GlitchSlider: View {
         let metrics = theme.metrics
         let approaching = approachingNotch
 
+        // Kept inside the row: the tallest a notch may grow is the row itself,
+        // whatever height the style gave it at rest.
+        let maxGrowthY = max(1, (metrics.rowHeight - 4) / max(1, metrics.hashmarkHeight))
+
         return GeometryReader { proxy in
             ForEach(Array(tickFractions.enumerated()), id: \.offset) { _, tick in
-                let isNear = approaching.map { abs($0 - Double(tick)) < 1e-9 } ?? false
+                let strength = CGFloat(
+                    approaching.flatMap { abs($0.fraction - Double(tick)) < 1e-9 ? $0.strength : nil } ?? 0
+                )
                 let visible = isActive || metrics.hashmarksAlwaysVisible
 
-                RoundedRectangle(cornerRadius: metrics.partRadius(metrics.hashmarkWidth))
-                    .fill(theme.palette.hashmark.opacity(visible ? (isNear ? 2 : 1) : 0))
-                    .frame(width: metrics.hashmarkWidth, height: metrics.hashmarkHeight)
-                    .scaleEffect(y: isNear ? 1.5 : 1)
-                    .position(x: proxy.size.width * tick, y: proxy.size.height / 2)
-                    .animation(motion.pop, value: isNear)
+                ZStack {
+                    RoundedRectangle(cornerRadius: metrics.partRadius(metrics.hashmarkWidth))
+                        .fill(theme.palette.hashmark)
+                    // The approaching notch takes on the handle's own colour,
+                    // so it reads as the thing about to catch the value rather
+                    // than as a brighter tick.
+                    RoundedRectangle(cornerRadius: metrics.partRadius(metrics.hashmarkWidth))
+                        .fill(theme.palette.handle)
+                        .opacity(Double(strength))
+                }
+                .frame(width: metrics.hashmarkWidth, height: metrics.hashmarkHeight)
+                .scaleEffect(
+                    x: 1 + GlitchDelightTuning.notchGrowthX * strength,
+                    y: min(maxGrowthY, 1 + GlitchDelightTuning.notchGrowthY * strength)
+                )
+                .opacity(visible ? 1 : 0)
+                .position(x: proxy.size.width * tick, y: proxy.size.height / 2)
+                .animation(motion.pop, value: strength)
             }
         }
         .animation(motion.tint, value: isActive)
@@ -393,19 +411,28 @@ public struct GlitchSlider: View {
         GlitchValueMath.notchFractions(in: range, step: step).map { CGFloat($0) }
     }
 
-    /// The notch the value is currently closing in on, if any. Nil when the
-    /// slider doesn't snap — announcing a notch that won't grab would be a lie.
-    private var approachingNotch: Double? {
+    /// The notch the value is closing in on, and how close it has got.
+    ///
+    /// `strength` runs 0 → 1 across the approach so the notch can grow
+    /// continuously rather than snapping between two states. A binary
+    /// highlight tells you a notch is near; a continuous one tells you *how*
+    /// near, which is the whole point of foreshadowing.
+    ///
+    /// Nil when the slider doesn't snap — advertising a pull that will never
+    /// come would be a lie.
+    private var approachingNotch: (fraction: Double, strength: Double)? {
         guard delight, isActive, notchSnapping != .off else { return nil }
 
         let here = Double(fraction)
         let nearest = GlitchValueMath.notchFractions(in: range, step: step)
             .min { abs($0 - here) < abs($1 - here) }
 
-        guard let nearest, abs(nearest - here) <= GlitchDelightTuning.notchProximity else {
-            return nil
-        }
-        return nearest
+        guard let nearest else { return nil }
+        let distance = abs(nearest - here)
+        guard distance <= GlitchDelightTuning.notchProximity else { return nil }
+
+        let linear = 1 - distance / GlitchDelightTuning.notchProximity
+        return (nearest, pow(linear, GlitchDelightTuning.notchApproachCurve))
     }
 
     // MARK: - Gesture

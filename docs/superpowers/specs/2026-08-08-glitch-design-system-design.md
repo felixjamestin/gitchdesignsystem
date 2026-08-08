@@ -60,6 +60,23 @@ make the controls strictly worse: **keyboard operation, VoiceOver support, and i
   closing rolls up bottom-first on the quicker `snap`. `GlitchMotion.staggerDelay` is 35ms, and
   zero under Reduce Motion — which collapses a stagger into one simultaneous change.
 
+**Eighth pass.**
+
+- **Notch foreshadowing is continuous.** `approachingNotch` now returns a strength from 0 → 1 across
+  a 9% approach (up from a binary flip at 5%), and the nearest notch grows to 3× its height and
+  3.6× its width while taking on the *handle's* colour — so it reads as the thing about to catch
+  the value, not merely a brighter tick. Growth is clamped to the row height so a style with tall
+  marks can't overflow.
+- **`travel`**, a fifth spring token (0.52s, bounce 0.45) for whole views moving. Its own token
+  because nothing else in the vocabulary is meant for something screen-sized, and a control that
+  overshot this much would feel unreliable — a screen that does reads as eager.
+- **`GlitchTabBar`** replaces `TabView`, which owns its transition and won't discuss it. The
+  indicator is one view moved with `matchedGeometryEffect` on `travel`; the selected symbol plays
+  SF Symbols' bounce on arrival; unselected tabs sit at 0.94 scale so selecting one is a rise as
+  well as a recolour. Screens move out the way you came and in from the way you're going, and the
+  tab bar's `withAnimation` drives both the indicator and the screen transition, so they cannot
+  drift apart.
+
 **Seventh pass — forgiveness.**
 
 - **Glass gets a backdrop.** `GlitchBackdrop` — a mesh gradient, blurred bokeh discs and grain,

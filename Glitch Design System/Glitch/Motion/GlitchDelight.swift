@@ -44,9 +44,19 @@ public enum GlitchDelightTuning {
     public static let trailReferenceVelocity: CGFloat = 900
 
     /// How close the value must be, as a fraction of the range, for a notch to
-    /// light up. Wider than the magnetic pull itself, so the notch announces
-    /// itself before it grabs.
-    public static let notchProximity: Double = 0.05
+    /// begin reacting. Several times wider than the 2% magnetic pull, so the
+    /// notch has room to grow visibly before it grabs — foreshadowing that
+    /// only starts once the pull is imminent isn't foreshadowing.
+    public static let notchProximity: Double = 0.09
+
+    /// How much taller and wider the nearest notch grows at full strength.
+    public static let notchGrowthY: CGFloat = 2.0
+    public static let notchGrowthX: CGFloat = 2.6
+
+    /// Shapes the approach. Below 1 the notch reacts early and eases in, so
+    /// the growth is legible across the whole approach rather than appearing
+    /// all at once in the last few points.
+    public static let notchApproachCurve: Double = 0.6
 
     /// Opening opacity of the ghost left behind by a jump.
     public static let ghostOpacity: Double = 0.55
