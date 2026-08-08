@@ -31,7 +31,11 @@ rules (Section 4) rather than per-control improvisation.
 
 The project targets **iOS 27.0 and macOS 27.0** (`SUPPORTED_PLATFORMS` also lists visionOS; we do
 not target it, and will not add visionOS-specific code, but must not write anything that fails to
-compile there). Current-generation SwiftUI APIs may be used freely.
+compile there).
+
+**The installed SDK is 26.5**, below the configured deployment target. Xcode emits a warning and
+builds successfully, but the effective API ceiling is **26.x** — code must not use APIs introduced
+in 27. If the toolchain is later updated, this constraint can be relaxed.
 
 The Swift language mode stays at **5.0**, as currently configured. Migrating to Swift 6 strict
 concurrency is unrelated to this work and would add churn.
