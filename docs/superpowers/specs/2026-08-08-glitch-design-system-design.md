@@ -60,6 +60,33 @@ make the controls strictly worse: **keyboard operation, VoiceOver support, and i
   closing rolls up bottom-first on the quicker `snap`. `GlitchMotion.staggerDelay` is 35ms, and
   zero under Reduce Motion — which collapses a stagger into one simultaneous change.
 
+**Seventh pass — forgiveness.**
+
+- **Glass gets a backdrop.** `GlitchBackdrop` — a mesh gradient, blurred bokeh discs and grain,
+  generated rather than bundled — stands in for a photograph, because glass judged against a flat
+  colour tells you nothing. `GlitchPageBackground` selects it automatically when the surface is
+  glass.
+- **The film slider is a solid bar again**, matching every other film control. The hairline version
+  was more faithful to VSCO but made the one control that matters look unrelated to its own panel;
+  consistency inside a theme beats fidelity to its inspiration. The tokens that existed only for it
+  (`trackLineHeight`, `labelPlacement`, `handleIsRound`) are removed rather than left as scaffolding.
+- **Forgiveness mechanics**, all behind `glitchDelight`. The principle, from platformer design: the
+  exact instant a finger moves is a *noisy signal of intent*, and a control should read through the
+  noise. **Release-latch** — a press within 140ms and 24pt of the last release resumes the drag
+  instead of being treated as a fresh click that would snap the value elsewhere. **Intent
+  buffering** — two clicks within 260ms open the editor, so typing a value is discoverable without
+  the 800ms hover. **Gear hysteresis** — fine mode engages on a deliberate, mostly-vertical
+  excursion and disengages at 60% of that distance, so a wobbling hand can't flicker between gears;
+  once a drag has changed gear, position is measured relative to the change rather than absolutely.
+- **Anticipation, squash, rejection.** A click pulls the fill back 2pt for 45ms before travelling;
+  the handle squashes on landing (area-conserving); a typed value outside the range kicks the row
+  laterally instead of being silently clamped.
+- **Sound.** `GlitchSound` synthesises three decaying tones at launch — crossing, landing,
+  rejection. Ambient category, mixed with other audio, obeys the ring switch, and fires only on
+  *notch* crossings so a 700-unit range doesn't buzz.
+- **Doherty.** `glide` — the token on the commit path — is 0.36s, under the 400ms boundary between
+  "responding to me" and "making me wait".
+
 **Sixth pass.**
 
 - **The brutalist style is gone**, replaced by `.film` (VSCO-inspired): no containers, no borders,

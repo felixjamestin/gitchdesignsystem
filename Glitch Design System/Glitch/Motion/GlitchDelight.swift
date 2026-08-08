@@ -50,4 +50,34 @@ public enum GlitchDelightTuning {
 
     /// Opening opacity of the ghost left behind by a jump.
     public static let ghostOpacity: Double = 0.55
+
+    // MARK: Anticipation and landing
+
+    /// How far the fill pulls back before a jump, in points.
+    public static let anticipation: CGFloat = 2
+    /// How long it holds there. Long enough to see, too short to wait for.
+    public static let anticipationHold: Duration = .milliseconds(45)
+    /// Vertical scale of the handle at the moment a value lands; the
+    /// horizontal scale takes the complementary amount, conserving area the
+    /// way squash and stretch is supposed to.
+    public static let landingSquash: CGFloat = 0.82
+    /// Lateral kick when a typed value is rejected.
+    public static let rejectionKick: CGFloat = 4
+
+    // MARK: Forgiveness
+
+    /// How long after a release a new press still counts as the same drag.
+    ///
+    /// Kept well under the ~150ms that reads as forgiving rather than sloppy.
+    /// A finger that lifted this recently was mid-adjustment, not finished.
+    public static let releaseLatch: Duration = .milliseconds(140)
+    /// And how far away it may land, in points, to still count.
+    public static let releaseLatchDistance: CGFloat = 24
+    /// Two clicks inside this window mean "let me type it".
+    public static let doubleClickWindow: Duration = .milliseconds(260)
+    /// Fine mode disengages at this fraction of the distance that engaged it,
+    /// so a wobbling hand cannot flicker between gears.
+    public static let fineExitRatio: CGFloat = 0.6
+    /// How much slower fine adjustment moves.
+    public static let fineScale: Double = 0.15
 }

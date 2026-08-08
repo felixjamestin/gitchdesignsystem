@@ -144,7 +144,7 @@ struct GalleryView: View {
             .frame(maxWidth: 560, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
-        .background(theme.palette.background)
+        .background { GlitchPageBackground() }
     }
 
     private var appearancePanel: some View {

@@ -49,7 +49,11 @@ public struct GlitchMotion: Equatable, Sendable {
 
         return GlitchMotion(
             snap: .spring(duration: 0.22 * s, bounce: 0.22),
-            glide: .spring(duration: 0.42 * s, bounce: 0.34),
+            // The Doherty threshold puts the boundary between "responding to
+            // me" and "making me wait" at 400ms. `glide` is the token on the
+            // commit path — the one animation a user is actually waiting on
+            // before they can judge a value — so it stays comfortably under.
+            glide: .spring(duration: 0.36 * s, bounce: 0.34),
             pop: .spring(duration: 0.28 * s, bounce: 0.30),
             drift: .spring(duration: 0.40 * s, bounce: 0.28),
             tint: .easeOut(duration: 0.15 * s),

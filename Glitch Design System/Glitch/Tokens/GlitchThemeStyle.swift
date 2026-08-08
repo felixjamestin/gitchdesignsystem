@@ -87,17 +87,14 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
             metrics.spacing = metrics.spacing * 2.2
             metrics.labelSize = max(9, metrics.labelSize - 3)
 
-            // The slider becomes a mark: a hairline with a dot on it, and its
-            // legend on a line of its own above. The row keeps its full height
-            // so the drag target stays large while the drawing gets small.
-            metrics.trackLineHeight = 2
-            metrics.labelPlacement = .aboveTrack
-            metrics.handleIsRound = true
+            // The slider keeps the same solid bar every other control has.
+            // An earlier version drew it as a hairline with the legend above,
+            // which was more faithful to the app it borrows from but made the
+            // one control that matters look unrelated to the rest of the
+            // panel. Consistency inside a theme beats fidelity to its
+            // inspiration.
             metrics.handleAlwaysVisible = true
-            metrics.handleWidth = 11
-            metrics.handleHeight = 11
-            metrics.handleInset = 5.5
-            metrics.hashmarkHeight = 5
+            metrics.hashmarkHeight = 6
 
         case .liquidGlass:
             // Glass reads as a lens, and a lens with tight corners looks like

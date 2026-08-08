@@ -43,15 +43,6 @@ public enum GlitchPlatform {
     }
 }
 
-/// Where a slider's label and value sit relative to its track.
-public enum GlitchLabelPlacement: Sendable, Hashable {
-    /// Overlaid on the track itself, so the row is its own label. Dense.
-    case insideTrack
-    /// On a line of their own above the track. Costs vertical space and buys
-    /// quiet — the track becomes a mark rather than a container.
-    case aboveTrack
-}
-
 /// Every dimension in the system, resolved from a density.
 public struct GlitchMetrics: Equatable, Sendable {
     public var rowHeight: CGFloat
@@ -96,16 +87,6 @@ public struct GlitchMetrics: Equatable, Sendable {
     /// Extra tracking applied to labels on top of the style's own.
     public var labelTracking: CGFloat = 0
 
-    // MARK: Slider construction
-
-    /// Draws the track as a hairline centred in the row rather than as a
-    /// full-height well. The row keeps its height — the target stays large
-    /// while the mark gets small.
-    public var trackLineHeight: CGFloat?
-    /// Where a slider's label lives.
-    public var labelPlacement: GlitchLabelPlacement = .insideTrack
-    /// Renders the handle as a dot rather than a bar.
-    public var handleIsRound: Bool = false
     /// Keeps the handle visible at rest instead of revealing it on engagement.
     public var handleAlwaysVisible: Bool = false
 

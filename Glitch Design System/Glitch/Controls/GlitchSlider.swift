@@ -90,12 +90,29 @@ public struct GlitchSlider: View {
 
     // Game-feel layer. All of it inert when `delight` is off.
     @State private var fillTrail: CGFloat = 0
+    @State private var anticipation: CGFloat = 0
+    @State private var handleSquash: CGFloat = 1
+    @State private var shake: CGFloat = 0
     @State private var ghostFraction: Double?
     @State private var ghostOpacity: Double = 0
     @State private var ghostTask: Task<Void, Never>?
+    @State private var jumpTask: Task<Void, Never>?
     /// While set, the value is held still: the drag keeps happening, but the
     /// control refuses to move until the moment passes.
     @State private var hitStopUntil: ContinuousClock.Instant?
+
+    // Forgiveness. The exact instant a finger lifts or lands is a noisy signal
+    // of what someone meant; these remember just enough to read through it.
+    @State private var lastReleaseAt: ContinuousClock.Instant?
+    @State private var lastReleaseX: CGFloat = 0
+    @State private var lastClickAt: ContinuousClock.Instant?
+    @State private var isFineDrag = false
+    /// Once a drag has changed gear, position is measured from where the
+    /// change happened rather than from the track's origin — otherwise
+    /// returning to coarse would teleport the value to the pointer.
+    @State private var usesRelativeTracking = false
+    @State private var relativeAnchorX: CGFloat = 0
+    @State private var relativeAnchorValue: Double = 0
 
     public init(
         _ label: String,
@@ -114,27 +131,6 @@ public struct GlitchSlider: View {
     }
 
     public var body: some View {
-        if theme.metrics.labelPlacement == .aboveTrack {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
-                    GlitchType.labelText(label, theme)
-                        .foregroundStyle(theme.palette.label)
-                        .lineLimit(1)
-                    Spacer(minLength: 8)
-                    readout
-                }
-                interactiveTrack
-            }
-            .opacity(isEnabled ? 1 : 0.4)
-        } else {
-            interactiveTrack
-        }
-    }
-
-    /// The part you actually touch. Its height is the full row in both
-    /// placements, so a style that draws a two-point hairline still gets a
-    /// finger-sized target.
-    private var interactiveTrack: some View {
         Color.clear
             .frame(height: theme.metrics.rowHeight)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { trackWidth = $0 }
@@ -145,6 +141,7 @@ public struct GlitchSlider: View {
                     .frame(width: stretchedWidth, height: theme.metrics.rowHeight)
                     .offset(x: min(0, overscroll))
             }
+            .offset(x: shake)
             .contentShape(Rectangle())
             .gesture(dragGesture)
             .glitchHover(onHoverChange)
@@ -176,57 +173,46 @@ public struct GlitchSlider: View {
         let metrics = theme.metrics
         let palette = theme.palette
         let shape = RoundedRectangle(cornerRadius: metrics.controlRadius, style: .continuous)
-        // A hairline style paints only a thin band; everything else fills the
-        // row. Both are clipped to the same shape so the fill can never round
-        // differently from the well it sits in.
-        let bandHeight = metrics.trackLineHeight ?? metrics.rowHeight
-        let bandShape = metrics.trackLineHeight == nil
-            ? shape
-            : RoundedRectangle(cornerRadius: bandHeight / 2, style: .continuous)
 
-        return ZStack(alignment: .leading) {
-            Color.clear
-                .glitchSurface(bandShape, fill: palette.track)
-                .overlay {
-                    bandShape.strokeBorder(
-                        metrics.tracksAreOutlined ? palette.stroke : .clear,
-                        lineWidth: metrics.borderWidth
-                    )
-                }
-                .overlay(alignment: .leading) { hashmarks }
-                .overlay(alignment: .leading) { ghost }
-                .overlay(alignment: .leading) {
-                    Rectangle()
-                        .fill(isActive ? palette.fillActive : palette.fill)
-                        // Inertia, not latency: the fill lags a fast drag by a
-                        // couple of points and catches up as it slows. Same
-                        // idea as a camera trailing a sprinting character.
-                        .frame(width: max(0, fillWidth + fillTrail))
-                        .animation(motion.tint, value: isActive)
-                }
-                .frame(height: bandHeight)
-                .clipShape(bandShape)
-
-            if metrics.labelPlacement == .insideTrack {
+        return Color.clear
+            .glitchSurface(shape, fill: palette.track)
+            .overlay {
+                // Styles that draw their edges outline the track; the default
+                // one separates surfaces by tone alone.
+                shape.strokeBorder(
+                    metrics.tracksAreOutlined ? palette.stroke : .clear,
+                    lineWidth: metrics.borderWidth
+                )
+            }
+            .overlay(alignment: .leading) { hashmarks }
+            .overlay(alignment: .leading) { ghost }
+            .overlay(alignment: .leading) {
+                Rectangle()
+                    .fill(isActive ? palette.fillActive : palette.fill)
+                    // Inertia, not latency: the fill lags a fast drag by a
+                    // couple of points and catches up as it slows. Same idea
+                    // as a camera trailing a sprinting character.
+                    //
+                    // `anticipation` is the opposite move: a brief pull-back
+                    // before a jump, so the value looks like it gathers itself
+                    // rather than teleporting.
+                    .frame(width: max(0, fillWidth + fillTrail + anticipation))
+                    .animation(motion.tint, value: isActive)
+            }
+            .overlay(alignment: .leading) { handle }
+            .overlay(alignment: .leading) {
                 GlitchType.labelText(label, theme)
                     .foregroundStyle(palette.label)
                     .lineLimit(1)
                     .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { labelWidth = $0 }
                     .padding(.leading, metrics.labelInset)
                     .allowsHitTesting(false)
-
-                HStack {
-                    Spacer()
-                    readout.padding(.trailing, metrics.labelInset)
-                }
             }
-
-            // Outside the clip: a round handle overhangs a two-point line, and
-            // clipping it would slice the dot in half.
-            handle
-        }
-        .frame(height: metrics.rowHeight)
-        .opacity(isEnabled ? 1 : 0.4)
+            .overlay(alignment: .trailing) {
+                readout.padding(.trailing, metrics.labelInset)
+            }
+            .clipShape(shape)
+            .opacity(isEnabled ? 1 : 0.4)
     }
 
     /// Ticks the click-snapping actually lands on: one per step when the range
@@ -272,21 +258,21 @@ public struct GlitchSlider: View {
 
     private var handle: some View {
         let metrics = theme.metrics
-        // A round handle is a mark in its own right and keeps its size; a bar
-        // handle is retracted to a quarter width at rest, so the row reads as
-        // a bar until you touch it and as a slider the moment you do.
-        let restingScaleX: CGFloat = metrics.handleIsRound ? 1 : 0.25
+        // Retracted to a quarter width at rest, so the row reads as a bar
+        // until you touch it and as a slider the moment you do — unless the
+        // style keeps its handle permanently visible, in which case shrinking
+        // it would just make it look broken.
+        let restingScaleX: CGFloat = metrics.handleAlwaysVisible ? 1 : 0.25
 
-        return RoundedRectangle(
-            cornerRadius: metrics.handleIsRound
-                ? metrics.handleHeight / 2
-                : metrics.partRadius(metrics.handleWidth)
-        )
+        return RoundedRectangle(cornerRadius: metrics.partRadius(metrics.handleWidth))
         .fill(theme.palette.handle)
         .frame(width: metrics.handleWidth, height: metrics.handleHeight)
+        // Squash and stretch: the handle compresses along its travel and
+        // swells across it as a value lands. One technique, more liveliness
+        // than any other for the cost.
         .scaleEffect(
-            x: isActive ? 1 : restingScaleX,
-            y: (isActive && handleCollidesWithText) ? 0.75 : 1,
+            x: (isActive ? 1 : restingScaleX) * (2 - handleSquash),
+            y: ((isActive && handleCollidesWithText) ? 0.75 : 1) * handleSquash,
             anchor: .center
         )
         .opacity(handleOpacity)
@@ -379,8 +365,6 @@ public struct GlitchSlider: View {
     /// It fades almost away rather than crossing them, because a 3pt bar
     /// through the middle of a word is worse than no handle at all.
     private var handleCollidesWithText: Bool {
-        // Nothing to collide with when the legend lives on its own line.
-        guard theme.metrics.labelPlacement == .insideTrack else { return false }
         guard stretchedWidth > 0 else { return false }
         let gap: CGFloat = 8
         let labelEdge = theme.metrics.labelInset + labelWidth + gap
@@ -430,6 +414,16 @@ public struct GlitchSlider: View {
                     isPressed = true
                     isFocused = true
                     cancelEditOffer()
+
+                    // Release-latch. A finger that lifted a moment ago, right
+                    // about here, was almost certainly still mid-adjustment —
+                    // a bump, a repositioned grip, a trackpad that lost
+                    // contact. Resuming the drag beats treating it as a fresh
+                    // click, which would snap the value somewhere it was
+                    // never asked to go.
+                    if resumesPreviousDrag(at: gesture.location.x) {
+                        isDragging = true
+                    }
                 }
 
                 let travel = hypot(
@@ -455,22 +449,27 @@ public struct GlitchSlider: View {
                 withTransaction(transaction) {
                     overscroll = overscrollOffset(forX: gesture.location.x)
                     fillTrail = trail(forVelocity: gesture.velocity.width)
+                    updateFineMode(for: gesture)
                     commit(valueAt(gesture.location.x))
                 }
             }
             .onEnded { gesture in
                 guard isEnabled else { return }
 
-                if !isDragging {
-                    // A click: help it onto a tick, and animate there.
-                    let raw = rawValue(at: gesture.location.x)
-                    let target = notchSnapping == .locked
-                        ? GlitchValueMath.nearestNotch(to: raw, in: range, step: step)
-                        : GlitchValueMath.snapToClick(raw, in: range, step: step)
-                    if target != value {
-                        leaveGhost()
-                        withAnimation(motion.glide) { value = target }
-                        GlitchHaptics.selection()
+                if isDragging {
+                    landValue()
+                } else {
+                    // Intent buffering: a second click in quick succession
+                    // means "let me type this", without the 800ms wait that is
+                    // otherwise the only way to discover the editor.
+                    if let previous = lastClickAt,
+                       ContinuousClock.now - previous <= GlitchDelightTuning.doubleClickWindow,
+                       delight {
+                        lastClickAt = nil
+                        beginEditing()
+                    } else {
+                        lastClickAt = ContinuousClock.now
+                        jumpToClick(at: gesture.location.x)
                     }
                 }
 
@@ -480,10 +479,102 @@ public struct GlitchSlider: View {
                 if fillTrail != 0 {
                     withAnimation(motion.pop) { fillTrail = 0 }
                 }
+                lastReleaseAt = ContinuousClock.now
+                lastReleaseX = gesture.location.x
                 isPressed = false
                 isDragging = false
+                isFineDrag = false
+                usesRelativeTracking = false
                 hitStopUntil = nil
             }
+    }
+
+    /// A click, wound up and then released.
+    ///
+    /// The fill pulls back a couple of points before travelling — anticipation,
+    /// which is what makes the movement look intended rather than teleported.
+    private func jumpToClick(at x: CGFloat) {
+        let raw = rawValue(at: x)
+        let target = notchSnapping == .locked
+            ? GlitchValueMath.nearestNotch(to: raw, in: range, step: step)
+            : GlitchValueMath.snapToClick(raw, in: range, step: step)
+        guard target != value else { return }
+
+        let forward = target > value
+        leaveGhost()
+
+        guard delight else {
+            withAnimation(motion.glide) { value = target }
+            GlitchHaptics.selection()
+            return
+        }
+
+        jumpTask?.cancel()
+        anticipation = forward ? -GlitchDelightTuning.anticipation : GlitchDelightTuning.anticipation
+
+        jumpTask = Task { @MainActor in
+            try? await Task.sleep(for: GlitchDelightTuning.anticipationHold)
+            guard !Task.isCancelled else { return }
+            withAnimation(motion.glide) {
+                anticipation = 0
+                value = target
+            }
+            GlitchHaptics.selection()
+            GlitchSound.commit()
+            landValue()
+        }
+    }
+
+    /// The squash a value makes on arriving.
+    private func landValue() {
+        guard delight else { return }
+        withAnimation(motion.snap) { handleSquash = GlitchDelightTuning.landingSquash }
+        withAnimation(motion.pop.delay(0.06)) { handleSquash = 1 }
+    }
+
+    /// A short lateral kick, for the one case where the user is definitely
+    /// wrong and would otherwise be told nothing: a typed value out of range.
+    private func rejectValue() {
+        GlitchHaptics.limit()
+        GlitchSound.reject()
+
+        guard delight else { return }
+        withAnimation(motion.snap) { shake = GlitchDelightTuning.rejectionKick }
+        withAnimation(motion.pop.delay(0.07)) { shake = -GlitchDelightTuning.rejectionKick * 0.6 }
+        withAnimation(motion.drift.delay(0.15)) { shake = 0 }
+    }
+
+    /// Whether this press continues the drag that just ended.
+    private func resumesPreviousDrag(at x: CGFloat) -> Bool {
+        guard delight, let released = lastReleaseAt else { return false }
+        guard ContinuousClock.now - released <= GlitchDelightTuning.releaseLatch else { return false }
+        return abs(x - lastReleaseX) <= GlitchDelightTuning.releaseLatchDistance
+    }
+
+    /// Fine adjustment engages only on a deliberate, mostly-vertical excursion,
+    /// and disengages later than it engages.
+    ///
+    /// Without the hysteresis a hand that wobbles across the boundary changes
+    /// gear repeatedly mid-drag, which feels like the control malfunctioning.
+    private func updateFineMode(for gesture: DragGesture.Value) {
+        guard delight else { return }
+        let vertical = abs(gesture.translation.height)
+        let horizontal = abs(gesture.translation.width)
+        let threshold = theme.metrics.rowHeight * 1.5
+
+        let wasFine = isFineDrag
+        if isFineDrag {
+            isFineDrag = vertical > threshold * GlitchDelightTuning.fineExitRatio
+        } else {
+            isFineDrag = vertical > threshold && vertical > horizontal
+        }
+
+        if isFineDrag != wasFine {
+            // Re-anchor on every gear change, in both directions.
+            usesRelativeTracking = true
+            relativeAnchorX = gesture.location.x
+            relativeAnchorValue = value
+        }
     }
 
     /// Inertia proportional to drag speed, capped well below the point where
@@ -528,8 +619,18 @@ public struct GlitchSlider: View {
             + GlitchValueMath.fraction(ofX: Double(x), width: Double(trackWidth)) * span
     }
 
+    /// Movement measured from the last gear change, at whichever rate the
+    /// current gear calls for.
+    private func relativeValue(at x: CGFloat) -> Double {
+        guard trackWidth > 0 else { return relativeAnchorValue }
+        let span = range.upperBound - range.lowerBound
+        let scale = isFineDrag ? GlitchDelightTuning.fineScale : 1
+        let travelled = Double((x - relativeAnchorX) / trackWidth) * span * scale
+        return GlitchValueMath.clamp(relativeAnchorValue + travelled, to: range)
+    }
+
     private func valueAt(_ x: CGFloat) -> Double {
-        let raw = rawValue(at: x)
+        let raw = usesRelativeTracking ? relativeValue(at: x) : rawValue(at: x)
 
         switch notchSnapping {
         case .off:
@@ -553,6 +654,7 @@ public struct GlitchSlider: View {
 
     private func commit(_ next: Double) {
         guard next != value else { return }
+        let previous = value
         let wasAtLimit = value == range.lowerBound || value == range.upperBound
         let isAtLimit = next == range.lowerBound || next == range.upperBound
 
@@ -567,9 +669,28 @@ public struct GlitchSlider: View {
             // felt happen.
             if delight {
                 hitStopUntil = ContinuousClock.now.advanced(by: GlitchDelightTuning.hitStop)
+                GlitchSound.reject()
             }
         } else {
             GlitchHaptics.tick()
+            if delight, crossedNotch(from: previous, to: next) {
+                GlitchSound.tick()
+            }
+        }
+    }
+
+    /// Whether a change stepped over one of the drawn notches — the only
+    /// crossings worth making a sound about, since a tick on every step of a
+    /// 700-unit range would be a buzz.
+    private func crossedNotch(from previous: Double, to next: Double) -> Bool {
+        let span = range.upperBound - range.lowerBound
+        guard span > 0 else { return false }
+
+        let low = min(previous, next)
+        let high = max(previous, next)
+        return GlitchValueMath.notchFractions(in: range, step: step).contains { fraction in
+            let notch = range.lowerBound + fraction * span
+            return notch > low && notch <= high
         }
     }
 
@@ -585,6 +706,8 @@ public struct GlitchSlider: View {
         leaveGhost()
         withAnimation(motion.glide) { value = next }
         GlitchHaptics.tick()
+        if delight { GlitchSound.commit() }
+        landValue()
     }
 
     // MARK: - Hover and editing
@@ -621,8 +744,19 @@ public struct GlitchSlider: View {
     private func commitDraft() {
         let parsed = GlitchNumberParsing.parse(draft, fallback: value)
         let next = GlitchValueMath.snap(parsed, step: step, in: range)
+
+        // Typing 900 into a 0–100 slider is the one case where the user is
+        // definitely wrong and, until now, was told nothing at all: the number
+        // simply became 100 with no explanation.
+        let wasOutOfRange = parsed < range.lowerBound || parsed > range.upperBound
+
         if next != value {
             withAnimation(motion.glide) { value = next }
+        }
+        if wasOutOfRange {
+            rejectValue()
+        } else if next != value {
+            landValue()
         }
         endEditing()
     }

@@ -41,7 +41,7 @@ struct PlaygroundView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(theme.palette.background)
+        .background { GlitchPageBackground() }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
     }
 
