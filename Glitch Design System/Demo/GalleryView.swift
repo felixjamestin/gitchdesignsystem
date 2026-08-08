@@ -11,8 +11,10 @@ struct GalleryView: View {
     @Environment(\.glitchTheme) private var theme
 
     @Binding var style: GlitchThemeStyle
+    @Binding var glass: GlitchGlassVariant
     @Binding var scheme: ColorScheme
     @Binding var density: GlitchDensity
+    @Binding var delight: Bool
 
     @State private var notches: GlitchNotchSnapping = .magnetic
     @State private var notched = 40.0
@@ -45,6 +47,7 @@ struct GalleryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 appearancePanel
+                delightPanel
 
                 group("Notches") {
                     GlitchSegmented(
@@ -160,12 +163,34 @@ struct GalleryView: View {
                         GlitchOption("Light", value: ColorScheme.light),
                     ]
                 )
+                if style == .liquidGlass {
+                    GlitchSegmented(
+                        "Material",
+                        selection: $glass,
+                        options: GlitchGlassVariant.allCases.map {
+                            GlitchOption($0.title, value: $0)
+                        }
+                    )
+                }
                 GlitchSegmented(
                     "Density",
                     selection: $density,
                     options: GlitchDensity.allCases.map { GlitchOption($0.title, value: $0) }
                 )
                 explain(styleExplanation)
+            }
+        }
+    }
+
+    private var delightPanel: some View {
+        GlitchPanel {
+            GlitchSection("Game feel") {
+                GlitchToggle("Delight", isOn: $delight)
+                explain(
+                    delight
+                    ? "On: hit-stop at the limits, a ghost of where a value came from, inertia in the fill, notches that light up before they pull, and panels that unroll. None of it changes which values you can reach."
+                    : "Off: the same controls with every embellishment removed. Identical maths, identical reachable values — this is the plain professional version."
+                )
             }
         }
     }
@@ -188,7 +213,7 @@ struct GalleryView: View {
         case .off:
             "Free movement — the value quantises to its step and nothing else. This is the reference panel's behaviour."
         case .magnetic:
-            "Notches attract from within 1% of the range — a reward for aiming at one, never a force acting on values you set deliberately in between."
+            "Notches attract from within 2% of the range, and light up from 5% out — so the pull is always announced before it happens."
         case .locked:
             "Every drag lands on a notch. For values where the positions in between aren't meaningful."
         }
@@ -215,12 +240,18 @@ struct GalleryView: View {
 
 #Preview {
     @Previewable @State var style = GlitchThemeStyle.glitch
+    @Previewable @State var glass = GlitchGlassVariant.regular
     @Previewable @State var scheme = ColorScheme.dark
     @Previewable @State var density = GlitchDensity.compact
+    @Previewable @State var delight = true
 
-    GalleryView(style: $style, scheme: $scheme, density: $density)
-        .glitchTheme(style, density: density)
-        .glitchMotion()
-        .preferredColorScheme(scheme)
-        .frame(width: 640, height: 800)
+    GalleryView(
+        style: $style, glass: $glass, scheme: $scheme,
+        density: $density, delight: $delight
+    )
+    .glitchTheme(style, glass: glass, density: density)
+    .glitchMotion()
+    .glitchDelight(delight)
+    .preferredColorScheme(scheme)
+    .frame(width: 640, height: 800)
 }

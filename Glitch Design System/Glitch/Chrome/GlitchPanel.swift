@@ -3,8 +3,12 @@ import SwiftUI
 /// The container that makes a stack of controls read as one inspector.
 public struct GlitchPanel<Content: View>: View {
     @Environment(\.glitchTheme) private var theme
+    @Environment(\.glitchMotion) private var motion
+    @Environment(\.glitchDelight) private var delight
 
     private let content: Content
+
+    @State private var hasAppeared = false
 
     public init(@ViewBuilder content: () -> Content) {
         self.content = content()
@@ -15,18 +19,39 @@ public struct GlitchPanel<Content: View>: View {
         let shape = RoundedRectangle(cornerRadius: metrics.panelRadius, style: .continuous)
 
         VStack(alignment: .leading, spacing: metrics.spacing) {
-            content
+            // The panel cascades its own children on first appearance, and
+            // each section cascades its rows in turn. Nesting compounds, so
+            // the inner delay is deliberately the shorter of the two —
+            // otherwise the last row of the last section arrives long after
+            // anyone has stopped watching.
+            Group(subviews: content) { children in
+                ForEach(children.indices, id: \.self) { index in
+                    children[index]
+                        .opacity(isRevealed ? 1 : 0)
+                        .offset(y: isRevealed ? 0 : 10)
+                        .animation(
+                            motion.staggered(motion.drift, index: delight ? index : 0),
+                            value: isRevealed
+                        )
+                }
+            }
         }
         .padding(metrics.panelPadding)
         .glitchSurface(shape, fill: theme.palette.panel)
         .overlay { shape.strokeBorder(theme.palette.stroke, lineWidth: theme.metrics.borderWidth) }
+        .onAppear { hasAppeared = true }
     }
+
+    /// With the game-feel layer off there is nothing to reveal — the panel is
+    /// simply present from the first frame.
+    private var isRevealed: Bool { !delight || hasAppeared }
 }
 
 /// A collapsible group, with the disclosure chevron from the second reference.
 public struct GlitchSection<Content: View>: View {
     @Environment(\.glitchTheme) private var theme
     @Environment(\.glitchMotion) private var motion
+    @Environment(\.glitchDelight) private var delight
 
     private let title: String
     private let content: Content
@@ -72,15 +97,20 @@ public struct GlitchSection<Content: View>: View {
     /// on the quicker token — waiting out a leisurely stagger to get rid of
     /// something you just dismissed is irritating.
     private func stagger(index: Int, of count: Int) -> AnyTransition {
+        // Without the game-feel layer every row shares index 0, which is the
+        // same code path with every delay set to zero.
+        let inIndex = delight ? index : 0
+        let outIndex = delight ? count - 1 - index : 0
+
         let entering = AnyTransition
             .offset(y: -10)
             .combined(with: .opacity)
-            .animation(motion.staggered(motion.drift, index: index))
+            .animation(motion.staggered(motion.drift, index: inIndex))
 
         let leaving = AnyTransition
             .offset(y: -6)
             .combined(with: .opacity)
-            .animation(motion.staggered(motion.snap, index: count - 1 - index))
+            .animation(motion.staggered(motion.snap, index: outIndex))
 
         return .asymmetric(insertion: entering, removal: leaving)
     }

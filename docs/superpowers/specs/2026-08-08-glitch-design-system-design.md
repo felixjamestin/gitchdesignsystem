@@ -60,6 +60,25 @@ make the controls strictly worse: **keyboard operation, VoiceOver support, and i
   closing rolls up bottom-first on the quicker `snap`. `GlitchMotion.staggerDelay` is 35ms, and
   zero under Reduce Motion — which collapses a stagger into one simultaneous change.
 
+**Fifth pass — game feel.**
+
+- **`GlitchGlassVariant`** selects `.regular` or `.clear` glass, passed as `.glitchTheme(_:glass:)`
+  and carried in `GlitchSurface.glass(_:)`.
+- **Magnetic pull is 2%** of the range.
+- **The engineering style was rebuilt.** The first attempt was the default style in beige. What
+  reads as Teenage Engineering is the *construction*, not the palette: an unpainted chassis with
+  parts let into it (a barely-recessed track), scales printed onto the surface rather than summoned
+  by touching it (`hashmarksAlwaysVisible`), legends engraved small and spaced wide (9pt, 1.6
+  tracking, bold, uppercase), colour only where something is live (full-strength orange fill), and
+  selection as a printed switch — solid black with a knocked-out legend, via the new
+  `selectionFill` / `onSelection` palette tokens.
+- **`glitchDelight`** gates a game-feel layer, on by default, separable because effects tuned for
+  delight are exactly the ones that grate on the hundredth use. **It never changes which values a
+  control can reach.** It adds: hit-stop at the limits (55ms, borrowed from fighting games), a
+  fading ghost of where a value jumped from, velocity-proportional inertia in the fill (≤2.5pt),
+  notch proximity lighting (5%, wider than the 2% pull so the grab is announced), and panel-level
+  cascade on first appearance. Tuning constants live together in `GlitchDelightTuning`.
+
 Controls must feel responsive and deliberate, not merely animated. Motion follows a fixed set of
 rules (Section 4) rather than per-control improvisation.
 

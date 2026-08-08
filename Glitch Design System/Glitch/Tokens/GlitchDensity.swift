@@ -80,6 +80,12 @@ public struct GlitchMetrics: Equatable, Sendable {
     public var tracksAreOutlined: Bool = false
     /// Squares off the handle and hashmarks, which are otherwise capsules.
     public var sharpEdges: Bool = false
+    /// Keeps the notch marks permanently visible instead of revealing them on
+    /// engagement. Instrument panels print their scales onto the chassis; the
+    /// marks are part of the object, not a response to being touched.
+    public var hashmarksAlwaysVisible: Bool = false
+    /// Extra tracking applied to labels on top of the style's own.
+    public var labelTracking: CGFloat = 0
 
     /// The radius for small parts — handle, hashmarks — which a sharp-edged
     /// style flattens to nothing.

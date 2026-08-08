@@ -35,6 +35,7 @@ private struct GlitchThemeModifier: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
 
     var style: GlitchThemeStyle
+    var glass: GlitchGlassVariant
     var accent: Color?
     var density: GlitchDensity?
 
@@ -53,7 +54,7 @@ private struct GlitchThemeModifier: ViewModifier {
                     palette: palette,
                     metrics: .resolve(density, style: style),
                     typography: style.typography,
-                    surface: style.surface
+                    surface: style.surface(glass: glass)
                 )
             )
             .environment(\.glitchDensity, density)
@@ -69,9 +70,12 @@ extension View {
     /// style, accent or density.
     public func glitchTheme(
         _ style: GlitchThemeStyle = .glitch,
+        glass: GlitchGlassVariant = .regular,
         accent: Color? = nil,
         density: GlitchDensity? = nil
     ) -> some View {
-        modifier(GlitchThemeModifier(style: style, accent: accent, density: density))
+        modifier(
+            GlitchThemeModifier(style: style, glass: glass, accent: accent, density: density)
+        )
     }
 }

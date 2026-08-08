@@ -20,10 +20,14 @@ public enum GlitchNotchSnapping: String, CaseIterable, Sendable, Hashable {
     /// How close a value must come, as a fraction of the range, before a notch
     /// pulls it in.
     ///
-    /// One percent. Tight enough that the notch is a reward for aiming at it
-    /// rather than a force acting on values you were deliberately setting in
-    /// between — magnetism you can feel but never fight.
-    public static let pullTolerance: Double = 0.01
+    /// Two percent. Wide enough to catch a value you were aiming at, narrow
+    /// enough that it never takes one you set deliberately in between —
+    /// magnetism you can feel but never fight.
+    ///
+    /// The notch lights up from further out than this (see
+    /// `GlitchDelightTuning.notchProximity`), so the pull is always announced
+    /// before it happens.
+    public static let pullTolerance: Double = 0.02
 
     public var title: String {
         switch self {
@@ -54,6 +58,7 @@ public enum GlitchNotchSnapping: String, CaseIterable, Sendable, Hashable {
 public struct GlitchSlider: View {
     @Environment(\.glitchTheme) private var theme
     @Environment(\.glitchMotion) private var motion
+    @Environment(\.glitchDelight) private var delight
     @Environment(\.isEnabled) private var isEnabled
 
     private let label: String
@@ -82,6 +87,15 @@ public struct GlitchSlider: View {
     @State private var revealTask: Task<Void, Never>?
     @FocusState private var isFocused: Bool
     @FocusState private var isFieldFocused: Bool
+
+    // Game-feel layer. All of it inert when `delight` is off.
+    @State private var fillTrail: CGFloat = 0
+    @State private var ghostFraction: Double?
+    @State private var ghostOpacity: Double = 0
+    @State private var ghostTask: Task<Void, Never>?
+    /// While set, the value is held still: the drag keeps happening, but the
+    /// control refuses to move until the moment passes.
+    @State private var hitStopUntil: ContinuousClock.Instant?
 
     public init(
         _ label: String,
@@ -156,10 +170,14 @@ public struct GlitchSlider: View {
                 )
             }
             .overlay(alignment: .leading) { hashmarks }
+            .overlay(alignment: .leading) { ghost }
             .overlay(alignment: .leading) {
                 Rectangle()
                     .fill(isActive ? palette.fillActive : palette.fill)
-                    .frame(width: fillWidth)
+                    // Inertia, not latency: the fill lags a fast drag by a
+                    // couple of points and catches up as it slows. Same idea
+                    // as a camera trailing a sprinting character.
+                    .frame(width: max(0, fillWidth + fillTrail))
                     .animation(motion.tint, value: isActive)
             }
             .overlay(alignment: .leading) { handle }
@@ -179,24 +197,44 @@ public struct GlitchSlider: View {
     }
 
     /// Ticks the click-snapping actually lands on: one per step when the range
-    /// is coarse, otherwise every 10%. Invisible until the row is engaged —
-    /// they are guidance for the gesture in progress, not decoration.
+    /// is coarse, otherwise every 10%.
+    ///
+    /// Hidden until the row is engaged, unless the style prints its scale onto
+    /// the chassis. The nearest one brightens and grows as the value
+    /// approaches, so a notch announces itself *before* it pulls — the same
+    /// courtesy a magnet that only ever grabbed silently would not extend.
     private var hashmarks: some View {
-        GeometryReader { proxy in
-            ForEach(Array(tickFractions.enumerated()), id: \.offset) { _, fraction in
-                RoundedRectangle(
-                    cornerRadius: theme.metrics.partRadius(theme.metrics.hashmarkWidth)
-                )
-                    .fill(theme.palette.hashmark.opacity(isActive ? 1 : 0))
-                    .frame(width: theme.metrics.hashmarkWidth, height: theme.metrics.hashmarkHeight)
-                    .position(
-                        x: proxy.size.width * fraction,
-                        y: proxy.size.height / 2
-                    )
+        let metrics = theme.metrics
+        let approaching = approachingNotch
+
+        return GeometryReader { proxy in
+            ForEach(Array(tickFractions.enumerated()), id: \.offset) { _, tick in
+                let isNear = approaching.map { abs($0 - Double(tick)) < 1e-9 } ?? false
+                let visible = isActive || metrics.hashmarksAlwaysVisible
+
+                RoundedRectangle(cornerRadius: metrics.partRadius(metrics.hashmarkWidth))
+                    .fill(theme.palette.hashmark.opacity(visible ? (isNear ? 2 : 1) : 0))
+                    .frame(width: metrics.hashmarkWidth, height: metrics.hashmarkHeight)
+                    .scaleEffect(y: isNear ? 1.5 : 1)
+                    .position(x: proxy.size.width * tick, y: proxy.size.height / 2)
+                    .animation(motion.pop, value: isNear)
             }
         }
         .animation(motion.tint, value: isActive)
         .allowsHitTesting(false)
+    }
+
+    /// A fading trace of where the value was before it jumped, so a click
+    /// shows its distance travelled rather than only its destination.
+    @ViewBuilder
+    private var ghost: some View {
+        if let ghostFraction {
+            Rectangle()
+                .fill(theme.palette.fill)
+                .frame(width: stretchedWidth * CGFloat(ghostFraction))
+                .opacity(ghostOpacity)
+                .allowsHitTesting(false)
+        }
     }
 
     private var handle: some View {
@@ -324,6 +362,21 @@ public struct GlitchSlider: View {
         GlitchValueMath.notchFractions(in: range, step: step).map { CGFloat($0) }
     }
 
+    /// The notch the value is currently closing in on, if any. Nil when the
+    /// slider doesn't snap — announcing a notch that won't grab would be a lie.
+    private var approachingNotch: Double? {
+        guard delight, isActive, notchSnapping != .off else { return nil }
+
+        let here = Double(fraction)
+        let nearest = GlitchValueMath.notchFractions(in: range, step: step)
+            .min { abs($0 - here) < abs($1 - here) }
+
+        guard let nearest, abs(nearest - here) <= GlitchDelightTuning.notchProximity else {
+            return nil
+        }
+        return nearest
+    }
+
     // MARK: - Gesture
 
     private var dragGesture: some Gesture {
@@ -346,12 +399,20 @@ public struct GlitchSlider: View {
                 }
                 guard isDragging else { return }
 
+                // Hit-stop: having just arrived at a limit, the control holds
+                // still for a few frames. The drag carries on around it.
+                if let until = hitStopUntil {
+                    guard ContinuousClock.now >= until else { return }
+                    hitStopUntil = nil
+                }
+
                 // Motion rule 7: while the pointer is down the fill tracks it
                 // exactly, with no spring in between.
                 var transaction = Transaction()
                 transaction.disablesAnimations = true
                 withTransaction(transaction) {
                     overscroll = overscrollOffset(forX: gesture.location.x)
+                    fillTrail = trail(forVelocity: gesture.velocity.width)
                     commit(valueAt(gesture.location.x))
                 }
             }
@@ -365,6 +426,7 @@ public struct GlitchSlider: View {
                         ? GlitchValueMath.nearestNotch(to: raw, in: range, step: step)
                         : GlitchValueMath.snapToClick(raw, in: range, step: step)
                     if target != value {
+                        leaveGhost()
                         withAnimation(motion.glide) { value = target }
                         GlitchHaptics.selection()
                     }
@@ -373,9 +435,38 @@ public struct GlitchSlider: View {
                 if overscroll != 0 {
                     withAnimation(motion.drift) { overscroll = 0 }
                 }
+                if fillTrail != 0 {
+                    withAnimation(motion.pop) { fillTrail = 0 }
+                }
                 isPressed = false
                 isDragging = false
+                hitStopUntil = nil
             }
+    }
+
+    /// Inertia proportional to drag speed, capped well below the point where
+    /// it would read as the control failing to keep up.
+    private func trail(forVelocity velocity: CGFloat) -> CGFloat {
+        guard delight else { return 0 }
+        let normalized = velocity / GlitchDelightTuning.trailReferenceVelocity
+        let clamped = min(max(normalized, -1), 1)
+        return -clamped * GlitchDelightTuning.maxFillTrail
+    }
+
+    /// Leaves the current fill behind as a fading trace before the value moves.
+    private func leaveGhost() {
+        guard delight else { return }
+
+        ghostTask?.cancel()
+        ghostFraction = Double(fraction)
+        ghostOpacity = GlitchDelightTuning.ghostOpacity
+        withAnimation(motion.drift) { ghostOpacity = 0 }
+
+        ghostTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(600))
+            guard !Task.isCancelled else { return }
+            ghostFraction = nil
+        }
     }
 
     private func overscrollOffset(forX x: CGFloat) -> CGFloat {
@@ -427,6 +518,14 @@ public struct GlitchSlider: View {
 
         if isAtLimit && !wasAtLimit {
             GlitchHaptics.limit()
+            // Arriving at a limit is an event, so give it a beat. Fighting
+            // games freeze both fighters for a few frames on a connecting hit
+            // for exactly this reason: without the pause the collision is
+            // something you infer from the aftermath rather than something you
+            // felt happen.
+            if delight {
+                hitStopUntil = ContinuousClock.now.advanced(by: GlitchDelightTuning.hitStop)
+            }
         } else {
             GlitchHaptics.tick()
         }
@@ -441,6 +540,7 @@ public struct GlitchSlider: View {
             GlitchHaptics.limit()
             return
         }
+        leaveGhost()
         withAnimation(motion.glide) { value = next }
         GlitchHaptics.tick()
     }

@@ -1,5 +1,17 @@
 import SwiftUI
 
+/// Which glass a glass style uses.
+public enum GlitchGlassVariant: String, CaseIterable, Sendable, Hashable {
+    /// Frosted. Reads as a surface with things behind it.
+    case regular
+    /// Barely there — refraction and specular edge with almost no diffusion.
+    /// Wants something worth looking at behind it, and enough contrast in the
+    /// content to survive having no backing.
+    case clear
+
+    public var title: String { rawValue.capitalized }
+}
+
 /// What a control's background is made of.
 ///
 /// Colour, radius and type can all be expressed as tokens, but a material
@@ -11,7 +23,7 @@ public enum GlitchSurface: Sendable, Hashable {
     case solid
     /// The platform's glass material, tinted by the same token a solid style
     /// would have filled with — so the two stay in step as the palette changes.
-    case glass
+    case glass(GlitchGlassVariant)
 }
 
 private struct GlitchSurfaceModifier<S: Shape>: ViewModifier {
@@ -24,8 +36,10 @@ private struct GlitchSurfaceModifier<S: Shape>: ViewModifier {
         switch theme.surface {
         case .solid:
             content.background(shape.fill(fill))
-        case .glass:
+        case .glass(.regular):
             content.glassEffect(.regular.tint(fill), in: shape)
+        case .glass(.clear):
+            content.glassEffect(.clear.tint(fill), in: shape)
         }
     }
 }

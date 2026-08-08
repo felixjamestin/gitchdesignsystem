@@ -43,6 +43,14 @@ public struct GlitchPalette: Equatable, Sendable {
     public var onAccent: Color
     public var danger: Color
 
+    /// The segmented control's pill, and its text.
+    ///
+    /// Separate from `trackActive` because a style can want selection to read
+    /// as a printed switch — solid, inverted — while its ordinary raised
+    /// surfaces stay subtle.
+    public var selectionFill: Color = .white.opacity(0.11)
+    public var onSelection: Color = .white.opacity(0.95)
+
     /// The orange from the original reference, kept available for
     /// `.glitchTheme(accent:)` but no longer the default.
     public static let signatureAccent = Color(glitchHex: 0xFF5A1F)

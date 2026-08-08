@@ -86,7 +86,7 @@ public struct GlitchSegmented<Value: Hashable>: View {
         return ZStack {
             if isSelected {
                 RoundedRectangle(cornerRadius: max(2, metrics.controlRadius - 2), style: .continuous)
-                    .fill(theme.palette.trackActive)
+                    .fill(theme.palette.selectionFill)
                     .matchedGeometryEffect(id: "pill", in: pill)
             }
 
@@ -98,7 +98,7 @@ public struct GlitchSegmented<Value: Hashable>: View {
                 GlitchType.labelText(option.title, theme)
                     .lineLimit(1)
             }
-            .foregroundStyle(isSelected ? theme.palette.textPrimary : theme.palette.label)
+            .foregroundStyle(isSelected ? theme.palette.onSelection : theme.palette.label)
             .padding(.horizontal, 12)
             .animation(motion.tint, value: isSelected)
         }
