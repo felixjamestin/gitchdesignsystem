@@ -1,0 +1,13 @@
+# Swift Package Manager build products (the SPM manifest exists only to run
+# `swift test` against Glitch/Math — nothing it produces belongs in the repo).
+.build/
+.swiftpm/
+Package.resolved
+
+# Xcode
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# macOS
+.DS_Store
