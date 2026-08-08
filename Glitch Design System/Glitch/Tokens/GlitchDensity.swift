@@ -25,6 +25,24 @@ public enum GlitchDensity: String, CaseIterable, Sendable {
     public var title: String { rawValue.capitalized }
 }
 
+/// The few platform facts controls genuinely need, answered in one place so no
+/// control body has to ask.
+public enum GlitchPlatform {
+    /// Whether a pointer is the primary input.
+    ///
+    /// Used to decide whether a hover-revealed affordance needs a permanent
+    /// counterpart. Where there is no hover, the affordance is simply always
+    /// visible — the alternative, a long-press, cannot coexist with controls
+    /// that begin dragging on touch-down.
+    public static var hasPointer: Bool {
+        #if os(macOS)
+        true
+        #else
+        false
+        #endif
+    }
+}
+
 /// Every dimension in the system, resolved from a density.
 public struct GlitchMetrics: Equatable, Sendable {
     public var rowHeight: CGFloat
