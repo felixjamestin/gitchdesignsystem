@@ -2,6 +2,20 @@
   "": {
     "swift-dependencies": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/primary.swiftdeps"
   },
+  "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchAngleMath.swift": {
+    "dependencies": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchAngleMath.d",
+    "object": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchAngleMath.swift.o",
+    "swiftmodule": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchAngleMath~partial.swiftmodule",
+    "swift-dependencies": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchAngleMath.swiftdeps",
+    "diagnostics": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchAngleMath.dia"
+  },
+  "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchNumberParsing.swift": {
+    "dependencies": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchNumberParsing.d",
+    "object": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchNumberParsing.swift.o",
+    "swiftmodule": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchNumberParsing~partial.swiftmodule",
+    "swift-dependencies": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchNumberParsing.swiftdeps",
+    "diagnostics": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchNumberParsing.dia"
+  },
   "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchValueMath.swift": {
     "dependencies": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchValueMath.d",
     "object": "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchValueMath.swift.o",

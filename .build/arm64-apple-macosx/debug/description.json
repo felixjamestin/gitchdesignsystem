@@ -28,6 +28,14 @@
       "inputs" : [
         {
           "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchAngleMath.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchNumberParsing.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchValueMath.swift"
         },
         {
@@ -43,6 +51,8 @@
       "moduleName" : "GlitchMath",
       "moduleOutputPath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules/GlitchMath.swiftmodule",
       "objects" : [
+        "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchAngleMath.swift.o",
+        "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchNumberParsing.swift.o",
         "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchValueMath.swift.o"
       ],
       "otherArguments" : [
@@ -98,6 +108,14 @@
       "outputs" : [
         {
           "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchAngleMath.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchNumberParsing.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchValueMath.swift.o"
         },
         {
@@ -107,6 +125,8 @@
       ],
       "prepareForIndexing" : false,
       "sources" : [
+        "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchAngleMath.swift",
+        "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchNumberParsing.swift",
         "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchValueMath.swift"
       ],
       "tempsPath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build",
@@ -214,6 +234,14 @@
       "inputs" : [
         {
           "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/Tests/GlitchMathTests/GlitchAngleMathTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/Tests/GlitchMathTests/GlitchNumberParsingTests.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/felixjamestin/Documents/Glitch Design System/Tests/GlitchMathTests/GlitchValueMathTests.swift"
         },
         {
@@ -233,6 +261,8 @@
       "moduleName" : "GlitchMathTests",
       "moduleOutputPath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules/GlitchMathTests.swiftmodule",
       "objects" : [
+        "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/GlitchAngleMathTests.swift.o",
+        "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/GlitchNumberParsingTests.swift.o",
         "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/GlitchValueMathTests.swift.o"
       ],
       "otherArguments" : [
@@ -287,6 +317,14 @@
       "outputs" : [
         {
           "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/GlitchAngleMathTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/GlitchNumberParsingTests.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/GlitchValueMathTests.swift.o"
         },
         {
@@ -296,6 +334,8 @@
       ],
       "prepareForIndexing" : false,
       "sources" : [
+        "/Users/felixjamestin/Documents/Glitch Design System/Tests/GlitchMathTests/GlitchAngleMathTests.swift",
+        "/Users/felixjamestin/Documents/Glitch Design System/Tests/GlitchMathTests/GlitchNumberParsingTests.swift",
         "/Users/felixjamestin/Documents/Glitch Design System/Tests/GlitchMathTests/GlitchValueMathTests.swift"
       ],
       "tempsPath" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build",
@@ -313,6 +353,8 @@
       "-package-name",
       "glitch_design_system",
       "-c",
+      "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchAngleMath.swift",
+      "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchNumberParsing.swift",
       "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchValueMath.swift",
       "-I",
       "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules",
@@ -433,6 +475,8 @@
       "-package-name",
       "glitch_design_system",
       "-c",
+      "/Users/felixjamestin/Documents/Glitch Design System/Tests/GlitchMathTests/GlitchAngleMathTests.swift",
+      "/Users/felixjamestin/Documents/Glitch Design System/Tests/GlitchMathTests/GlitchNumberParsingTests.swift",
       "/Users/felixjamestin/Documents/Glitch Design System/Tests/GlitchMathTests/GlitchValueMathTests.swift",
       "-I",
       "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/Modules",
@@ -529,6 +573,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchAngleMath.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchNumberParsing.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/felixjamestin/Documents/Glitch Design System/Glitch Design System/Glitch/Math/GlitchValueMath.swift"
         }
       ],
@@ -557,11 +609,27 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchAngleMath.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchNumberParsing.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMath.build/GlitchValueMath.swift.o"
         },
         {
           "kind" : "file",
           "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathPackageTests.build/runner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/GlitchAngleMathTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/.build/arm64-apple-macosx/debug/GlitchMathTests.build/GlitchNumberParsingTests.swift.o"
         },
         {
           "kind" : "file",
@@ -576,6 +644,14 @@
         {
           "kind" : "virtual",
           "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/Tests/GlitchMathTests/GlitchAngleMathTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/felixjamestin/Documents/Glitch Design System/Tests/GlitchMathTests/GlitchNumberParsingTests.swift"
         },
         {
           "kind" : "file",
