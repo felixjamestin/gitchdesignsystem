@@ -51,6 +51,14 @@ public struct GlitchPalette: Equatable, Sendable {
     public var selectionFill: Color = .white.opacity(0.11)
     public var onSelection: Color = .white.opacity(0.95)
 
+    /// Label and value colour where a slider's fill has passed underneath.
+    ///
+    /// A style whose fill is a faint overlay sets this to the same colour as
+    /// `label` and nothing appears to happen. A style whose fill is nearly
+    /// opaque — film's bar is 86% white on black — has to invert, or the text
+    /// vanishes exactly when the value is most worth reading.
+    public var onFill: Color = .white.opacity(0.70)
+
     /// The orange from the original reference, kept available for
     /// `.glitchTheme(accent:)` but no longer the default.
     public static let signatureAccent = Color(glitchHex: 0xFF5A1F)
@@ -72,7 +80,9 @@ public struct GlitchPalette: Equatable, Sendable {
         strokeHover: .white.opacity(0.15),
         accent: .white.opacity(0.90),
         onAccent: Color(glitchHex: 0x161718),
-        danger: Color(glitchHex: 0xFF6B6B)
+        danger: Color(glitchHex: 0xFF6B6B),
+        // An 11% overlay never obscures anything, so nothing inverts.
+        onFill: .white.opacity(0.70)
     )
 
     public static let light = GlitchPalette(
@@ -92,7 +102,8 @@ public struct GlitchPalette: Equatable, Sendable {
         strokeHover: .black.opacity(0.15),
         accent: .black.opacity(0.75),
         onAccent: .white,
-        danger: Color(glitchHex: 0xD93A3A)
+        danger: Color(glitchHex: 0xD93A3A),
+        onFill: .black.opacity(0.68)
     )
 
     public static func resolve(_ scheme: ColorScheme) -> GlitchPalette {

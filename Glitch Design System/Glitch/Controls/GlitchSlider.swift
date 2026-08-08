@@ -211,6 +211,7 @@ public struct GlitchSlider: View {
             .overlay(alignment: .trailing) {
                 readout.padding(.trailing, metrics.labelInset)
             }
+            .overlay { invertedText }
             .clipShape(shape)
             .opacity(isEnabled ? 1 : 0.4)
     }
@@ -259,6 +260,52 @@ public struct GlitchSlider: View {
         }
         .animation(motion.tint, value: isActive)
         .allowsHitTesting(false)
+    }
+
+    /// The label and value redrawn in the on-fill colour and clipped to
+    /// exactly the filled region.
+    ///
+    /// A style whose bar is nearly opaque — film's is 86% white on black —
+    /// would otherwise erase its own text at the moment the value is most
+    /// worth reading. Masking rather than switching colour at a threshold
+    /// means a word half-covered by the bar is half-inverted, letter by
+    /// letter, which is both more legible and more satisfying than a flip.
+    ///
+    /// Purely decorative: the interactive copies underneath keep the taps,
+    /// the measurement and the numeric roll.
+    @ViewBuilder
+    private var invertedText: some View {
+        let metrics = theme.metrics
+        let covered = max(0, fillWidth + fillTrail + anticipation)
+
+        if covered > 0 {
+            ZStack {
+                HStack(spacing: 0) {
+                    GlitchType.labelText(label, theme)
+                        .foregroundStyle(theme.palette.onFill)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                }
+                .padding(.leading, metrics.labelInset)
+
+                if !isEditing {
+                    HStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        Text(formattedValue)
+                            .font(GlitchType.value(theme))
+                            .foregroundStyle(theme.palette.onFill)
+                            .lineLimit(1)
+                            .contentTransition(.numericText(value: value))
+                            .animation(isDragging ? nil : motion.glide, value: value)
+                    }
+                    .padding(.trailing, metrics.labelInset)
+                }
+            }
+            .mask(alignment: .leading) {
+                Rectangle().frame(width: covered)
+            }
+            .allowsHitTesting(false)
+        }
     }
 
     /// A fading trace of where the value was before it jumped, so a click

@@ -192,7 +192,10 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
         danger: Color(glitchHex: 0xD1293D),
         // Selection is a printed switch: solid black, knocked-out legend.
         selectionFill: .black.opacity(0.88),
-        onSelection: Color(glitchHex: 0xE4E4DF)
+        onSelection: Color(glitchHex: 0xE4E4DF),
+        // Black on full-strength orange, which is more legible than the
+        // chassis-coloured legend would be.
+        onFill: .black.opacity(0.88)
     )
 
     /// The black-chassis variant of the same instrument.
@@ -215,7 +218,8 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
         onAccent: .black,
         danger: Color(glitchHex: 0xFF5C69),
         selectionFill: .white.opacity(0.90),
-        onSelection: Color(glitchHex: 0x1A1A1A)
+        onSelection: Color(glitchHex: 0x1A1A1A),
+        onFill: .black.opacity(0.88)
     )
 
     /// Almost nothing.
@@ -247,7 +251,9 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
         onAccent: .white,
         danger: Color(glitchHex: 0xC0392B),
         selectionFill: .black.opacity(0.86),
-        onSelection: .white
+        onSelection: .white,
+        // The bar is 82% black on paper: anything under it has to go white.
+        onFill: .white.opacity(0.95)
     )
 
     /// The darkroom. Same construction, inverted.
@@ -270,7 +276,8 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
         onAccent: Color(glitchHex: 0x0A0A0A),
         danger: Color(glitchHex: 0xE74C3C),
         selectionFill: .white.opacity(0.90),
-        onSelection: Color(glitchHex: 0x0A0A0A)
+        onSelection: Color(glitchHex: 0x0A0A0A),
+        onFill: .black.opacity(0.88)
     )
 
     private static let glassDark = GlitchPalette(
@@ -290,7 +297,8 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
         strokeHover: .white.opacity(0.34),
         accent: .white.opacity(0.95),
         onAccent: Color(glitchHex: 0x0C1018),
-        danger: Color(glitchHex: 0xFF6B6B)
+        danger: Color(glitchHex: 0xFF6B6B),
+        onFill: .white.opacity(0.85)
     )
 
     private static let glassLight = GlitchPalette(
@@ -310,7 +318,8 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
         strokeHover: .white.opacity(0.80),
         accent: .black.opacity(0.70),
         onAccent: .white,
-        danger: Color(glitchHex: 0xD1293D)
+        danger: Color(glitchHex: 0xD1293D),
+        onFill: .black.opacity(0.70)
     )
 
 }
