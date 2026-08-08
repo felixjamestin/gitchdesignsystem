@@ -113,10 +113,16 @@ public struct GlitchSegmented<Value: Hashable>: View {
 
     private func select(_ value: Value) {
         guard isEnabled, value != selection else { return }
+        // `glide` rather than `snap`: the pill is travelling to a position you
+        // pointed at, which is the same thing a slider's value does on a
+        // click, and it wants the same overshoot. `snap` is for state that
+        // changes in place — a toggle knob, a checkmark — where an overshoot
+        // has nowhere to go.
+        //
         // Instant before the first layout has settled, so the pill never
         // animates in from nowhere.
         if hasAppeared {
-            withAnimation(motion.snap) { selection = value }
+            withAnimation(motion.glide) { selection = value }
         } else {
             selection = value
         }

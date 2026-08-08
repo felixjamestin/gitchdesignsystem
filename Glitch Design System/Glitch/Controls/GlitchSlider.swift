@@ -245,7 +245,7 @@ public struct GlitchSlider: View {
                     // than as a brighter tick.
                     RoundedRectangle(cornerRadius: metrics.partRadius(metrics.hashmarkWidth))
                         .fill(theme.palette.handle)
-                        .opacity(Double(strength))
+                        .opacity(Double(strength) * GlitchDelightTuning.notchHighlightOpacity)
                 }
                 .frame(width: metrics.hashmarkWidth, height: metrics.hashmarkHeight)
                 .scaleEffect(
@@ -330,11 +330,17 @@ public struct GlitchSlider: View {
                 .font(GlitchType.value(theme))
                 .foregroundStyle(isActive ? theme.palette.textPrimary : theme.palette.label)
                 .lineLimit(1)
-                // Digits roll, and roll in the direction the value moved.
-                // Only when the change was animated — a value being dragged is
-                // committed with animations disabled, so it snaps, which is
-                // the same rule that keeps the fill from lagging the finger.
+                // Digits roll, in the direction the value moved — but never
+                // under a finger, where rolling digits would lag the drag for
+                // exactly the reason rule 7 forbids springing the fill.
+                //
+                // The animation is bound to `value` here rather than left to
+                // the caller's `withAnimation`: a content transition needs an
+                // animation on the update that changes the text, and an
+                // ambient one does not reliably reach a Text this deep inside
+                // overlays and geometry readers.
                 .contentTransition(.numericText(value: value))
+                .animation(isDragging ? nil : motion.glide, value: value)
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { valueWidth = $0 }
                 .overlay(alignment: .bottom) {
                     Rectangle()

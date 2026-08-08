@@ -25,9 +25,12 @@ public struct GlitchMotion: Equatable, Sendable {
     ///
     /// Its own token because none of the others is meant for something the
     /// size of a screen, and stretching one of them to cover it would
-    /// compromise what it was tuned for. Bouncier than anything else in the
-    /// system — a control that overshoots this much would feel unreliable,
-    /// but a screen that does reads as eager.
+    /// compromise what it was tuned for.
+    ///
+    /// Deliberately *less* bouncy than `glide`, despite moving further. A
+    /// small element overshooting reads as lively; a whole screen doing the
+    /// same amount reads as unstable, because the absolute distance it
+    /// travels past its destination scales with its size.
     public var travel: Animation
     /// Color and opacity crossfades only. (ease-out 0.15s)
     public var tint: Animation
@@ -64,7 +67,7 @@ public struct GlitchMotion: Equatable, Sendable {
             glide: .spring(duration: 0.36 * s, bounce: 0.34),
             pop: .spring(duration: 0.28 * s, bounce: 0.30),
             drift: .spring(duration: 0.40 * s, bounce: 0.28),
-            travel: .spring(duration: 0.52 * s, bounce: 0.45),
+            travel: .spring(duration: 0.46 * s, bounce: 0.26),
             tint: .easeOut(duration: 0.15 * s),
             staggerDelay: 0.035 * s
         )

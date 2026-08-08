@@ -44,7 +44,11 @@ public struct GlitchDial: View {
         VStack(spacing: 6) {
             dial
             GlitchLabel(label, secondary: true)
-            GlitchValueText(GlitchNumberParsing.format(value, decimals: decimals), value: value)
+            GlitchValueText(
+                GlitchNumberParsing.format(value, decimals: decimals),
+                value: value,
+                animated: !isDragging
+            )
                 .foregroundStyle(theme.palette.label)
         }
         .opacity(isEnabled ? 1 : 0.4)

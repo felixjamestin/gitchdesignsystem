@@ -17,6 +17,7 @@ public struct GlitchStepper: View {
     private let decimals: Int
 
     @State private var isHovering = false
+    @State private var isRepeating = false
     @State private var repeatTask: Task<Void, Never>?
 
     public init(
@@ -40,7 +41,11 @@ public struct GlitchStepper: View {
         HStack(spacing: metrics.spacing) {
             GlitchLabel(label)
             Spacer(minLength: 4)
-            GlitchValueText(GlitchNumberParsing.format(value, decimals: decimals), value: value)
+            GlitchValueText(
+                GlitchNumberParsing.format(value, decimals: decimals),
+                value: value,
+                animated: !isRepeating
+            )
                 .foregroundStyle(theme.palette.label)
             button(systemImage: "minus", delta: -step, enabled: value > range.lowerBound)
             button(systemImage: "plus", delta: step, enabled: value < range.upperBound)
@@ -117,6 +122,9 @@ public struct GlitchStepper: View {
             // makes a single tap possible.
             try? await Task.sleep(for: .milliseconds(450))
 
+            guard !Task.isCancelled else { return }
+            isRepeating = true
+
             var interval = 120
             while !Task.isCancelled {
                 adjust(by: delta, animated: false)
@@ -129,6 +137,7 @@ public struct GlitchStepper: View {
     private func stopRepeating() {
         repeatTask?.cancel()
         repeatTask = nil
+        isRepeating = false
     }
 }
 

@@ -79,14 +79,28 @@ public struct GlitchLabel: View {
 /// values that arrive on their own roll into place.
 public struct GlitchValueText: View {
     @Environment(\.glitchTheme) private var theme
+    @Environment(\.glitchMotion) private var motion
 
     private let text: String
     private let value: Double?
+    private let animated: Bool
     private let prominent: Bool
 
-    public init(_ text: String, value: Double? = nil, prominent: Bool = false) {
+    /// - Parameters:
+    ///   - value: the number behind the text, which gives the roll its
+    ///     direction. Counting up and counting down look different.
+    ///   - animated: whether *this* change should roll. False while a value is
+    ///     being dragged or a button held, where rolling would either lag the
+    ///     input or stack transitions into a smear.
+    public init(
+        _ text: String,
+        value: Double? = nil,
+        animated: Bool = true,
+        prominent: Bool = false
+    ) {
         self.text = text
         self.value = value
+        self.animated = animated
         self.prominent = prominent
     }
 
@@ -95,5 +109,13 @@ public struct GlitchValueText: View {
             .foregroundStyle(prominent ? theme.palette.textPrimary : theme.palette.label)
             .lineLimit(1)
             .contentTransition(value.map { .numericText(value: $0) } ?? .numericText())
+            // The animation has to be bound to the value here, not merely
+            // inherited from whatever `withAnimation` the caller used.
+            // A content transition needs an animation attached to the update
+            // that changes the text, and an ambient one from several layers up
+            // does not reliably survive the intervening overlays and geometry
+            // readers.
+            .animation(animated ? motion.glide : nil, value: value)
+            .animation(animated ? motion.glide : nil, value: text)
     }
 }

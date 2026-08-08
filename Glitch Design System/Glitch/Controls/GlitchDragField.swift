@@ -100,7 +100,11 @@ public struct GlitchDragField: View {
                     if !focused && isEditing { commitDraft() }
                 }
         } else {
-            GlitchValueText(GlitchNumberParsing.format(value, decimals: decimals), value: value)
+            GlitchValueText(
+                GlitchNumberParsing.format(value, decimals: decimals),
+                value: value,
+                animated: !isDragging
+            )
                 .foregroundStyle(theme.palette.label)
         }
     }

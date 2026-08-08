@@ -44,8 +44,12 @@ public struct GlitchXYPad: View {
             HStack {
                 GlitchLabel(label, secondary: true)
                 Spacer()
+                // Two numbers in one string, so there is no single value to
+                // give the roll a direction — it falls back to plain
+                // `numericText()`, which still rolls each digit run.
                 GlitchValueText(
-                    "\(GlitchNumberParsing.format(x, decimals: 0)), \(GlitchNumberParsing.format(y, decimals: 0))"
+                    "\(GlitchNumberParsing.format(x, decimals: 0)), \(GlitchNumberParsing.format(y, decimals: 0))",
+                    animated: !isDragging
                 )
             }
 

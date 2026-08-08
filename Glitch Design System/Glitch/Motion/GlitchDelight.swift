@@ -53,6 +53,13 @@ public enum GlitchDelightTuning {
     public static let notchGrowthY: CGFloat = 2.0
     public static let notchGrowthX: CGFloat = 2.6
 
+    /// How far the approaching notch takes on the handle's colour.
+    ///
+    /// Well short of the handle's own strength: the notch is announcing what
+    /// is *about* to happen, and something that arrives already at full
+    /// brightness has nothing left to say when the value actually lands on it.
+    public static let notchHighlightOpacity: Double = 0.45
+
     /// Shapes the approach. Below 1 the notch reacts early and eases in, so
     /// the growth is legible across the whole approach rather than appearing
     /// all at once in the last few points.
