@@ -312,6 +312,11 @@ public struct GlitchSlider: View {
                 .font(GlitchType.value(theme))
                 .foregroundStyle(isActive ? theme.palette.textPrimary : theme.palette.label)
                 .lineLimit(1)
+                // Digits roll, and roll in the direction the value moved.
+                // Only when the change was animated — a value being dragged is
+                // committed with animations disabled, so it snaps, which is
+                // the same rule that keeps the fill from lagging the finger.
+                .contentTransition(.numericText(value: value))
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { valueWidth = $0 }
                 .overlay(alignment: .bottom) {
                     Rectangle()

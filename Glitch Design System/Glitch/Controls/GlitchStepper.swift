@@ -40,7 +40,7 @@ public struct GlitchStepper: View {
         HStack(spacing: metrics.spacing) {
             GlitchLabel(label)
             Spacer(minLength: 4)
-            GlitchValueText(GlitchNumberParsing.format(value, decimals: decimals))
+            GlitchValueText(GlitchNumberParsing.format(value, decimals: decimals), value: value)
                 .foregroundStyle(theme.palette.label)
             button(systemImage: "minus", delta: -step, enabled: value > range.lowerBound)
             button(systemImage: "plus", delta: step, enabled: value < range.upperBound)
@@ -83,14 +83,27 @@ public struct GlitchStepper: View {
         ControlState(isHovering: isHovering, isDisabled: !isEnabled)
     }
 
-    private func adjust(by delta: Double) {
+    /// A single press rolls the digits; a held one doesn't.
+    ///
+    /// The repeat reaches one step every 28ms, and a roll takes an order of
+    /// magnitude longer than that — animating each would stack a queue of
+    /// half-finished transitions and turn the number into a smear. Held
+    /// repeats set the value outright, which also reads as more responsive.
+    private func adjust(by delta: Double, animated: Bool = true) {
         let next = GlitchValueMath.snap(value + delta, step: step, in: range)
         guard next != value else {
             stopRepeating()
             GlitchHaptics.limit()
             return
         }
-        withAnimation(motion.snap) { value = next }
+
+        if animated {
+            withAnimation(motion.snap) { value = next }
+        } else {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { value = next }
+        }
         GlitchHaptics.tick()
     }
 
@@ -106,7 +119,7 @@ public struct GlitchStepper: View {
 
             var interval = 120
             while !Task.isCancelled {
-                adjust(by: delta)
+                adjust(by: delta, animated: false)
                 try? await Task.sleep(for: .milliseconds(interval))
                 interval = max(28, interval - 12)
             }

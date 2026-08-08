@@ -67,14 +67,26 @@ public struct GlitchLabel: View {
 }
 
 /// A numeric readout.
+///
+/// Digits roll rather than swap. Pass `value` where the number is known and
+/// the roll picks up its direction from it — counting up and counting down
+/// look different, and getting that wrong is more distracting than not
+/// animating at all.
+///
+/// The transition only runs when the change is made inside an animation, which
+/// is exactly the distinction the system already draws: values moved under a
+/// finger are set in a transaction with animations disabled and so snap, while
+/// values that arrive on their own roll into place.
 public struct GlitchValueText: View {
     @Environment(\.glitchTheme) private var theme
 
     private let text: String
+    private let value: Double?
     private let prominent: Bool
 
-    public init(_ text: String, prominent: Bool = false) {
+    public init(_ text: String, value: Double? = nil, prominent: Bool = false) {
         self.text = text
+        self.value = value
         self.prominent = prominent
     }
 
@@ -82,5 +94,6 @@ public struct GlitchValueText: View {
         GlitchType.valueText(text, theme)
             .foregroundStyle(prominent ? theme.palette.textPrimary : theme.palette.label)
             .lineLimit(1)
+            .contentTransition(value.map { .numericText(value: $0) } ?? .numericText())
     }
 }
