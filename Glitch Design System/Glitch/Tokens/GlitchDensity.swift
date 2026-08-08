@@ -48,10 +48,12 @@ public struct GlitchMetrics: Equatable, Sendable {
     public var rowHeight: CGFloat
     public var controlRadius: CGFloat
     public var panelRadius: CGFloat
+    /// Inset for a slider's own label and value, which sit inside the track.
+    public var labelInset: CGFloat
+    /// Inset for rows whose content is laid out rather than overlaid.
     public var hInset: CGFloat
     public var spacing: CGFloat
     public var panelPadding: CGFloat
-    public var knobWidth: CGFloat
     public var iconSize: CGFloat
     public var labelSize: CGFloat
     public var valueSize: CGFloat
@@ -60,20 +62,35 @@ public struct GlitchMetrics: Equatable, Sendable {
     public var toggleWidth: CGFloat
     public var markSize: CGFloat
 
+    // MARK: Slider anatomy
+
+    public var handleWidth: CGFloat
+    public var handleHeight: CGFloat
+    /// How far the handle rides inside the fill's leading edge.
+    public var handleInset: CGFloat
+    public var hashmarkWidth: CGFloat
+    public var hashmarkHeight: CGFloat
+
+    /// The reference's exact geometry: 36pt rows, 8pt radius, 13pt type.
     public static let compact = GlitchMetrics(
-        rowHeight: 28, controlRadius: 9, panelRadius: 16,
-        hInset: 10, spacing: 6, panelPadding: 12,
-        knobWidth: 2, iconSize: 12,
-        labelSize: 10, valueSize: 11, titleSize: 12,
-        swatchSize: 26, toggleWidth: 40, markSize: 16
+        rowHeight: 36, controlRadius: 8, panelRadius: 14,
+        labelInset: 10, hInset: 12, spacing: 6, panelPadding: 12,
+        iconSize: 14,
+        labelSize: 13, valueSize: 13, titleSize: 13,
+        swatchSize: 20, toggleWidth: 96, markSize: 18,
+        handleWidth: 3, handleHeight: 20, handleInset: 9,
+        hashmarkWidth: 1, hashmarkHeight: 8
     )
 
+    /// The same proportions with touch-sized targets.
     public static let comfortable = GlitchMetrics(
-        rowHeight: 44, controlRadius: 12, panelRadius: 20,
-        hInset: 14, spacing: 10, panelPadding: 16,
-        knobWidth: 2.5, iconSize: 15,
-        labelSize: 12, valueSize: 13, titleSize: 14,
-        swatchSize: 40, toggleWidth: 56, markSize: 22
+        rowHeight: 48, controlRadius: 11, panelRadius: 18,
+        labelInset: 14, hInset: 16, spacing: 8, panelPadding: 16,
+        iconSize: 17,
+        labelSize: 15, valueSize: 15, titleSize: 15,
+        swatchSize: 26, toggleWidth: 120, markSize: 22,
+        handleWidth: 4, handleHeight: 26, handleInset: 11,
+        hashmarkWidth: 1.5, hashmarkHeight: 10
     )
 
     public static func resolve(_ density: GlitchDensity) -> GlitchMetrics {

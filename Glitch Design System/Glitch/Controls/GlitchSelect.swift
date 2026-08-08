@@ -138,8 +138,8 @@ public struct GlitchSelect<Value: Hashable>: View {
                 .foregroundStyle(theme.palette.label)
             Spacer(minLength: 12)
             Image(systemName: "checkmark")
-                .font(.system(size: metrics.iconSize * 0.9, weight: .bold))
-                .foregroundStyle(theme.palette.accent)
+                .font(.system(size: metrics.iconSize * 0.9, weight: .semibold))
+                .foregroundStyle(theme.palette.textPrimary)
                 .opacity(isSelected ? 1 : 0)
         }
         .padding(.horizontal, metrics.hInset)

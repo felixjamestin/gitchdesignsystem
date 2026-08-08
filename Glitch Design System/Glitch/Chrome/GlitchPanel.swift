@@ -65,14 +65,14 @@ public struct GlitchSection<Content: View>: View {
         HStack {
             Text(title)
                 .font(GlitchType.title(theme.metrics))
-                .foregroundStyle(theme.palette.label)
+                .foregroundStyle(theme.palette.textPrimary)
             Spacer()
-            Image(systemName: "chevron.up")
-                .font(.system(size: theme.metrics.iconSize, weight: .semibold))
+            Image(systemName: "chevron.down")
+                .font(.system(size: theme.metrics.iconSize, weight: .medium))
                 .foregroundStyle(
                     isHovering ? theme.palette.label : theme.palette.labelSecondary
                 )
-                .rotationEffect(.degrees(isExpanded ? 0 : 180))
+                .rotationEffect(.degrees(isExpanded ? 0 : -90))
         }
         .frame(height: theme.metrics.rowHeight)
         .contentShape(Rectangle())
@@ -114,8 +114,8 @@ public struct GlitchDivider: View {
 
     GlitchPanel {
         GlitchSection("Rotation") {
-            GlitchSlider("X", value: $flow, in: -180...180, defaultValue: 0)
-            GlitchSlider("Y", value: $flow, in: -180...180, defaultValue: 0)
+            GlitchSlider("X", value: $flow, in: -180...180)
+            GlitchSlider("Y", value: $flow, in: -180...180)
         }
         GlitchDivider()
         GlitchSection("Options", initiallyExpanded: false) {

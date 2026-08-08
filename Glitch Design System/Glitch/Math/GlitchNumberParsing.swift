@@ -38,4 +38,19 @@ public enum GlitchNumberParsing {
     public static func format(_ value: Double, decimals: Int) -> String {
         String(format: "%.\(max(0, decimals))f", value)
     }
+
+    /// How many decimal places a control stepping by `step` needs.
+    ///
+    /// Derived rather than configured, so a readout can never show more
+    /// precision than the control can actually produce — a slider stepping by
+    /// 0.1 that displays three decimals is claiming a resolution it doesn't
+    /// have.
+    public static func decimals(forStep step: Double) -> Int {
+        guard step > 0, step < 1 else { return 0 }
+        for places in 1...6 {
+            let scaled = step * pow(10, Double(places))
+            if abs(scaled - scaled.rounded()) < 1e-9 { return places }
+        }
+        return 6
+    }
 }

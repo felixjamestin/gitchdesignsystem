@@ -12,6 +12,7 @@ struct GalleryView: View {
     @Binding var density: GlitchDensity
 
     @State private var flow = 73.0
+    @State private var coarse = 0.4
     @State private var precise = 12.0
     @State private var name = "Felix"
     @State private var invalid = "not-an-email"
@@ -41,8 +42,11 @@ struct GalleryView: View {
                 densitySwitch
 
                 group("Slider") {
-                    GlitchSlider("Flow", value: $flow, defaultValue: 50)
-                    GlitchSlider("Fine", value: $flow, in: 0...1, step: 0.01, defaultValue: 0.5, decimals: 2)
+                    GlitchSlider("Flow", value: $flow)
+                    GlitchSlider("Fine", value: $flow, in: 0...1, step: 0.01)
+                    // Ten steps or fewer, so every step gets its own tick and a
+                    // click lands exactly on one.
+                    GlitchSlider("Coarse", value: $coarse, in: 0...1, step: 0.1)
                     GlitchSlider("Disabled", value: $flow).disabled(true)
                 }
 
@@ -64,9 +68,10 @@ struct GalleryView: View {
                     GlitchTextField("Locked", text: $name).disabled(true)
                 }
 
-                group("Switches") {
-                    GlitchToggle("Loop", isOn: $loop)
+                group("Booleans") {
+                    GlitchToggle("Grain Animated", isOn: $loop)
                     GlitchToggle("Disabled", isOn: $loop).disabled(true)
+                    GlitchSwitch("Sliding switch", isOn: $trails)
                     GlitchCheckbox("Show trails", isOn: $trails)
                     GlitchCheckbox("Disabled", isOn: $trails).disabled(true)
                 }

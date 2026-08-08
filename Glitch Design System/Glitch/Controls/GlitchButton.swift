@@ -45,9 +45,8 @@ public struct GlitchButton: View {
                 Image(systemName: systemImage)
                     .font(.system(size: metrics.iconSize, weight: .semibold))
             }
-            Text(title.uppercased())
+            Text(title)
                 .font(GlitchType.label(metrics))
-                .tracking(0.7)
                 .lineLimit(1)
         }
         .foregroundStyle(foreground)
@@ -82,11 +81,15 @@ public struct GlitchButton: View {
         GlitchHaptics.impact()
     }
 
+    /// All three styles are the same neutral overlay at different strengths.
+    /// The reference panel has no coloured button, and introducing one here
+    /// would make a single action shout over a panel of twenty.
     private var background: Color {
         let palette = theme.palette
         switch style {
         case .primary:
-            return isPressed ? palette.accent.opacity(0.82) : palette.accent
+            if isPressed { return palette.handle.opacity(0.28) }
+            return isHovering ? palette.handle.opacity(0.22) : palette.handle.opacity(0.16)
         case .secondary:
             if isPressed { return palette.trackActive }
             return isHovering ? palette.trackHover : palette.track
@@ -98,18 +101,13 @@ public struct GlitchButton: View {
 
     private var foreground: Color {
         switch style {
-        case .primary: theme.palette.onAccent
+        case .primary: theme.palette.textPrimary
         case .secondary: theme.palette.label
         case .ghost: theme.palette.labelSecondary
         }
     }
 
-    private var border: Color {
-        switch style {
-        case .primary, .ghost: .clear
-        case .secondary: theme.palette.stroke
-        }
-    }
+    private var border: Color { .clear }
 }
 
 #Preview("Buttons") {

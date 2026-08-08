@@ -48,6 +48,61 @@ public enum GlitchValueMath {
         return clamp(range.lowerBound + steps * step, to: range)
     }
 
+    /// How far the track itself stretches when the pointer is dragged beyond
+    /// its end.
+    ///
+    /// Three deliberate properties, taken from the reference panel:
+    ///
+    /// - Nothing happens for the first `deadZone` points. Overshooting a
+    ///   limit by a few pixels is almost always an accident of aim, and
+    ///   responding to it would make every drag that ends near the edge
+    ///   twitch.
+    /// - Past that, travel follows a square root, so the first points of
+    ///   resistance are the most visible and it flattens out from there.
+    /// - It saturates at `maximum`. The stretch is a signal, not a distance
+    ///   to be measured, and an unbounded one would tear the layout apart.
+    public static func trackOverscroll(
+        pastEdge distance: Double,
+        deadZone: Double = 32,
+        ramp: Double = 200,
+        maximum: Double = 8
+    ) -> Double {
+        let beyond = max(0, distance - deadZone)
+        guard beyond > 0, ramp > 0 else { return 0 }
+        return maximum * (min(beyond / ramp, 1)).squareRoot()
+    }
+
+    /// Where a click — as opposed to a drag — should land.
+    ///
+    /// A drag is a continuous statement of intent and is taken literally. A
+    /// click is a single guess at a position, so it is helped toward a tick:
+    ///
+    /// - When the range has ten or fewer steps every step has its own tick,
+    ///   so the click simply snaps to the nearest one.
+    /// - Otherwise the ticks sit every 10%, and a click within `tolerance` of
+    ///   one is pulled onto it. Further away the exact position is kept,
+    ///   because the user was evidently aiming between ticks.
+    public static func snapToClick(
+        _ value: Double,
+        in range: ClosedRange<Double>,
+        step: Double,
+        tolerance: Double = 0.03125
+    ) -> Double {
+        let span = range.upperBound - range.lowerBound
+        guard span > 0 else { return range.lowerBound }
+
+        if step > 0, span / step <= 10 + 1e-9 {
+            return snap(value, step: step, in: range)
+        }
+
+        let fraction = (value - range.lowerBound) / span
+        let nearestTick = (fraction * 10).rounded() / 10
+        guard abs(fraction - nearestTick) <= tolerance else {
+            return clamp(value, to: range)
+        }
+        return clamp(range.lowerBound + nearestTick * span, to: range)
+    }
+
     /// Diminishing-returns resistance for dragging past a limit.
     ///
     /// Returns a displacement smaller than `overshoot` that grows ever more

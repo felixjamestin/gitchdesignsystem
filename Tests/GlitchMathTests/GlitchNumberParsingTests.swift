@@ -38,6 +38,22 @@ struct GlitchNumberParsingTests {
         #expect(GlitchNumberParsing.format(-0.5, decimals: 1) == "-0.5")
     }
 
+    @Test("decimal places are derived from the step")
+    func decimalsFromStep() {
+        #expect(GlitchNumberParsing.decimals(forStep: 1) == 0)
+        #expect(GlitchNumberParsing.decimals(forStep: 5) == 0)
+        #expect(GlitchNumberParsing.decimals(forStep: 0.1) == 1)
+        #expect(GlitchNumberParsing.decimals(forStep: 0.5) == 1)
+        #expect(GlitchNumberParsing.decimals(forStep: 0.25) == 2)
+        #expect(GlitchNumberParsing.decimals(forStep: 0.001) == 3)
+    }
+
+    @Test("a non-positive step asks for no decimals")
+    func decimalsFromNoStep() {
+        #expect(GlitchNumberParsing.decimals(forStep: 0) == 0)
+        #expect(GlitchNumberParsing.decimals(forStep: -1) == 0)
+    }
+
     @Test("formatting then parsing preserves the value")
     func roundTrips() {
         let value = 13.75

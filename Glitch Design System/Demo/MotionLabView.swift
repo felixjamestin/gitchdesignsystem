@@ -43,7 +43,6 @@ struct MotionLabView: View {
                     value: $motionScale,
                     in: 0.1...2,
                     step: 0.05,
-                    defaultValue: 1,
                     decimals: 2
                 )
                 Text("Multiplies every spring's response. At 0.10× a press takes almost two seconds to settle, which is long enough to see the overshoot.")
@@ -65,7 +64,7 @@ struct MotionLabView: View {
     private var specimens: some View {
         GlitchPanel {
             GlitchSection("Specimens") {
-                GlitchSlider("Glide", value: $value, defaultValue: 40)
+                GlitchSlider("Glide", value: $value)
                 GlitchToggle("Snap", isOn: $toggled)
                 GlitchCheckbox("Checkmark draw", isOn: $checked)
                 GlitchSegmented(

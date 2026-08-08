@@ -163,7 +163,7 @@ private struct StepperButton: View {
     }
 
     private var fill: Color {
-        if isPressed { return theme.palette.accent }
+        if isPressed { return theme.palette.handle.opacity(0.25) }
         return isHovering ? theme.palette.trackHover : theme.palette.trackActive.opacity(0.6)
     }
 }

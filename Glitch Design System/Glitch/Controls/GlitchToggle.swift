@@ -1,7 +1,41 @@
 import SwiftUI
 
-/// An on/off switch in a labelled row.
+/// A boolean, expressed as an Off/On pair.
+///
+/// The reference panel has no switches: every boolean is a two-segment control
+/// with both states named. In a dense inspector that is the better trade — a
+/// switch encodes its meaning purely in position and colour, so you have to
+/// know the convention to read it, whereas "Off | On" says which one you are
+/// looking at. It also keeps every boolean the same shape as every other
+/// multiple-choice row.
+///
+/// `GlitchSwitch` remains available where a sliding switch is genuinely wanted.
 public struct GlitchToggle: View {
+    private let label: String
+    @Binding private var isOn: Bool
+
+    public init(_ label: String, isOn: Binding<Bool>) {
+        self.label = label
+        self._isOn = isOn
+    }
+
+    public var body: some View {
+        GlitchSegmented(
+            label,
+            selection: $isOn,
+            options: [
+                GlitchOption("Off", value: false),
+                GlitchOption("On", value: true),
+            ]
+        )
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(label)
+        .accessibilityValue(isOn ? "On" : "Off")
+    }
+}
+
+/// A sliding switch, for the cases where one is genuinely wanted.
+public struct GlitchSwitch: View {
     @Environment(\.glitchTheme) private var theme
     @Environment(\.glitchMotion) private var motion
     @Environment(\.isEnabled) private var isEnabled
@@ -30,12 +64,10 @@ public struct GlitchToggle: View {
         .padding(.horizontal, metrics.hInset)
         .frame(height: metrics.rowHeight)
         .background(shape.fill(state.trackFill(theme.palette)))
-        .overlay { shape.strokeBorder(state.strokeColor(theme.palette), lineWidth: state.strokeWidth) }
         .opacity(state.contentOpacity)
-        .scaleEffect(state.pressScale)
         .glitchPressable(isPressed: $isPressed, isEnabled: isEnabled, onTap: toggle)
         .glitchHover { hovering in
-            withAnimation(motion.snap) { isHovering = hovering }
+            withAnimation(motion.tint) { isHovering = hovering }
         }
         .focusable(isEnabled)
         .focused($isFocused)
@@ -53,20 +85,18 @@ public struct GlitchToggle: View {
     }
 
     private var switchTrack: some View {
-        let metrics = theme.metrics
-        let height = metrics.rowHeight * 0.52
+        let height = theme.metrics.rowHeight * 0.5
         let inset: CGFloat = 2.5
         let knob = height - inset * 2
 
         return Capsule()
-            .fill(isOn ? theme.palette.accent : theme.palette.trackActive)
-            .frame(width: metrics.toggleWidth, height: height)
+            .fill(isOn ? theme.palette.handle.opacity(0.35) : theme.palette.trackActive)
+            .frame(width: height * 1.75, height: height)
             .overlay(alignment: isOn ? .trailing : .leading) {
                 Capsule()
-                    .fill(isOn ? theme.palette.onAccent : theme.palette.label)
-                    // The knob stretches toward its destination while held,
-                    // then settles — the squash that makes it feel physical
-                    // rather than teleported.
+                    .fill(isOn ? theme.palette.handle : theme.palette.label)
+                    // Stretches toward its destination while held, then
+                    // settles — the squash that makes it feel physical.
                     .frame(width: isPressed ? knob * 1.35 : knob, height: knob)
                     .padding(inset)
             }
@@ -109,19 +139,21 @@ public struct GlitchCheckbox: View {
 
     public var body: some View {
         let metrics = theme.metrics
+        let shape = RoundedRectangle(cornerRadius: metrics.controlRadius, style: .continuous)
 
         HStack(spacing: metrics.spacing) {
             box
             GlitchLabel(label)
             Spacer(minLength: 0)
         }
+        .padding(.horizontal, metrics.hInset)
         .frame(height: metrics.rowHeight)
+        .background(shape.fill(state.trackFill(theme.palette)))
         .contentShape(Rectangle())
         .opacity(state.contentOpacity)
-        .scaleEffect(state.pressScale)
         .glitchPressable(isPressed: $isPressed, isEnabled: isEnabled, onTap: toggle)
         .glitchHover { hovering in
-            withAnimation(motion.snap) { isHovering = hovering }
+            withAnimation(motion.tint) { isHovering = hovering }
         }
         .focusable(isEnabled)
         .focused($isFocused)
@@ -139,26 +171,19 @@ public struct GlitchCheckbox: View {
     }
 
     private var box: some View {
-        let metrics = theme.metrics
-        let side = metrics.markSize
+        let side = theme.metrics.markSize
         let shape = RoundedRectangle(cornerRadius: side * 0.28, style: .continuous)
 
         return shape
-            .fill(isOn ? theme.palette.accent : state.trackFill(theme.palette))
+            .fill(isOn ? theme.palette.handle : theme.palette.trackActive)
             .frame(width: side, height: side)
-            .overlay {
-                shape.strokeBorder(
-                    isOn ? Color.clear : state.strokeColor(theme.palette),
-                    lineWidth: state.strokeWidth
-                )
-            }
             .overlay {
                 // Trimmed rather than faded: a checkmark that draws itself
                 // reads as a decision being made.
                 GlitchCheckmark()
                     .trim(from: 0, to: isOn ? 1 : 0)
                     .stroke(
-                        theme.palette.onAccent,
+                        theme.palette.panel,
                         style: StrokeStyle(lineWidth: side * 0.14, lineCap: .round, lineJoin: .round)
                     )
                     .padding(side * 0.26)
@@ -192,21 +217,20 @@ struct GlitchCheckmark: Shape {
     }
 }
 
-#Preview("Toggles") {
+#Preview("Booleans") {
+    @Previewable @State var grain = false
     @Previewable @State var loop = true
-    @Previewable @State var mirror = false
     @Previewable @State var trails = true
 
-    VStack(spacing: 8) {
+    VStack(spacing: 6) {
+        GlitchToggle("Grain Animated", isOn: $grain)
         GlitchToggle("Loop", isOn: $loop)
-        GlitchToggle("Mirror", isOn: $mirror)
-        GlitchToggle("Disabled", isOn: $loop).disabled(true)
+        GlitchSwitch("Legacy switch", isOn: $loop)
         GlitchCheckbox("Show trails", isOn: $trails)
-        GlitchCheckbox("Snap to grid", isOn: $mirror)
     }
-    .padding(24)
-    .frame(width: 320)
-    .background(GlitchPalette.dark.background)
+    .padding(12)
+    .frame(width: 280)
+    .background(GlitchPalette.dark.panel)
     .glitchTheme()
     .preferredColorScheme(.dark)
 }

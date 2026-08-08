@@ -122,4 +122,70 @@ struct GlitchValueMathTests {
         #expect(!r.isNaN)
         #expect(r == 0)
     }
+
+    // MARK: - Track overscroll
+
+    @Test("overscroll stays at zero until the pointer passes the dead zone")
+    func overscrollDeadZone() {
+        #expect(GlitchValueMath.trackOverscroll(pastEdge: 0) == 0)
+        #expect(GlitchValueMath.trackOverscroll(pastEdge: 31) == 0)
+        #expect(GlitchValueMath.trackOverscroll(pastEdge: 32) == 0)
+    }
+
+    @Test("overscroll follows a square root beyond the dead zone")
+    func overscrollCurve() {
+        // 50pt past the dead zone is a quarter of the ramp, so half the travel.
+        #expect(abs(GlitchValueMath.trackOverscroll(pastEdge: 82) - 4) < 1e-9)
+    }
+
+    @Test("overscroll saturates at its maximum and never exceeds it")
+    func overscrollSaturates() {
+        #expect(abs(GlitchValueMath.trackOverscroll(pastEdge: 232) - 8) < 1e-9)
+        #expect(GlitchValueMath.trackOverscroll(pastEdge: 5000) == 8)
+    }
+
+    @Test("overscroll is monotonic")
+    func overscrollMonotonic() {
+        var previous = -1.0
+        for d in stride(from: 0.0, through: 300, by: 10) {
+            let value = GlitchValueMath.trackOverscroll(pastEdge: d)
+            #expect(value >= previous)
+            previous = value
+        }
+    }
+
+    // MARK: - Click snapping
+
+    /// With ten or fewer steps every step gets its own tick, so a click is
+    /// unambiguous and should land exactly on one.
+    @Test("a click snaps to the nearest step when the range is coarse")
+    func clickSnapsCoarseRange() {
+        #expect(abs(GlitchValueMath.snapToClick(0.44, in: 0...1, step: 0.1) - 0.4) < 1e-9)
+        #expect(abs(GlitchValueMath.snapToClick(0.46, in: 0...1, step: 0.1) - 0.5) < 1e-9)
+    }
+
+    @Test("a click near a tenth is pulled onto it")
+    func clickSnapsNearTick() {
+        // 42% is within 3.125% of the 40% tick.
+        #expect(abs(GlitchValueMath.snapToClick(42, in: 0...100, step: 1) - 40) < 1e-9)
+    }
+
+    @Test("a click far from any tick lands exactly where it was made")
+    func clickKeepsExactPosition() {
+        // 44% is further than 3.125% from both 40% and 50%.
+        #expect(abs(GlitchValueMath.snapToClick(44, in: 0...100, step: 1) - 44) < 1e-9)
+    }
+
+    @Test("clicking at either extreme reaches the bound exactly")
+    func clickReachesBounds() {
+        #expect(GlitchValueMath.snapToClick(0, in: 0...100, step: 1) == 0)
+        #expect(GlitchValueMath.snapToClick(100, in: 0...100, step: 1) == 100)
+    }
+
+    @Test("click snapping on a degenerate range does not produce NaN")
+    func clickSnapDegenerate() {
+        let v = GlitchValueMath.snapToClick(5, in: 5...5, step: 1)
+        #expect(!v.isNaN)
+        #expect(v == 5)
+    }
 }

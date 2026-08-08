@@ -11,10 +11,20 @@ refined macOS inspector. Both share one idea worth stealing — **the label, the
 occupy a single row**, so a slider doubles as its own label and no vertical space is wasted on
 captions.
 
-The system commits to a single visual direction: **refined, with grit.** Soft rounded fills,
-generous radii, and comfortable hit targets from the inspector reference; density, uppercase
-micro-labels, and one hot accent color from the creative-tool reference. Everything not the accent
-is greyscale.
+**Revised 2026-08-08 (second pass).** The system now matches a third reference — the `dialkit`
+panel at `experiments.thisiswhitespace.com/dot-sphere-card` — in both mechanics and appearance, at
+the user's direction. That supersedes the original "refined, with grit" direction:
+
+- **No chromatic accent.** Every surface is a white alpha over the panel; activity is expressed as
+  *more white*, never as a different hue. An accent remains available per subtree via
+  `.glitchTheme(accent:)` but is neutral by default.
+- **Labels are sentence case**, not uppercase, at the same 13pt medium as the value beside them.
+- **36pt rows, 8pt radius, `#212121` panel at 14pt** — the reference's exact geometry.
+- **Booleans are Off/On segmented pairs**, not switches. `GlitchSwitch` remains for cases that
+  genuinely want a sliding switch.
+
+Three things the reference lacks are kept as deliberate additions, because removing them would
+make the controls strictly worse: **keyboard operation, VoiceOver support, and iOS haptics.**
 
 Controls must feel responsive and deliberate, not merely animated. Motion follows a fixed set of
 rules (Section 4) rather than per-control improvisation.
@@ -135,14 +145,16 @@ Ten rules, applied to every control. These are the specification, not suggestion
 
 ### Motion tokens
 
-Four springs, defined once in `GlitchMotion`. **No control may declare an ad-hoc animation.**
+Five tokens, defined once in `GlitchMotion`, carried over from the reference's own spring
+configurations. **No control may declare an ad-hoc animation.**
 
-| Token | Response / Damping | Used for |
+| Token | Value | Used for |
 |---|---|---|
-| `snap` | 0.18 / 0.86 | presses, toggles, checkboxes |
-| `glide` | 0.32 / 0.82 | slider settle, value changes |
-| `pop` | 0.28 / 0.68 (slight overshoot) | popovers, chips entering |
-| `drift` | 0.50 / 1.00 | disclosure, ambient canvas |
+| `snap` | spring, duration 0.20, bounce 0.15 | segmented pill travel |
+| `glide` | spring, mass 0.8 / stiffness 300 / damping 25 | a value settling to a clicked position |
+| `pop` | spring, duration 0.25, bounce 0.15 | the slider handle revealing itself |
+| `drift` | spring, duration 0.35, bounce 0.15 | overscroll release, section disclosure |
+| `tint` | ease-out 0.15s | colour and opacity only — no momentum to preserve |
 
 Every token reads a `MotionScale` environment multiplier (default 1.0). The Motion Lab sets it as
 low as 0.1× to inspect easing — with no special-casing inside any control.
@@ -151,20 +163,31 @@ low as 0.1× to inspect easing — with no special-casing inside any control.
 
 ### The hero: `GlitchSlider`
 
-The row is a rounded rect track with a soft grey fill, an uppercase label inset at the left, an
-accent-tinted fill growing from the left edge, a thin vertical knob-line at the current value, and
-the numeric value right-aligned.
+A 36pt rounded-rect track. The label sits inside at the left, the monospaced value inside at the
+right, and a white 11% fill grows from the left edge — brightening to 15% while the row is engaged.
 
-Behavior:
+Behavior, matching the reference exactly:
 
-- Drag anywhere on the track — it jumps to the touch and grabs. No knob-hunting.
-- ⇧-drag for 0.1× fine adjustment.
-- ⌥-click resets to the default value.
-- Hover reveals a `⊗` reset button when the value differs from default (long-press on touch).
-- Scroll wheel adjusts the value where available.
-- ← / → adjust by one step; ⇧← / ⇧→ by ten.
-- Rubber-band resistance at both limits.
-- Haptic tick when crossing a step boundary.
+- **Pressing does not move the value.** Touch-down only makes the row active. A slider that jumps
+  on press cannot be clicked to focus, cannot be pressed and reconsidered, and turns every
+  mis-aimed click into an edit. Movement past **3pt** starts a drag.
+- **A drag is taken literally** — continuous absolute tracking with no animation between the
+  pointer and the fill.
+- **A click is helped onto a tick.** On release without dragging, the value animates (`glide`) to
+  the clicked position, snapped to the nearest 10% tick if within **3.125%** of one — or to the
+  nearest step when the range has ten or fewer steps.
+- **Hashmarks** mark exactly those ticks: one per step for coarse ranges, otherwise nine at 10%.
+  Invisible at rest, white 15% while active.
+- **The handle is hidden at rest.** 3×20pt, `scaleX 0.25 → 1` on activation (`pop`), opacity 0 →
+  0.5, → 0.9 while dragging, → 0.1 when it would collide with the label or value text.
+- **The track itself stretches past its limits** — not its contents sliding within it. Resistance
+  begins only 32pt beyond the edge, follows `8·√(distance/200)`, caps at 8pt, and releases with
+  `drift`.
+- **The value is editable.** Resting on the row for 800ms underlines it; click to type, Return
+  commits, Escape cancels.
+
+Beyond the reference: ← / → adjust by one step and ⇧← / ⇧→ by ten, scroll wheel adjusts under the
+pointer, and a haptic ticks on each step crossed.
 
 ### Full roster
 

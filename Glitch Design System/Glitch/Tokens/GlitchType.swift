@@ -1,17 +1,22 @@
 import SwiftUI
 
 /// The system's three text roles.
+///
+/// One size for everything in a row — label and value are both 13pt medium —
+/// so a panel reads as a list rather than a hierarchy. The only distinction
+/// between them is the typeface: names are proportional, numbers are not.
 public enum GlitchType {
 
-    /// Uppercase micro-type for control labels, per the first reference.
+    /// Control labels. Sentence case, never uppercased: these are names, and a
+    /// dense panel of shouted names is harder to scan, not easier.
     public static func label(_ metrics: GlitchMetrics) -> Font {
-        .system(size: metrics.labelSize, weight: .semibold)
+        .system(size: metrics.labelSize, weight: .medium)
     }
 
-    /// Numeric readouts. Monospaced digits so a changing value doesn't
-    /// reflow the row it sits in — rule 3, no layout jitter.
+    /// Numeric readouts. Monospaced so a changing value doesn't reflow the row
+    /// it sits in — no layout jitter, motion rule 3.
     public static func value(_ metrics: GlitchMetrics) -> Font {
-        .system(size: metrics.valueSize, weight: .medium).monospacedDigit()
+        .system(size: metrics.valueSize, weight: .medium, design: .monospaced)
     }
 
     /// Section and panel headers.
@@ -20,7 +25,7 @@ public enum GlitchType {
     }
 }
 
-/// A control's label: uppercased, tracked out, and never wrapping.
+/// A control's label.
 public struct GlitchLabel: View {
     @Environment(\.glitchTheme) private var theme
 
@@ -33,30 +38,29 @@ public struct GlitchLabel: View {
     }
 
     public var body: some View {
-        Text(text.uppercased())
+        Text(text)
             .font(GlitchType.label(theme.metrics))
-            .tracking(0.7)
             .lineLimit(1)
             .foregroundStyle(secondary ? theme.palette.labelSecondary : theme.palette.label)
     }
 }
 
-/// A numeric readout, right-aligned in a fixed-width column so the digits
-/// don't shift the row as they change.
+/// A numeric readout.
 public struct GlitchValueText: View {
     @Environment(\.glitchTheme) private var theme
 
     private let text: String
+    private let prominent: Bool
 
-    public init(_ text: String) {
+    public init(_ text: String, prominent: Bool = false) {
         self.text = text
+        self.prominent = prominent
     }
 
     public var body: some View {
         Text(text)
             .font(GlitchType.value(theme.metrics))
-            .foregroundStyle(theme.palette.labelSecondary)
+            .foregroundStyle(prominent ? theme.palette.textPrimary : theme.palette.label)
             .lineLimit(1)
-            .frame(minWidth: theme.metrics.valueSize * 3, alignment: .trailing)
     }
 }

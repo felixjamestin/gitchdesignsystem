@@ -1,11 +1,15 @@
 import SwiftUI
 
-/// A row of mutually exclusive choices with a sliding indicator.
+/// A row of mutually exclusive choices with a sliding pill.
 ///
-/// The indicator is one view moved with `matchedGeometryEffect` rather than a
-/// per-segment highlight cross-fading. Cross-fading loses the relationship
-/// between where the selection was and where it went; sliding preserves it,
-/// which is the whole reason to use a segmented control over a select.
+/// The pill is one view moved between segments, not a per-segment highlight
+/// cross-fading. Cross-fading discards the relationship between where the
+/// selection was and where it went, which is the only reason to prefer a
+/// segmented control over a select in the first place.
+///
+/// The first appearance is deliberately instant. Sliding the pill in from
+/// wherever it happened to be initialised animates a change the user did not
+/// make.
 public struct GlitchSegmented<Value: Hashable>: View {
     @Environment(\.glitchTheme) private var theme
     @Environment(\.glitchMotion) private var motion
@@ -15,8 +19,9 @@ public struct GlitchSegmented<Value: Hashable>: View {
     @Binding private var selection: Value
     private let options: [GlitchOption<Value>]
 
-    @Namespace private var indicatorNamespace
-    @State private var hovered: Value?
+    @Namespace private var pill
+    @State private var hasAppeared = false
+    @State private var isHovering = false
 
     public init(
         _ label: String? = nil,
@@ -29,20 +34,33 @@ public struct GlitchSegmented<Value: Hashable>: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if let label {
-                GlitchLabel(label, secondary: true)
-            }
-            control
-        }
-        .opacity(isEnabled ? 1 : 0.4)
-    }
-
-    private var control: some View {
         let metrics = theme.metrics
         let shape = RoundedRectangle(cornerRadius: metrics.controlRadius, style: .continuous)
 
-        return HStack(spacing: 2) {
+        HStack(spacing: metrics.spacing) {
+            if let label {
+                GlitchLabel(label)
+                Spacer(minLength: 8)
+            }
+            segments
+                .frame(maxWidth: label == nil ? .infinity : nil)
+        }
+        .padding(.leading, label == nil ? 0 : metrics.hInset)
+        .frame(height: metrics.rowHeight)
+        .background(shape.fill(isHovering && isEnabled ? theme.palette.trackHover : theme.palette.track))
+        .clipShape(shape)
+        .opacity(isEnabled ? 1 : 0.4)
+        .glitchHover { hovering in
+            withAnimation(motion.tint) { isHovering = hovering }
+        }
+        .animation(motion.tint, value: isHovering)
+        .onAppear { hasAppeared = true }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(label ?? "Options")
+    }
+
+    private var segments: some View {
+        HStack(spacing: 0) {
             if options.isEmpty {
                 GlitchLabel("No options", secondary: true)
                     .frame(maxWidth: .infinity)
@@ -53,46 +71,35 @@ public struct GlitchSegmented<Value: Hashable>: View {
             }
         }
         .padding(2)
-        .frame(height: metrics.rowHeight)
-        .background(shape.fill(theme.palette.track))
-        .overlay { shape.strokeBorder(theme.palette.stroke, lineWidth: 1) }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(label ?? "Options")
     }
 
     private func segment(for option: GlitchOption<Value>) -> some View {
         let metrics = theme.metrics
         let isSelected = option.value == selection
-        let innerRadius = max(2, metrics.controlRadius - 2)
 
         return ZStack {
             if isSelected {
-                RoundedRectangle(cornerRadius: innerRadius, style: .continuous)
-                    .fill(theme.palette.accent)
-                    .matchedGeometryEffect(id: "indicator", in: indicatorNamespace)
-            } else if hovered == option.value {
-                RoundedRectangle(cornerRadius: innerRadius, style: .continuous)
-                    .fill(theme.palette.trackHover)
+                RoundedRectangle(cornerRadius: max(2, metrics.controlRadius - 2), style: .continuous)
+                    .fill(theme.palette.trackActive)
+                    .matchedGeometryEffect(id: "pill", in: pill)
             }
 
             HStack(spacing: 4) {
                 if let systemImage = option.systemImage {
                     Image(systemName: systemImage)
-                        .font(.system(size: metrics.iconSize, weight: .semibold))
+                        .font(.system(size: metrics.iconSize, weight: .medium))
                 }
-                Text(option.title.uppercased())
+                Text(option.title)
                     .font(GlitchType.label(metrics))
-                    .tracking(0.7)
                     .lineLimit(1)
             }
-            .foregroundStyle(isSelected ? theme.palette.onAccent : theme.palette.label)
+            .foregroundStyle(isSelected ? theme.palette.textPrimary : theme.palette.label)
+            .padding(.horizontal, 12)
+            .animation(motion.tint, value: isSelected)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
         .onTapGesture { select(option.value) }
-        .glitchHover { hovering in
-            withAnimation(motion.snap) { hovered = hovering ? option.value : nil }
-        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(option.title)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
@@ -101,34 +108,35 @@ public struct GlitchSegmented<Value: Hashable>: View {
 
     private func select(_ value: Value) {
         guard isEnabled, value != selection else { return }
-        withAnimation(motion.glide) { selection = value }
+        // Instant before the first layout has settled, so the pill never
+        // animates in from nowhere.
+        if hasAppeared {
+            withAnimation(motion.snap) { selection = value }
+        } else {
+            selection = value
+        }
         GlitchHaptics.selection()
     }
 }
 
 #Preview("Segmented") {
-    @Previewable @State var blend = "Add"
-    @Previewable @State var align = "left"
+    @Previewable @State var blend = "add"
+    @Previewable @State var align = "center"
 
-    VStack(spacing: 12) {
-        GlitchSegmented(
-            "Blend",
-            selection: $blend,
-            options: GlitchOption.list(["Add", "Screen", "Multiply"])
-        )
-        GlitchSegmented(
-            "Align",
-            selection: $align,
-            options: [
-                GlitchOption("Left", value: "left", systemImage: "text.alignleft"),
-                GlitchOption("Center", value: "center", systemImage: "text.aligncenter"),
-                GlitchOption("Right", value: "right", systemImage: "text.alignright"),
-            ]
-        )
+    VStack(spacing: 6) {
+        GlitchSegmented("Blend", selection: $blend, options: [
+            GlitchOption("Add", value: "add"),
+            GlitchOption("Screen", value: "screen"),
+        ])
+        GlitchSegmented(selection: $align, options: [
+            GlitchOption("Left", value: "left"),
+            GlitchOption("Center", value: "center"),
+            GlitchOption("Right", value: "right"),
+        ])
     }
-    .padding(24)
-    .frame(width: 340)
-    .background(GlitchPalette.dark.background)
+    .padding(12)
+    .frame(width: 280)
+    .background(GlitchPalette.dark.panel)
     .glitchTheme()
     .preferredColorScheme(.dark)
 }

@@ -2,20 +2,21 @@ import SwiftUI
 
 /// The system's signature control: label, fill and value in a single row.
 ///
-/// The idea is taken from both reference images — a slider that is also its own
-/// label, so a panel of twelve parameters costs twelve rows rather than
-/// twenty-four.
+/// Behaviour follows the reference panel exactly, and three of its decisions
+/// are worth stating because they are easy to "fix" into something worse:
 ///
-/// Interaction notes worth knowing before changing anything here:
-///
-/// - The whole track is the handle. Pressing anywhere jumps the value there and
-///   grabs it, so there is no small knob to hunt for. This is the single
-///   biggest feel difference from a stock slider.
-/// - Nothing animates while the finger is down (motion rule 7). A spring
-///   between the input and the fill reads as lag, however pretty it looks in
-///   isolation.
-/// - Pushing past either end meets resistance rather than a dead stop, so the
-///   limit is felt instead of merely observed.
+/// - **Pressing does not move the value.** Touch-down only wakes the row up.
+///   A slider that jumps on press cannot be clicked to focus, cannot be
+///   pressed and reconsidered, and turns every mis-aimed click into an edit.
+///   Movement past a 3pt threshold is what starts a drag.
+/// - **A click and a drag are different gestures.** A drag is a continuous
+///   statement of intent and is taken literally, with no animation between the
+///   pointer and the fill. A click is one guess at a position, so it is helped
+///   onto a nearby tick and *animates* there — there is no finger for it to
+///   lag behind.
+/// - **The track itself stretches past its limits.** Not the contents sliding
+///   within it: the whole row grows, which is why the resistance reads as the
+///   control straining rather than as its label drifting.
 public struct GlitchSlider: View {
     @Environment(\.glitchTheme) private var theme
     @Environment(\.glitchMotion) private var motion
@@ -25,53 +26,79 @@ public struct GlitchSlider: View {
     @Binding private var value: Double
     private let range: ClosedRange<Double>
     private let step: Double
-    private let defaultValue: Double?
-    private let decimals: Int
+    private let decimalsOverride: Int?
+
+    /// Movement beyond this many points turns a press into a drag.
+    private let dragThreshold: CGFloat = 3
+    /// How long the pointer must rest on the row before the value offers to be
+    /// typed. Long enough that it never appears while passing over.
+    private let editRevealDelay: Duration = .milliseconds(800)
 
     @State private var isHovering = false
+    @State private var isPressed = false
     @State private var isDragging = false
-    @State private var suppressDrag = false
     @State private var trackWidth: CGFloat = 0
-    @State private var grabValue: Double = 0
-    @State private var grabX: CGFloat = 0
-    @State private var bandOffset: CGFloat = 0
-    @State private var modifiers: EventModifiers = []
-    @State private var wasFine = false
-    @State private var valuePop = false
+    @State private var labelWidth: CGFloat = 0
+    @State private var valueWidth: CGFloat = 0
+    @State private var overscroll: CGFloat = 0
+    @State private var offersEditing = false
+    @State private var isEditing = false
+    @State private var draft = ""
+    @State private var revealTask: Task<Void, Never>?
     @FocusState private var isFocused: Bool
+    @FocusState private var isFieldFocused: Bool
 
     public init(
         _ label: String,
         value: Binding<Double>,
         in range: ClosedRange<Double> = 0...100,
         step: Double = 1,
-        defaultValue: Double? = nil,
-        decimals: Int = 0
+        decimals: Int? = nil
     ) {
         self.label = label
         self._value = value
         self.range = range
         self.step = step
-        self.defaultValue = defaultValue
-        self.decimals = decimals
+        self.decimalsOverride = decimals
     }
 
     public var body: some View {
-        HStack(spacing: theme.metrics.spacing) {
-            track
-            GlitchValueText(formattedValue)
-                .scaleEffect(valuePop ? 1.14 : 1)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(label)
-        .accessibilityValue(formattedValue)
-        .accessibilityAdjustableAction { direction in
-            switch direction {
-            case .increment: adjust(by: effectiveStep)
-            case .decrement: adjust(by: -effectiveStep)
-            @unknown default: break
+        Color.clear
+            .frame(height: theme.metrics.rowHeight)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { trackWidth = $0 }
+            // Drawn as an overlay so the stretch at the limits changes what is
+            // painted without disturbing the row's layout.
+            .overlay(alignment: .leading) {
+                track
+                    .frame(width: stretchedWidth, height: theme.metrics.rowHeight)
+                    .offset(x: min(0, overscroll))
             }
-        }
+            .contentShape(Rectangle())
+            .gesture(dragGesture)
+            .glitchHover(onHoverChange)
+            .glitchScrollWheel(isActive: isHovering && isEnabled && !isEditing) { delta in
+                adjust(by: Double(delta) * effectiveStep * 0.25)
+            }
+            .focusable(isEnabled)
+            .focused($isFocused)
+            .glitchFocusRing(isFocused: isFocused, radius: theme.metrics.controlRadius)
+            .onKeyPress(keys: [.leftArrow, .rightArrow]) { press in
+                guard isEnabled else { return .ignored }
+                let magnitude = effectiveStep * (press.modifiers.contains(.shift) ? 10 : 1)
+                adjust(by: press.key == .leftArrow ? -magnitude : magnitude)
+                return .handled
+            }
+            .onDisappear { revealTask?.cancel() }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(label)
+            .accessibilityValue(formattedValue)
+            .accessibilityAdjustableAction { direction in
+                switch direction {
+                case .increment: adjust(by: effectiveStep)
+                case .decrement: adjust(by: -effectiveStep)
+                @unknown default: break
+                }
+            }
     }
 
     // MARK: - Track
@@ -81,200 +108,258 @@ public struct GlitchSlider: View {
         let palette = theme.palette
         let shape = RoundedRectangle(cornerRadius: metrics.controlRadius, style: .continuous)
 
-        return ZStack(alignment: .leading) {
-            shape.fill(state.trackFill(palette))
-
-            // Fill, knob and label move together under the rubber band, so
-            // pushing past a limit shifts the whole row rather than sliding
-            // one part against another.
-            ZStack(alignment: .leading) {
+        return shape
+            .fill(palette.track)
+            .overlay(alignment: .leading) { hashmarks }
+            .overlay(alignment: .leading) {
                 Rectangle()
-                    .fill(palette.accent.opacity(isEnabled ? 0.9 : 0.45))
+                    .fill(isActive ? palette.fillActive : palette.fill)
                     .frame(width: fillWidth)
-
-                Rectangle()
-                    .fill(palette.label.opacity(0.85))
-                    .frame(width: metrics.knobWidth)
-                    .offset(x: knobX)
-
-                labelRow
+                    .animation(motion.tint, value: isActive)
             }
-            .offset(x: bandOffset)
-        }
-        .frame(height: metrics.rowHeight)
-        .clipShape(shape)
-        .overlay {
-            shape.strokeBorder(state.strokeColor(palette), lineWidth: state.strokeWidth)
-        }
-        .opacity(state.contentOpacity)
-        .contentShape(Rectangle())
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { trackWidth = $0 }
-        .gesture(dragGesture)
-        .glitchHover { hovering in
-            withAnimation(motion.snap) { isHovering = hovering }
-        }
-        .glitchScrollWheel(isActive: isHovering && isEnabled) { delta in
-            adjust(by: Double(delta) * effectiveStep * 0.25)
-        }
-        .glitchModifierKeys { modifiers = $0 }
-        .focusable(isEnabled)
-        .focused($isFocused)
-        .glitchFocusRing(isFocused: isFocused, radius: metrics.controlRadius)
-        .onKeyPress(keys: [.leftArrow, .rightArrow]) { press in
-            guard isEnabled else { return .ignored }
-            let magnitude = effectiveStep * (press.modifiers.contains(.shift) ? 10 : 1)
-            adjust(by: press.key == .leftArrow ? -magnitude : magnitude)
-            return .handled
-        }
-        .animation(motion.pop, value: showsReset)
+            .overlay(alignment: .leading) { handle }
+            .overlay(alignment: .leading) {
+                Text(label)
+                    .font(GlitchType.label(metrics))
+                    .foregroundStyle(palette.label)
+                    .lineLimit(1)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { labelWidth = $0 }
+                    .padding(.leading, metrics.labelInset)
+                    .allowsHitTesting(false)
+            }
+            .overlay(alignment: .trailing) {
+                readout.padding(.trailing, metrics.labelInset)
+            }
+            .clipShape(shape)
+            .opacity(isEnabled ? 1 : 0.4)
     }
 
-    private var labelRow: some View {
-        HStack(spacing: 4) {
-            if showsReset {
-                Button(action: reset) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: theme.metrics.iconSize))
-                        .foregroundStyle(theme.palette.labelSecondary)
+    /// Ticks the click-snapping actually lands on: one per step when the range
+    /// is coarse, otherwise every 10%. Invisible until the row is engaged —
+    /// they are guidance for the gesture in progress, not decoration.
+    private var hashmarks: some View {
+        GeometryReader { proxy in
+            ForEach(Array(tickFractions.enumerated()), id: \.offset) { _, fraction in
+                Capsule()
+                    .fill(theme.palette.hashmark.opacity(isActive ? 1 : 0))
+                    .frame(width: theme.metrics.hashmarkWidth, height: theme.metrics.hashmarkHeight)
+                    .position(
+                        x: proxy.size.width * fraction,
+                        y: proxy.size.height / 2
+                    )
+            }
+        }
+        .animation(motion.tint, value: isActive)
+        .allowsHitTesting(false)
+    }
+
+    private var handle: some View {
+        Capsule()
+            .fill(theme.palette.handle)
+            .frame(width: theme.metrics.handleWidth, height: theme.metrics.handleHeight)
+            // Retracted to a quarter width at rest and grown on engagement, so
+            // the row reads as a bar until you touch it and as a slider the
+            // moment you do.
+            .scaleEffect(
+                x: isActive ? 1 : 0.25,
+                y: (isActive && handleCollidesWithText) ? 0.75 : 1,
+                anchor: .center
+            )
+            .opacity(handleOpacity)
+            .offset(x: handleX)
+            .animation(motion.pop, value: isActive)
+            .animation(motion.tint, value: handleOpacity)
+            .allowsHitTesting(false)
+    }
+
+    @ViewBuilder
+    private var readout: some View {
+        if isEditing {
+            TextField("", text: $draft)
+                .textFieldStyle(.plain)
+                .font(GlitchType.value(theme.metrics))
+                .foregroundStyle(theme.palette.textPrimary)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 56)
+                .focused($isFieldFocused)
+                .onSubmit(commitDraft)
+                .onKeyPress(.escape) {
+                    endEditing()
+                    return .handled
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Reset \(label)")
-                .transition(.scale.combined(with: .opacity))
-            }
-            GlitchLabel(label)
+                .onChange(of: isFieldFocused) { _, focused in
+                    if !focused && isEditing { commitDraft() }
+                }
+                .overlay(alignment: .bottom) {
+                    Rectangle()
+                        .fill(theme.palette.label)
+                        .frame(height: 1)
+                        .offset(y: 2)
+                }
+        } else {
+            Text(formattedValue)
+                .font(GlitchType.value(theme.metrics))
+                .foregroundStyle(isActive ? theme.palette.textPrimary : theme.palette.label)
+                .lineLimit(1)
+                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { valueWidth = $0 }
+                .overlay(alignment: .bottom) {
+                    Rectangle()
+                        .fill(offersEditing ? theme.palette.label : .clear)
+                        .frame(height: 1)
+                        .offset(y: 2)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if offersEditing { beginEditing() }
+                }
+                .animation(motion.tint, value: offersEditing)
+                .animation(motion.tint, value: isActive)
         }
-        .padding(.leading, theme.metrics.hInset)
     }
 
-    // MARK: - Derived state
+    // MARK: - Derived geometry
 
-    private var state: ControlState {
-        ControlState(
-            isHovering: isHovering,
-            isFocused: isFocused,
-            isDragging: isDragging,
-            isDisabled: !isEnabled
-        )
+    private var isActive: Bool { (isHovering || isPressed) && isEnabled }
+
+    private var decimals: Int {
+        decimalsOverride ?? GlitchNumberParsing.decimals(forStep: step)
     }
 
     private var formattedValue: String {
         GlitchNumberParsing.format(value, decimals: decimals)
     }
 
+    private var fraction: CGFloat {
+        CGFloat(GlitchValueMath.normalize(value, in: range))
+    }
+
+    private var stretchedWidth: CGFloat {
+        max(0, trackWidth + abs(overscroll))
+    }
+
     private var fillWidth: CGFloat {
-        trackWidth * CGFloat(GlitchValueMath.normalize(value, in: range))
+        stretchedWidth * fraction
     }
 
-    private var knobX: CGFloat {
-        let half = theme.metrics.knobWidth / 2
-        return min(max(fillWidth - half, 0), max(0, trackWidth - theme.metrics.knobWidth))
+    /// The handle rides just inside the fill's leading edge rather than
+    /// straddling it, and never leaves the track.
+    private var handleX: CGFloat {
+        max(5, fillWidth - theme.metrics.handleInset)
     }
 
-    /// Continuous sliders still need a stride for the keyboard and VoiceOver;
-    /// a hundredth of the range is a sensible unit of "one press".
+    /// True when the handle would sit on top of the label or the value.
+    /// It fades almost away rather than crossing them, because a 3pt bar
+    /// through the middle of a word is worse than no handle at all.
+    private var handleCollidesWithText: Bool {
+        guard stretchedWidth > 0 else { return false }
+        let gap: CGFloat = 8
+        let labelEdge = theme.metrics.labelInset + labelWidth + gap
+        let valueEdge = stretchedWidth - theme.metrics.labelInset - valueWidth - gap
+        return fillWidth < labelEdge || fillWidth > valueEdge
+    }
+
+    private var handleOpacity: Double {
+        guard isActive else { return 0 }
+        if handleCollidesWithText { return 0.1 }
+        return isDragging ? 0.9 : 0.5
+    }
+
     private var effectiveStep: Double {
         step > 0 ? step : (range.upperBound - range.lowerBound) / 100
     }
 
-    /// Where there is no pointer there is no hover, so the affordance is simply
-    /// always present rather than hidden behind a gesture that would fight the
-    /// track's own drag.
-    private var showsReset: Bool {
-        guard let defaultValue, isEnabled, value != defaultValue else { return false }
-        return isHovering || !GlitchPlatform.hasPointer
+    private var tickFractions: [CGFloat] {
+        let span = range.upperBound - range.lowerBound
+        guard span > 0 else { return [] }
+
+        if step > 0, span / step <= 10 + 1e-9 {
+            let count = Int((span / step).rounded()) - 1
+            guard count > 0 else { return [] }
+            return (1...count).map { CGFloat(Double($0) * step / span) }
+        }
+        return (1...9).map { CGFloat($0) / 10 }
     }
 
-    // MARK: - Dragging
+    // MARK: - Gesture
 
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { gesture in
-                guard isEnabled, trackWidth > 0 else { return }
+                guard isEnabled, !isEditing else { return }
+
+                if !isPressed {
+                    isPressed = true
+                    isFocused = true
+                    cancelEditOffer()
+                }
+
+                let travel = hypot(
+                    gesture.location.x - gesture.startLocation.x,
+                    gesture.location.y - gesture.startLocation.y
+                )
+                if !isDragging, travel > dragThreshold {
+                    isDragging = true
+                }
+                guard isDragging else { return }
+
+                // Motion rule 7: while the pointer is down the fill tracks it
+                // exactly, with no spring in between.
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    overscroll = overscrollOffset(forX: gesture.location.x)
+                    commit(valueAt(gesture.location.x))
+                }
+            }
+            .onEnded { gesture in
+                guard isEnabled else { return }
 
                 if !isDragging {
-                    beginDrag(at: gesture.location.x)
-                    return
-                }
-                guard !suppressDrag else { return }
-
-                // Re-anchor when the mode flips, so crossing into or out of
-                // fine adjustment continues from the current value instead of
-                // jumping to wherever the absolute position maps.
-                let fine = isFine(at: gesture.location)
-                if fine != wasFine {
-                    wasFine = fine
-                    grabX = gesture.location.x
-                    grabValue = value
+                    // A click: help it onto a tick, and animate there.
+                    let target = GlitchValueMath.snapToClick(
+                        rawValue(at: gesture.location.x), in: range, step: step
+                    )
+                    if target != value {
+                        withAnimation(motion.glide) { value = target }
+                        GlitchHaptics.selection()
+                    }
                 }
 
-                let raw = fine
-                    ? fineValue(at: gesture.location.x)
-                    : rawValue(at: gesture.location.x)
-
-                commit(raw)
-                updateBand(atX: gesture.location.x, raw: raw)
-            }
-            .onEnded { _ in
+                if overscroll != 0 {
+                    withAnimation(motion.drift) { overscroll = 0 }
+                }
+                isPressed = false
                 isDragging = false
-                suppressDrag = false
-                wasFine = false
-                withAnimation(motion.glide) { bandOffset = 0 }
             }
     }
 
-    /// Fine adjustment has to exist on both platforms, and shift does not.
-    ///
-    /// A pointer holds shift; a finger drags away from the track, which is the
-    /// same gesture the system slider uses and costs nothing to discover by
-    /// accident.
-    private func isFine(at location: CGPoint) -> Bool {
-        if modifiers.contains(.shift) { return true }
-        let distanceFromRow = abs(location.y - theme.metrics.rowHeight / 2)
-        return distanceFromRow > theme.metrics.rowHeight * 1.5
-    }
-
-    private func beginDrag(at x: CGFloat) {
-        isDragging = true
-        isFocused = true
-
-        // Option-click is a reset, not the start of a scrub.
-        if modifiers.contains(.option), defaultValue != nil {
-            suppressDrag = true
-            reset()
-            return
+    private func overscrollOffset(forX x: CGFloat) -> CGFloat {
+        if x < 0 {
+            return -CGFloat(GlitchValueMath.trackOverscroll(pastEdge: Double(-x)))
         }
-
-        grabX = x
-        grabValue = rawValue(at: x)
-        commit(grabValue)
+        if x > trackWidth {
+            return CGFloat(GlitchValueMath.trackOverscroll(pastEdge: Double(x - trackWidth)))
+        }
+        return 0
     }
 
     private func rawValue(at x: CGFloat) -> Double {
         guard trackWidth > 0 else { return range.lowerBound }
         let span = range.upperBound - range.lowerBound
-        return range.lowerBound + Double(x / trackWidth) * span
+        return range.lowerBound
+            + GlitchValueMath.fraction(ofX: Double(x), width: Double(trackWidth)) * span
     }
 
-    /// Shift-drag moves a tenth as far, measured from where the drag started
-    /// rather than from the pointer's absolute position.
-    private func fineValue(at x: CGFloat) -> Double {
-        guard trackWidth > 0 else { return grabValue }
-        let span = range.upperBound - range.lowerBound
-        return grabValue + Double((x - grabX) / trackWidth) * span * 0.1
+    private func valueAt(_ x: CGFloat) -> Double {
+        GlitchValueMath.snap(rawValue(at: x), step: step, in: range)
     }
 
-    private func commit(_ raw: Double) {
-        let snapped = GlitchValueMath.snap(raw, step: step, in: range)
-        guard snapped != value else { return }
-
+    private func commit(_ next: Double) {
+        guard next != value else { return }
         let wasAtLimit = value == range.lowerBound || value == range.upperBound
-        let isAtLimit = snapped == range.lowerBound || snapped == range.upperBound
+        let isAtLimit = next == range.lowerBound || next == range.upperBound
 
-        // Motion rule 7: the fill tracks the finger exactly, with no spring
-        // between them.
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) { value = snapped }
+        value = next
 
         if isAtLimit && !wasAtLimit {
             GlitchHaptics.limit()
@@ -283,70 +368,82 @@ public struct GlitchSlider: View {
         }
     }
 
-    private func updateBand(atX x: CGFloat, raw: Double) {
-        let overshoot: CGFloat
-        if raw > range.upperBound {
-            overshoot = x - trackWidth
-        } else if raw < range.lowerBound {
-            overshoot = x
-        } else {
-            overshoot = 0
-        }
-
-        let resisted = GlitchValueMath.rubberBand(Double(overshoot), dimension: Double(trackWidth))
-
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) { bandOffset = CGFloat(resisted) * 0.5 }
-    }
-
-    // MARK: - Discrete adjustment
-
-    /// Keyboard, scroll wheel and VoiceOver all land here. Unlike dragging,
-    /// these *do* animate: there is no finger for the fill to lag behind.
+    /// Keyboard, scroll and VoiceOver — none of which the reference supports,
+    /// and all of which animate, since no pointer is holding the value.
     private func adjust(by delta: Double) {
-        guard isEnabled else { return }
+        guard isEnabled, !isEditing else { return }
         let next = GlitchValueMath.snap(value + delta, step: step, in: range)
-
         guard next != value else {
             GlitchHaptics.limit()
             return
         }
-
         withAnimation(motion.glide) { value = next }
         GlitchHaptics.tick()
-        popValue()
     }
 
-    private func reset() {
-        guard let defaultValue else { return }
-        withAnimation(motion.glide) { value = GlitchValueMath.clamp(defaultValue, to: range) }
-        GlitchHaptics.impact()
-        popValue()
+    // MARK: - Hover and editing
+
+    private func onHoverChange(_ hovering: Bool) {
+        withAnimation(motion.tint) { isHovering = hovering }
+
+        revealTask?.cancel()
+        guard hovering, isEnabled, !isEditing else {
+            cancelEditOffer()
+            return
+        }
+        revealTask = Task { @MainActor in
+            try? await Task.sleep(for: editRevealDelay)
+            guard !Task.isCancelled else { return }
+            withAnimation(motion.tint) { offersEditing = true }
+        }
     }
 
-    /// A brief swell on the readout, so a value that changed without the user
-    /// dragging it still registers as having changed.
-    private func popValue() {
-        withAnimation(motion.snap) { valuePop = true }
-        withAnimation(motion.snap.delay(0.07)) { valuePop = false }
+    private func cancelEditOffer() {
+        revealTask?.cancel()
+        revealTask = nil
+        if offersEditing {
+            withAnimation(motion.tint) { offersEditing = false }
+        }
+    }
+
+    private func beginEditing() {
+        draft = formattedValue
+        isEditing = true
+        isFieldFocused = true
+    }
+
+    private func commitDraft() {
+        let parsed = GlitchNumberParsing.parse(draft, fallback: value)
+        let next = GlitchValueMath.snap(parsed, step: step, in: range)
+        if next != value {
+            withAnimation(motion.glide) { value = next }
+        }
+        endEditing()
+    }
+
+    private func endEditing() {
+        isFieldFocused = false
+        isEditing = false
+        cancelEditOffer()
     }
 }
 
 #Preview("Slider") {
-    @Previewable @State var flow = 73.0
-    @Previewable @State var noise = 6.0
-    @Previewable @State var tension = 24.0
+    @Previewable @State var glow = 0.03
+    @Previewable @State var vignette = 0.5
+    @Previewable @State var shadow = 0.57
+    @Previewable @State var width = 464.0
 
-    VStack(spacing: 8) {
-        GlitchSlider("Flow", value: $flow, defaultValue: 50)
-        GlitchSlider("Noise", value: $noise, defaultValue: 6)
-        GlitchSlider("Tension", value: $tension, defaultValue: 50)
-        GlitchSlider("Disabled", value: $flow).disabled(true)
+    VStack(spacing: 6) {
+        GlitchSlider("Glow", value: $glow, in: 0...0.2, step: 0.001)
+        GlitchSlider("Vignette", value: $vignette, in: 0...1, step: 0.01)
+        GlitchSlider("Ground Shadow", value: $shadow, in: 0...1, step: 0.01)
+        GlitchSlider("Width", value: $width, in: 200...800, step: 1)
+        GlitchSlider("Disabled", value: $vignette, in: 0...1, step: 0.01).disabled(true)
     }
-    .padding(24)
-    .frame(width: 340)
-    .background(GlitchPalette.dark.background)
+    .padding(12)
+    .frame(width: 280)
+    .background(GlitchPalette.dark.panel)
     .glitchTheme()
     .preferredColorScheme(.dark)
 }
