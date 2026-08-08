@@ -36,6 +36,7 @@ public struct GlitchSlider: View {
     @State private var grabX: CGFloat = 0
     @State private var bandOffset: CGFloat = 0
     @State private var modifiers: EventModifiers = []
+    @State private var wasFine = false
     @State private var valuePop = false
     @FocusState private var isFocused: Bool
 
@@ -115,9 +116,7 @@ public struct GlitchSlider: View {
         .glitchScrollWheel(isActive: isHovering && isEnabled) { delta in
             adjust(by: Double(delta) * effectiveStep * 0.25)
         }
-        .onModifierKeysChanged(mask: [.shift, .option]) { _, active in
-            modifiers = active
-        }
+        .glitchModifierKeys { modifiers = $0 }
         .focusable(isEnabled)
         .focused($isFocused)
         .glitchFocusRing(isFocused: isFocused, radius: metrics.controlRadius)
@@ -198,7 +197,17 @@ public struct GlitchSlider: View {
                 }
                 guard !suppressDrag else { return }
 
-                let raw = modifiers.contains(.shift)
+                // Re-anchor when the mode flips, so crossing into or out of
+                // fine adjustment continues from the current value instead of
+                // jumping to wherever the absolute position maps.
+                let fine = isFine(at: gesture.location)
+                if fine != wasFine {
+                    wasFine = fine
+                    grabX = gesture.location.x
+                    grabValue = value
+                }
+
+                let raw = fine
                     ? fineValue(at: gesture.location.x)
                     : rawValue(at: gesture.location.x)
 
@@ -208,8 +217,20 @@ public struct GlitchSlider: View {
             .onEnded { _ in
                 isDragging = false
                 suppressDrag = false
+                wasFine = false
                 withAnimation(motion.glide) { bandOffset = 0 }
             }
+    }
+
+    /// Fine adjustment has to exist on both platforms, and shift does not.
+    ///
+    /// A pointer holds shift; a finger drags away from the track, which is the
+    /// same gesture the system slider uses and costs nothing to discover by
+    /// accident.
+    private func isFine(at location: CGPoint) -> Bool {
+        if modifiers.contains(.shift) { return true }
+        let distanceFromRow = abs(location.y - theme.metrics.rowHeight / 2)
+        return distanceFromRow > theme.metrics.rowHeight * 1.5
     }
 
     private func beginDrag(at x: CGFloat) {

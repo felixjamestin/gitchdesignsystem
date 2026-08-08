@@ -27,6 +27,8 @@ public struct GlitchDragField: View {
     @State private var isEditing = false
     @State private var draft = ""
     @State private var modifiers: EventModifiers = []
+    @State private var wasFine = false
+    @State private var anchorTranslation: CGFloat = 0
     @FocusState private var isFieldFocused: Bool
 
     public init(
@@ -63,7 +65,7 @@ public struct GlitchDragField: View {
             withAnimation(motion.snap) { isHovering = hovering }
         }
         .glitchHorizontalScrubCursor(isActive: isHovering && isEnabled && !isEditing)
-        .onModifierKeysChanged(mask: [.shift]) { _, active in modifiers = active }
+        .glitchModifierKeys { modifiers = $0 }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
         .accessibilityValue(GlitchNumberParsing.format(value, decimals: decimals))
@@ -125,10 +127,23 @@ public struct GlitchDragField: View {
                 if !isDragging {
                     isDragging = true
                     grabValue = value
+                    anchorTranslation = 0
+                    wasFine = false
                 }
 
-                let fine = modifiers.contains(.shift) ? 0.1 : 1.0
-                let steps = Double(gesture.translation.width / pointsPerStep) * fine
+                // Shift on a pointer, dragging away from the row under a
+                // finger — same result, and re-anchored so switching between
+                // them doesn't jump.
+                let fine = modifiers.contains(.shift)
+                    || abs(gesture.location.y - theme.metrics.rowHeight / 2) > theme.metrics.rowHeight * 1.5
+                if fine != wasFine {
+                    wasFine = fine
+                    grabValue = value
+                    anchorTranslation = gesture.translation.width
+                }
+
+                let travel = gesture.translation.width - anchorTranslation
+                let steps = Double(travel / pointsPerStep) * (fine ? 0.1 : 1.0)
                 commit(grabValue + steps * effectiveStep, animated: false)
             }
             .onEnded { gesture in

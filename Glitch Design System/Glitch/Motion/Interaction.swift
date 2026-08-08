@@ -16,6 +16,27 @@ extension View {
     }
 }
 
+// MARK: - Modifier keys
+
+extension View {
+    /// Reports the modifier keys currently held.
+    ///
+    /// `onModifierKeysChanged` is macOS-only, so this is a no-op elsewhere and
+    /// modifiers stay empty. Controls must therefore treat modifier-key
+    /// behaviour as an accelerator, never as the only route to something:
+    /// shift-drag refines a value on a Mac, and a drag away from the control
+    /// does the same under a finger.
+    public func glitchModifierKeys(_ onChange: @escaping (EventModifiers) -> Void) -> some View {
+        #if os(macOS)
+        return onModifierKeysChanged(mask: [.shift, .option]) { _, active in
+            onChange(active)
+        }
+        #else
+        return self
+        #endif
+    }
+}
+
 // MARK: - Press
 
 private struct GlitchPressable: ViewModifier {
