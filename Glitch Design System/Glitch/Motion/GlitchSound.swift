@@ -60,9 +60,27 @@ public final class GlitchSound {
     ///
     /// A global rather than an environment read, because sound *is* global —
     /// there is one speaker, and a control has no more business asking whether
-    /// it may use it than it has asking whether it may exist. `.glitchDelight`
-    /// mirrors itself here, so the one switch still governs it.
-    public static var isEnabled = true
+    /// it may use it than it has asking whether it may exist.
+    ///
+    /// Set it directly, or through `.glitchSound(isEnabled:volume:)`.
+    public static var isEnabled = true {
+        didSet { shared.applyVolume() }
+    }
+
+    /// How loud, `0` to `1`. Defaults deliberately low: this is punctuation,
+    /// not content.
+    public static var volume: Double = 0.6 {
+        didSet { shared.applyVolume() }
+    }
+
+    /// Set by `.glitchDelight(false)`.
+    ///
+    /// Kept separate from `isEnabled` so the two switches compose the only way
+    /// that makes sense: turning the game-feel layer off silences everything,
+    /// but turning it back on restores whatever sound preference the person
+    /// actually chose rather than forcing sound on. Delight can quieten the
+    /// system; it can't make it speak.
+    public static var isSuppressed = false
 
     private init() {}
 
@@ -78,8 +96,12 @@ public final class GlitchSound {
 
     // MARK: - Engine
 
+    private func applyVolume() {
+        player.volume = Float(max(0, min(Self.volume, 1)))
+    }
+
     private func play(_ voice: Voice) {
-        guard Self.isEnabled else { return }
+        guard Self.isEnabled, !Self.isSuppressed, Self.volume > 0 else { return }
         prepareIfNeeded()
         guard isReady, let buffer = buffers[voice] else { return }
 
@@ -114,6 +136,7 @@ public final class GlitchSound {
 
         do {
             try engine.start()
+            applyVolume()
             isReady = true
         } catch {
             // No audio route, no permission, no problem — everything else

@@ -21,15 +21,40 @@ extension EnvironmentValues {
 extension View {
     /// Turns the game-feel layer on or off for this subtree.
     ///
-    /// Also mirrors the setting into `GlitchSound`, which is global because
-    /// there is only one speaker — a per-subtree environment read would let
-    /// two halves of a screen disagree about whether the app makes noise.
+    /// Turning it off also silences the system, since sound is one of the
+    /// embellishments. Turning it back on restores whatever sound preference
+    /// was set rather than forcing sound on — delight can quieten the system,
+    /// it cannot make it speak.
     public func glitchDelight(_ isEnabled: Bool) -> some View {
         environment(\.glitchDelight, isEnabled)
             .onChange(of: isEnabled, initial: true) { _, enabled in
-                GlitchSound.isEnabled = enabled
+                GlitchSound.isSuppressed = !enabled
             }
     }
+
+    /// Sets whether the controls make sound, and how loud.
+    ///
+    /// Sound is global — there is one speaker — so this writes to a shared
+    /// setting rather than the environment. Applying it anywhere applies it
+    /// everywhere; put it at the root next to `.glitchTheme()`.
+    ///
+    /// ```swift
+    /// ContentView()
+    ///     .glitchTheme()
+    ///     .glitchSound(isEnabled: settings.sound, volume: settings.volume)
+    /// ```
+    public func glitchSound(isEnabled: Bool = true, volume: Double = 0.6) -> some View {
+        onChange(of: SoundSetting(isEnabled: isEnabled, volume: volume), initial: true) { _, setting in
+            GlitchSound.isEnabled = setting.isEnabled
+            GlitchSound.volume = setting.volume
+        }
+    }
+}
+
+/// One value so a change to either half triggers a single update.
+private struct SoundSetting: Equatable {
+    var isEnabled: Bool
+    var volume: Double
 }
 
 /// Tuning for the game-feel layer, kept together so the numbers can be

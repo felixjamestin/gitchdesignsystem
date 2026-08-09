@@ -372,12 +372,18 @@ public struct GlitchDial: View {
                 GlitchSound.tick()
             }
             .onEnded { gesture in
-                if !didRotate {
-                    jump(to: gesture.location)
-                }
+                // Order matters. The readout suppresses its digit roll while
+                // `isDragging`, exactly as the fill does — so a tap has to
+                // stop counting as a drag *before* the value changes, or the
+                // number it lands on arrives with no animation at all.
+                let wasTap = !didRotate
                 isDragging = false
                 didRotate = false
                 lastPointerAngle = nil
+
+                if wasTap {
+                    jump(to: gesture.location)
+                }
             }
     }
 

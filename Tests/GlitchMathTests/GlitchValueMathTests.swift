@@ -1,5 +1,5 @@
 import Testing
-import GlitchMath
+import Glitch
 
 @Suite("Value math")
 struct GlitchValueMathTests {
