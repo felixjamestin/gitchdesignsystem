@@ -69,6 +69,7 @@ public struct GlitchSoundGrille: View {
     private let edgeSoftness: Double = 0.16
 
     @State private var pokeScale: CGFloat = 1
+    @State private var holeBounce: CGFloat = 1
     @State private var floaters: [SoundFloater] = []
 
     public init(
@@ -136,6 +137,16 @@ public struct GlitchSoundGrille: View {
         withAnimation(motion.snap) { pokeScale = 0.9 }
         withAnimation(motion.pop.delay(0.06)) { pokeScale = 1 }
 
+        // Assigned plainly rather than inside `withAnimation`, so each hole's
+        // own delayed `.animation` drives it — that is what makes the swell
+        // travel outward from the centre instead of the whole field pulsing
+        // as one. A cone moves that way; a light bulb doesn't.
+        holeBounce = 1.35
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(130))
+            holeBounce = 1
+        }
+
         // The word appears exactly when there was a sound to name it after —
         // `playful()` returns nil when the system is silent, so a muted grille
         // stays quiet in both senses.
@@ -185,9 +196,13 @@ public struct GlitchSoundGrille: View {
 
                 ForEach(0..<count, id: \.self) { index in
                     let angle = Double(index) / Double(count) * 2 * .pi
+                    let position = Double(ring) / Double(ringCount)
+
                     Circle()
-                        .fill(colour(at: Double(ring) / Double(ringCount)))
+                        .fill(colour(at: position))
                         .frame(width: dot, height: dot)
+                        .scaleEffect(holeBounce)
+                        .animation(motion.pop.delay(pokeDelay(position)), value: holeBounce)
                         .offset(x: cos(angle) * radius, y: sin(angle) * radius)
                 }
             }
@@ -215,9 +230,13 @@ public struct GlitchSoundGrille: View {
                 ForEach(0..<rows, id: \.self) { _ in
                     HStack(spacing: dot * 0.85) {
                         ForEach(0..<columns, id: \.self) { column in
+                            let position = Double(column) / Double(columns - 1)
+
                             Circle()
-                                .fill(colour(at: Double(column) / Double(columns - 1)))
+                                .fill(colour(at: position))
                                 .frame(width: dot, height: dot)
+                                .scaleEffect(holeBounce)
+                                .animation(motion.pop.delay(pokeDelay(position)), value: holeBounce)
                         }
                     }
                 }
@@ -250,6 +269,8 @@ public struct GlitchSoundGrille: View {
                         Circle().fill(isOn ? colour(at: position) : .clear)
                     }
                     .frame(width: dot * 1.6, height: dot * 1.6)
+                    .scaleEffect(holeBounce)
+                    .animation(motion.pop.delay(pokeDelay(position)), value: holeBounce)
             }
         }
         .frame(width: width, height: theme.metrics.rowHeight * 0.6)
@@ -273,6 +294,8 @@ public struct GlitchSoundGrille: View {
                 Circle()
                     .strokeBorder(colour(at: position), lineWidth: max(1.5, diameter * 0.022))
                     .padding(inset)
+                    .scaleEffect(holeBounce)
+                    .animation(motion.pop.delay(pokeDelay(position)), value: holeBounce)
             }
 
             muteMark(width: diameter * 0.86)
@@ -311,6 +334,15 @@ public struct GlitchSoundGrille: View {
 
     private var level: Double {
         isOn ? GlitchValueMath.normalize(volume, in: range) : 0
+    }
+
+    /// How long a hole waits before joining the swell, by how far out it sits.
+    ///
+    /// Derived from the stagger token rather than a literal, so it collapses
+    /// to zero under Reduce Motion — where the whole field simply pulses at
+    /// once, which is the right answer when travel is what's objectionable.
+    private func pokeDelay(_ position: Double) -> Double {
+        motion.staggerDelay * position * 4
     }
 
     /// How lit a position is: fully inside the level, fading across the edge,
@@ -386,11 +418,17 @@ private struct SoundFloaterLabel: View {
 
     var body: some View {
         Text(floater.text)
-            .font(GlitchType.value(theme))
+            // Smaller than a readout: this is an aside, and it is competing
+            // with the control it just came out of.
+            .font(.system(
+                size: max(8, theme.metrics.labelSize - 3),
+                weight: .semibold,
+                design: .monospaced
+            ))
             .foregroundStyle(.white)
             .lineLimit(1)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 2.5)
             .background(Capsule().fill(.black.opacity(0.4)))
             .scaleEffect(hasFlown ? floater.endScale : floater.startScale)
             .rotationEffect(.degrees(hasFlown ? floater.tilt : 0))
