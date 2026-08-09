@@ -38,6 +38,12 @@ struct GalleryView: View {
 
     @State private var soundVolume = 70.0
     @State private var soundOn = true
+    @State private var grilleStyle: GlitchGrilleStyle?
+
+    private var grilleStyleOptions: [GlitchOption<GlitchGrilleStyle?>] {
+        [GlitchOption("Theme", value: nil)]
+            + GlitchGrilleStyle.allCases.map { GlitchOption($0.title, value: $0) }
+    }
 
     /// `nil` means "whatever this theme prefers", which is the state the
     /// picker starts in.
@@ -170,13 +176,14 @@ struct GalleryView: View {
                 }
 
                 group("Output") {
+                    GlitchSegmented("Form", selection: $grilleStyle, options: grilleStyleOptions)
                     HStack(alignment: .top, spacing: 24) {
-                        GlitchSoundGrille(isOn: soundOn, volume: soundVolume)
+                        GlitchSoundGrille(isOn: soundOn, volume: soundVolume, style: grilleStyle)
                         GlitchDial("Volume", value: $soundVolume)
                         Spacer(minLength: 0)
                     }
                     GlitchToggle("Sound", isOn: $soundOn)
-                    explain("The grille is display only — it has no gesture, no focus and no VoiceOver action. Volume reaches it from the knob beside it. Loudness is how far the lit holes reach; whether sound is on at all is colour plus a slash, because at low volume 'quiet' and 'muted' would otherwise look nearly identical.")
+                    explain("Display only — no gesture, no focus, no VoiceOver action. Volume reaches it from the knob beside it. Each theme wears a different form, but the reading never changes: lit means loud, and a mute mark rather than mere dimness says whether sound is on, because at low volume 'quiet' and 'muted' would otherwise look identical.")
                 }
 
                 group("Radial menu") {
