@@ -1,5 +1,18 @@
 import SwiftUI
 
+/// Geometry for the popover list.
+///
+/// Outside the generic type because a generic can't hold static storage — and
+/// fixed rather than derived from `metrics`, because these nest inside a shape
+/// the *system* owns rather than one of ours. Scaling them with density would
+/// move them toward a curve that isn't moving.
+private enum GlitchSelectList {
+    /// How far the rows sit inside the popover's edge.
+    static let inset: CGFloat = 8
+    /// How round the highlight behind a row is.
+    static let highlightRadius: CGFloat = 5
+}
+
 /// A dropdown whose list is ours, not the system's.
 ///
 /// SwiftUI's `Menu` renders as an AppKit menu on macOS and an action sheet or
@@ -26,6 +39,7 @@ public struct GlitchSelect<Value: Hashable>: View {
     @State private var isHovering = false
     @State private var highlighted: Value?
     @FocusState private var isFocused: Bool
+
 
     public init(
         _ label: String? = nil,
@@ -103,7 +117,15 @@ public struct GlitchSelect<Value: Hashable>: View {
                 }
             }
         }
-        .padding(4)
+        // Concentric radii, the honest way round.
+        //
+        // The popover's own corner radius belongs to the system and there is
+        // no API to read it, so a highlight that hugs the edge can only ever
+        // guess at the curve it is nesting inside — and a near-miss reads
+        // worse than an obvious gap. Insetting generously and keeping the
+        // highlight's own radius small means the two shapes never come close
+        // enough for a mismatch to show.
+        .padding(GlitchSelectList.inset)
         .frame(minWidth: 180)
         .background(theme.palette.panel)
         // Focusable purely to receive arrow keys — it must not draw a ring of
@@ -148,7 +170,7 @@ public struct GlitchSelect<Value: Hashable>: View {
         .padding(.horizontal, metrics.hInset)
         .frame(height: metrics.rowHeight, alignment: .leading)
         .background {
-            RoundedRectangle(cornerRadius: metrics.controlRadius * 0.7, style: .continuous)
+            RoundedRectangle(cornerRadius: GlitchSelectList.highlightRadius, style: .continuous)
                 .fill(isHighlighted ? theme.palette.trackHover : .clear)
         }
         .contentShape(Rectangle())

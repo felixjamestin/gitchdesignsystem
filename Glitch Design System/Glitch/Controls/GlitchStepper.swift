@@ -41,17 +41,26 @@ public struct GlitchStepper: View {
         HStack(spacing: metrics.spacing) {
             GlitchLabel(label)
             Spacer(minLength: 4)
+
+            // Buttons first, number last.
+            //
+            // The number belongs at the trailing edge like every other
+            // readout in the system — a column of rows whose values line up
+            // can be scanned, and one where a stepper's number sits four
+            // points further in cannot.
+            HStack(spacing: 4) {
+                button(systemImage: "minus", delta: -step, enabled: value > range.lowerBound)
+                button(systemImage: "plus", delta: step, enabled: value < range.upperBound)
+            }
+
             GlitchValueText(
                 GlitchNumberParsing.format(value, decimals: decimals),
                 value: value,
                 animated: !isRepeating
             )
-                .foregroundStyle(theme.palette.label)
-            button(systemImage: "minus", delta: -step, enabled: value > range.lowerBound)
-            button(systemImage: "plus", delta: step, enabled: value < range.upperBound)
+            .foregroundStyle(theme.palette.label)
         }
-        .padding(.leading, metrics.hInset)
-        .padding(.trailing, 4)
+        .padding(.horizontal, metrics.hInset)
         .frame(height: metrics.rowHeight)
         .glitchSurface(shape, fill: state.trackFill(theme.palette))
         .overlay { shape.strokeBorder(state.strokeColor(theme.palette), lineWidth: state.strokeWidth) }
