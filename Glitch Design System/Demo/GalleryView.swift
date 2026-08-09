@@ -36,6 +36,9 @@ struct GalleryView: View {
     @State private var padY = 70.0
     @State private var rotation = 35.0
 
+    @State private var soundVolume = 70.0
+    @State private var soundOn = true
+
     /// `nil` means "whatever this theme prefers", which is the state the
     /// picker starts in.
     @State private var dialStyle: GlitchDialStyle?
@@ -164,6 +167,16 @@ struct GalleryView: View {
                         Spacer(minLength: 0)
                     }
                     explain("Each theme picks its own face by default — printed for Engineering, minimal for Film, halo for Glass. Only the drawing changes; the gesture, the notches and the value pipeline are identical.")
+                }
+
+                group("Output") {
+                    HStack(alignment: .top, spacing: 24) {
+                        GlitchSoundGrille(isOn: soundOn, volume: soundVolume)
+                        GlitchDial("Volume", value: $soundVolume)
+                        Spacer(minLength: 0)
+                    }
+                    GlitchToggle("Sound", isOn: $soundOn)
+                    explain("The grille is display only — it has no gesture, no focus and no VoiceOver action. Volume reaches it from the knob beside it. Loudness is how far the lit holes reach; whether sound is on at all is colour plus a slash, because at low volume 'quiet' and 'muted' would otherwise look nearly identical.")
                 }
 
                 group("Radial menu") {
