@@ -46,11 +46,18 @@ public enum GlitchDialStyle: String, CaseIterable, Sendable, Hashable {
 
 /// A rotary knob over a 270° arc.
 ///
-/// Dragging accumulates the *rotation performed* rather than reading the
-/// pointer's absolute angle. Absolute reading breaks the moment the pointer
-/// crosses the seam behind the knob: the raw angle jumps by nearly a full turn
-/// and the value leaps its whole range in one frame. `shortestDelta` collapses
-/// that jump to the small rotation actually made.
+/// Two gestures, reading the same pointer two different ways:
+///
+/// - **Dragging accumulates the rotation performed.** Reading the absolute
+///   angle instead breaks the moment the pointer crosses the seam behind the
+///   knob — the raw angle jumps by nearly a full turn and the value leaps its
+///   whole range in one frame. `shortestDelta` collapses that to the small
+///   rotation actually made.
+/// - **Tapping reads the angle absolutely**, because a tap names a position
+///   outright rather than describing a turn, and the mark animates round to
+///   it. Which of the two a press turns out to be is decided by whether it
+///   travelled more than a few points, the same way the slider tells a click
+///   from a drag.
 public struct GlitchDial: View {
     @Environment(\.glitchTheme) private var theme
     @Environment(\.glitchMotion) private var motion
@@ -66,10 +73,16 @@ public struct GlitchDial: View {
 
     private let sweep = GlitchAngleMath.defaultSweep
 
+    /// Travel beyond this many points turns a press into a rotation. Below it
+    /// the press is a tap, and a tap means "put the mark here".
+    private let rotateThreshold: CGFloat = 3
+
     @State private var isDragging = false
     @State private var isHovering = false
+    @State private var didRotate = false
     @State private var lastPointerAngle: Double?
     @State private var center: CGPoint = .zero
+    @State private var landPulse: CGFloat = 1
     @FocusState private var isFocused: Bool
 
     public init(
@@ -276,10 +289,16 @@ public struct GlitchDial: View {
 
     /// The pointer. A spoke rather than a dot, so the angle is readable at a
     /// glance instead of having to be inferred from a position.
+    ///
+    /// Rotation is driven straight off the value, so animating the value
+    /// sweeps the mark round to it — and because `glide` carries overshoot,
+    /// the mark arrives, passes slightly, and settles, which is what makes a
+    /// tapped destination look aimed at rather than assigned.
     private func spoke(length: CGFloat, offset: CGFloat, width: CGFloat) -> some View {
         Capsule()
             .fill(theme.palette.handle)
             .frame(width: width, height: length)
+            .scaleEffect(landPulse)
             .offset(y: offset)
             .rotationEffect(.radians(GlitchAngleMath.angle(forValue: value, sweep: sweep, in: range)))
     }
@@ -317,16 +336,21 @@ public struct GlitchDial: View {
             .onChanged { gesture in
                 guard isEnabled else { return }
 
-                let dx = Double(gesture.location.x - center.x)
-                let dy = Double(gesture.location.y - center.y)
-                // Measured from straight up, clockwise positive.
-                let pointerAngle = atan2(dx, -dy)
+                let pointerAngle = pointerAngle(at: gesture.location)
 
                 guard let previous = lastPointerAngle else {
                     isDragging = true
                     isFocused = true
                     lastPointerAngle = pointerAngle
                     return
+                }
+
+                // A press that hasn't travelled yet is still a candidate tap,
+                // so it must not nudge the value on the way to becoming one.
+                if !didRotate {
+                    let travel = hypot(gesture.translation.width, gesture.translation.height)
+                    guard travel > rotateThreshold else { return }
+                    didRotate = true
                 }
 
                 let delta = GlitchAngleMath.shortestDelta(from: previous, to: pointerAngle)
@@ -347,10 +371,63 @@ public struct GlitchDial: View {
                 GlitchHaptics.tick()
                 GlitchSound.tick()
             }
-            .onEnded { _ in
+            .onEnded { gesture in
+                if !didRotate {
+                    jump(to: gesture.location)
+                }
                 isDragging = false
+                didRotate = false
                 lastPointerAngle = nil
             }
+    }
+
+    /// Where a point sits on the dial, measured from straight up, clockwise
+    /// positive — the same convention the value mapping uses.
+    private func pointerAngle(at location: CGPoint) -> Double {
+        atan2(Double(location.x - center.x), -Double(location.y - center.y))
+    }
+
+    /// A tap: put the mark where it was aimed.
+    ///
+    /// Dragging accumulates rotation because a turning gesture has no absolute
+    /// angle worth reading. A tap is the opposite — it names a position
+    /// outright — so this reads the angle absolutely and animates the mark
+    /// round to it, arriving with the same overshoot every other committed
+    /// value in the system does.
+    ///
+    /// Angles outside the arc's 270° clamp to the nearer bound, so a tap in
+    /// the gap at the bottom means minimum or maximum rather than nothing.
+    private func jump(to location: CGPoint) {
+        guard isEnabled else { return }
+
+        // The middle of the dial has no meaningful angle: a tap two points
+        // from the centre would otherwise fling the value somewhere arbitrary
+        // on the strength of a rounding error.
+        let distance = hypot(
+            Double(location.x - center.x),
+            Double(location.y - center.y)
+        )
+        guard distance >= Double(center.x) * 0.3 else { return }
+
+        let target = GlitchValueMath.snap(
+            GlitchAngleMath.value(forAngle: pointerAngle(at: location), sweep: sweep, in: range),
+            step: step,
+            in: range
+        )
+        guard target != value else { return }
+
+        withAnimation(motion.glide) { value = target }
+        GlitchHaptics.selection()
+        GlitchSound.commit()
+        land()
+    }
+
+    /// The small swell the mark makes on arriving, matching the slider's
+    /// handle squash.
+    private func land() {
+        guard delight else { return }
+        withAnimation(motion.snap) { landPulse = 1.18 }
+        withAnimation(motion.pop.delay(0.07)) { landPulse = 1 }
     }
 
     private func adjust(by delta: Double) {
@@ -363,6 +440,7 @@ public struct GlitchDial: View {
         withAnimation(motion.glide) { value = next }
         GlitchHaptics.tick()
         GlitchSound.commit()
+        land()
     }
 }
 
