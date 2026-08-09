@@ -24,34 +24,88 @@ public final class GlitchSound {
     private var buffers: [Voice: AVAudioPCMBuffer] = [:]
     private var isReady = false
     private var didFail = false
+    private var lastPlayful: Voice?
 
-    private enum Voice: Hashable {
+    /// A synthesised sound, described rather than recorded.
+    ///
+    /// Everything the system says is one oscillator with a pitch envelope, a
+    /// little vibrato and an amplitude decay — which is enough for a click, a
+    /// beep and, with a slow sweep up and back down, something that reads as a
+    /// small animal.
+    private struct Recipe {
+        /// Pitch at the start, and where it heads.
+        var start: Double
+        var end: Double
+        /// An optional turning point, reached halfway. A single sweep can only
+        /// rise or fall; a cry has to do both.
+        var peak: Double?
+        var duration: Double
+        var level: Float
+        /// Wobble depth in Hz, and how fast. What separates a squeak from a
+        /// whistle.
+        var vibrato: Double = 0
+        var vibratoRate: Double = 0
+        /// Noise mixed into the first millisecond. What makes a click a click
+        /// rather than a beep.
+        var noise: Double = 0
+        /// How sharply the amplitude falls away.
+        var decay: Double = 6
+        /// Blends the sine toward a square. Cheap way to sound like a toy.
+        var square: Double = 0
+    }
+
+    private enum Voice: Hashable, CaseIterable {
+        // The working vocabulary.
         case tick, commit, reject
+        // The playful one, for when someone pokes the speaker.
+        case beep, boop, bleep, chirp, squeak, meow, purr, warble, blip
 
-        /// Pitched so the three are distinguishable without being musical:
-        /// crossing is high and thin, landing lower and rounder, rejection
-        /// low and short.
-        var frequency: Double {
-            switch self {
-            case .tick: 2400
-            case .commit: 1400
-            case .reject: 320
-            }
-        }
+        /// Everything a poke can produce. Deliberately varied in length and
+        /// register — a random pick from nine similar sounds reads as one
+        /// sound misfiring, not as playfulness.
+        static let playful: [Voice] = [
+            .beep, .boop, .bleep, .chirp, .squeak, .meow, .purr, .warble, .blip,
+        ]
 
-        var duration: Double {
+        var recipe: Recipe {
             switch self {
-            case .tick: 0.012
-            case .commit: 0.030
-            case .reject: 0.070
-            }
-        }
+            // Pitched so the three are distinguishable without being musical:
+            // crossing is high and thin, landing lower and rounder, rejection
+            // low and short.
+            case .tick:
+                Recipe(start: 2400, end: 2400, peak: nil, duration: 0.012, level: 0.05, noise: 0.5)
+            case .commit:
+                Recipe(start: 1400, end: 1400, peak: nil, duration: 0.030, level: 0.10, noise: 0.3)
+            case .reject:
+                Recipe(start: 320, end: 260, peak: nil, duration: 0.070, level: 0.12, noise: 0.2)
 
-        var level: Float {
-            switch self {
-            case .tick: 0.05
-            case .commit: 0.10
-            case .reject: 0.12
+            case .beep:
+                Recipe(start: 880, end: 880, peak: nil, duration: 0.09, level: 0.10,
+                       decay: 4, square: 0.7)
+            case .boop:
+                Recipe(start: 700, end: 300, peak: nil, duration: 0.15, level: 0.11,
+                       decay: 3.2, square: 0.5)
+            case .bleep:
+                Recipe(start: 380, end: 1020, peak: nil, duration: 0.12, level: 0.10,
+                       decay: 3.4, square: 0.6)
+            case .chirp:
+                Recipe(start: 1200, end: 2300, peak: nil, duration: 0.07, level: 0.09, decay: 5)
+            case .squeak:
+                Recipe(start: 1500, end: 2500, peak: nil, duration: 0.11, level: 0.09,
+                       vibrato: 130, vibratoRate: 24, decay: 4)
+            case .meow:
+                // Up, then down, with a wobble — the shape of the vowel rather
+                // than any attempt at a real cat.
+                Recipe(start: 430, end: 480, peak: 900, duration: 0.32, level: 0.13,
+                       vibrato: 26, vibratoRate: 13, decay: 2.2, square: 0.35)
+            case .purr:
+                Recipe(start: 92, end: 78, peak: nil, duration: 0.30, level: 0.12,
+                       vibrato: 22, vibratoRate: 32, decay: 1.6, square: 0.25)
+            case .warble:
+                Recipe(start: 660, end: 620, peak: nil, duration: 0.19, level: 0.10,
+                       vibrato: 95, vibratoRate: 11, decay: 3, square: 0.3)
+            case .blip:
+                Recipe(start: 1800, end: 820, peak: nil, duration: 0.055, level: 0.09, decay: 6)
             }
         }
     }
@@ -94,6 +148,12 @@ public final class GlitchSound {
     /// Something refused: a limit reached, a value out of range.
     public static func reject() { shared.play(.reject) }
 
+    /// A random noise, for something poked rather than operated.
+    ///
+    /// Never the same one twice running: a random pick that repeats reads as a
+    /// single sound misfiring, which is the opposite of playful.
+    public static func playful() { shared.playRandom() }
+
     // MARK: - Engine
 
     private func applyVolume() {
@@ -109,6 +169,13 @@ public final class GlitchSound {
         // would otherwise pile into a buzz.
         player.scheduleBuffer(buffer, at: nil, options: [.interrupts])
         if !player.isPlaying { player.play() }
+    }
+
+    private func playRandom() {
+        let choices = Voice.playful.filter { $0 != lastPlayful }
+        guard let voice = choices.randomElement() else { return }
+        lastPlayful = voice
+        play(voice)
     }
 
     private func prepareIfNeeded() {
@@ -130,8 +197,8 @@ public final class GlitchSound {
         engine.attach(player)
         engine.connect(player, to: engine.mainMixerNode, format: format)
 
-        for voice in [Voice.tick, .commit, .reject] {
-            buffers[voice] = Self.makeClick(voice: voice, format: format)
+        for voice in Voice.allCases {
+            buffers[voice] = Self.render(voice.recipe, format: format)
         }
 
         do {
@@ -145,28 +212,57 @@ public final class GlitchSound {
         }
     }
 
-    /// A decaying sine with a touch of noise in the attack, which is what
-    /// separates a click from a beep.
-    private nonisolated static func makeClick(
-        voice: Voice,
+    /// Renders a recipe to samples.
+    ///
+    /// The phase is integrated rather than computed from `sin(2πft)`, because
+    /// with a moving frequency the second form is wrong — it jumps the phase
+    /// every time the pitch changes, and a sweep built that way clicks its way
+    /// up the scale instead of gliding.
+    private nonisolated static func render(
+        _ recipe: Recipe,
         format: AVAudioFormat
     ) -> AVAudioPCMBuffer? {
         let sampleRate = format.sampleRate
-        let frames = AVAudioFrameCount(sampleRate * voice.duration)
+        let frames = AVAudioFrameCount(sampleRate * recipe.duration)
         guard frames > 0,
               let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames),
               let channel = buffer.floatChannelData?[0]
         else { return nil }
 
         buffer.frameLength = frames
-        let decay = 6.0 / voice.duration
+        let decay = recipe.decay / recipe.duration
+        // A couple of milliseconds of fade-in. Without it every sound starts
+        // on a discontinuity, which is audible as a tick in front of the note.
+        let attackDuration = min(0.002, recipe.duration * 0.2)
+        var phase = 0.0
 
         for frame in 0..<Int(frames) {
             let t = Double(frame) / sampleRate
-            let envelope = exp(-decay * t)
-            let tone = sin(2 * .pi * voice.frequency * t)
-            let attack = t < 0.001 ? Double.random(in: -0.5...0.5) : 0
-            channel[frame] = Float((tone + attack) * envelope) * voice.level
+            let progress = t / recipe.duration
+
+            // Straight sweep, or up to a peak and back down.
+            var frequency: Double
+            if let peak = recipe.peak {
+                frequency = progress < 0.5
+                    ? recipe.start + (peak - recipe.start) * (progress * 2)
+                    : peak + (recipe.end - peak) * ((progress - 0.5) * 2)
+            } else {
+                frequency = recipe.start + (recipe.end - recipe.start) * progress
+            }
+            if recipe.vibrato > 0 {
+                frequency += sin(2 * .pi * recipe.vibratoRate * t) * recipe.vibrato
+            }
+
+            phase += 2 * .pi * frequency / sampleRate
+            let sine = sin(phase)
+            let squared = sine >= 0 ? 0.6 : -0.6
+            let tone = sine * (1 - recipe.square) + squared * recipe.square
+
+            let attack = t < attackDuration ? t / attackDuration : 1
+            let noise = t < 0.001 ? Double.random(in: -0.5...0.5) * recipe.noise : 0
+            let envelope = exp(-decay * t) * attack
+
+            channel[frame] = Float((tone + noise) * envelope) * recipe.level
         }
         return buffer
     }

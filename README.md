@@ -155,14 +155,54 @@ ContentView().glitchTheme(.film, density: .comfortable)  // or .compact
 `.compact` is the pointer default (36pt rows), `.comfortable` the touch default
 (48pt). Both are always available.
 
-An accent can be supplied per subtree — the system is otherwise monochrome:
-
-```swift
-ContentView().glitchTheme(accent: .orange)
-```
-
 Light and dark come from the environment, so `.preferredColorScheme` or the
 system setting both work.
+
+### Colours
+
+Every colour is overridable. `GlitchColors` layers on top of whichever palette
+the style resolved, so changing one leaves the rest alone — and leaves them
+still responding to light and dark, which replacing the whole palette would
+not.
+
+```swift
+ContentView()
+    .glitchTheme(colors: GlitchColors(accent: .mint))
+```
+
+```swift
+ContentView()
+    .glitchTheme(.film, colors: GlitchColors(
+        background: Color(white: 0.04),
+        accent: brand.primary,
+        label: brand.secondaryText
+    ))
+```
+
+The roles you'll reach for first:
+
+| Token | Drives |
+|---|---|
+| `accent` | The one signalling colour: slider fills, lit notches, a dial's progress arc |
+| `background` | The page behind the panels |
+| `panel` | The panel itself — the system's one opaque surface |
+| `track` | Every control's resting surface (`trackHover`, `trackActive` are its raised states) |
+| `label` | Control labels (`textPrimary` for emphasis, `labelSecondary` for captions) |
+| `handle` | Slider handles, dial pointers, lit grille holes |
+| `stroke` | Borders, in the styles that draw them |
+| `selectionFill` / `onSelection` | A segmented pill and its text |
+| `onFill` | Label and value where a slider's fill has passed under them |
+| `hashmark`, `fill`, `fillActive`, `danger`, `onAccent` | The rest |
+
+Scoping works the way any SwiftUI modifier does — apply it lower down and only
+that subtree changes:
+
+```swift
+GlitchPanel {
+    GlitchButton("Delete", style: .primary) { … }
+}
+.glitchTheme(colors: GlitchColors(accent: .red))
+```
 
 ---
 
@@ -302,8 +342,12 @@ GlitchSoundGrille(isOn: soundOn, volume: volume)
 GlitchSoundGrille("Output", isOn: soundOn, volume: volume, style: .matrix)
 ```
 
-Display only — no gesture, no focus, no VoiceOver action. Forms: `.perforated`,
-`.matrix`, `.dotted`, `.rings`, one per theme by default.
+Reports a value it doesn't own — no drag will change the volume, and VoiceOver
+is told it's a value rather than something adjustable. **Tapping auditions**:
+it squashes, springs back, and plays a random noise from a small menagerie at
+the configured volume, which answers the question the readout can only
+approximate. Forms: `.perforated`, `.matrix`, `.dotted`, `.rings`, one per
+theme by default.
 
 ### Radial menu
 

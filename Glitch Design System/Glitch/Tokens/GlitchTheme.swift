@@ -36,14 +36,14 @@ private struct GlitchThemeModifier: ViewModifier {
 
     var style: GlitchThemeStyle
     var glass: GlitchGlassVariant
-    var accent: Color?
+    var colors: GlitchColors
     var density: GlitchDensity?
 
     func body(content: Content) -> some View {
-        var palette = style.palette(colorScheme)
-        if let accent {
-            palette.accent = accent
-        }
+        // Overrides layer on top of the resolved palette rather than replacing
+        // it, so a caller who changes one colour keeps the other nineteen —
+        // and keeps them responding to light and dark.
+        let palette = colors.applied(to: style.palette(colorScheme))
         let density = density ?? .platformDefault
 
         return content
@@ -67,15 +67,22 @@ extension View {
     /// Installs a style, palette and metrics for this subtree.
     ///
     /// Apply once at the root — or again lower down to give a section its own
-    /// style, accent or density.
+    /// style, colours or density.
+    ///
+    /// ```swift
+    /// ContentView()
+    ///     .glitchTheme()                                      // defaults
+    ///     .glitchTheme(.engineering, density: .comfortable)   // a style
+    ///     .glitchTheme(colors: GlitchColors(accent: .mint))   // one colour
+    /// ```
     public func glitchTheme(
         _ style: GlitchThemeStyle = .glitch,
         glass: GlitchGlassVariant = .regular,
-        accent: Color? = nil,
+        colors: GlitchColors = .none,
         density: GlitchDensity? = nil
     ) -> some View {
         modifier(
-            GlitchThemeModifier(style: style, glass: glass, accent: accent, density: density)
+            GlitchThemeModifier(style: style, glass: glass, colors: colors, density: density)
         )
     }
 }

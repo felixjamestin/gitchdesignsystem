@@ -29,12 +29,17 @@ public enum GlitchGrilleStyle: String, CaseIterable, Sendable, Hashable {
     public var title: String { rawValue.capitalized }
 }
 
-/// A speaker grille that reports, and never asks.
+/// A speaker grille that reports, and can be poked.
 ///
-/// Display only: no gesture, no focus and no accessibility action, because a
-/// readout that could also be dragged would invite people to try — and a
-/// control that ignores a drag is worse than one that never offered. Volume is
-/// set elsewhere, by a knob.
+/// It reports a value it does not own: volume is set elsewhere, by a knob, and
+/// no gesture here will change it — dragging does nothing, and VoiceOver is
+/// told this is a value rather than something adjustable.
+///
+/// Tapping *auditions* instead. Poking a speaker to hear how loud it is set is
+/// what anyone does with a real one, and it answers the question the readout
+/// can only approximate. What comes out is a random noise from a small
+/// menagerie, because a test tone that is always the same note stops being
+/// information after the second press.
 ///
 /// It has to say two things at once, and says them in two different registers
 /// so neither can be mistaken for the other:
@@ -48,7 +53,8 @@ public enum GlitchGrilleStyle: String, CaseIterable, Sendable, Hashable {
 ///
 /// Nothing here animates on its own. An indicator that pulses forever draws
 /// the eye away from whatever the person is actually adjusting, and this one
-/// sits next to a knob they will be looking at.
+/// sits next to a knob they will be looking at — it moves only when poked, or
+/// when the level it reports changes.
 public struct GlitchSoundGrille: View {
     @Environment(\.glitchTheme) private var theme
     @Environment(\.glitchMotion) private var motion
@@ -61,6 +67,8 @@ public struct GlitchSoundGrille: View {
 
     /// How wide the lit edge fades, as a fraction of the whole.
     private let edgeSoftness: Double = 0.16
+
+    @State private var pokeScale: CGFloat = 1
 
     public init(
         _ label: String? = "Output",
@@ -83,6 +91,9 @@ public struct GlitchSoundGrille: View {
     public var body: some View {
         VStack(spacing: 6) {
             face
+                .scaleEffect(pokeScale)
+                .contentShape(Rectangle())
+                .onTapGesture(perform: poke)
             if let label {
                 GlitchLabel(label, secondary: true)
             }
@@ -92,9 +103,27 @@ public struct GlitchSoundGrille: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label ?? "Output")
         .accessibilityValue(accessibilityReading)
-        // Explicitly not adjustable and not a button: this reports a value
-        // that lives somewhere else, and VoiceOver should say so rather than
-        // offer to change it here.
+        // A button, not an adjustable: pressing it auditions the level, it
+        // does not change it. The distinction matters to anyone navigating by
+        // voice, who would otherwise be offered increment and decrement
+        // actions that quietly do nothing.
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint("Plays a test sound")
+        .accessibilityAction(.default, poke)
+    }
+
+    /// Poke the speaker.
+    ///
+    /// Squashes first and springs back past its resting size, so the thing
+    /// looks struck rather than merely resized — and only makes a noise if it
+    /// is currently claiming to be switched on, or the readout and the room
+    /// would be saying different things.
+    private func poke() {
+        GlitchHaptics.impact()
+        if isOn { GlitchSound.playful() }
+
+        withAnimation(motion.snap) { pokeScale = 0.9 }
+        withAnimation(motion.pop.delay(0.06)) { pokeScale = 1 }
     }
 
     // MARK: - Faces
