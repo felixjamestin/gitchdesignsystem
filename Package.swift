@@ -10,25 +10,27 @@ import PackageDescription
 //
 // The demo (`App/`, `Demo/`) stays out of the library — nobody importing a
 // control set wants a playground canvas with it.
+// The target name is the module name — `import GlitchDesignSystem` — so it is
+// spelled out in full even though the folder it points at is not.
 let package = Package(
-    name: "Glitch",
+    name: "GlitchDesignSystem",
     platforms: [
         // Liquid Glass, `Group(subviews:)` and `@Entry` all need this floor.
         .macOS("26.0"),
         .iOS("26.0"),
     ],
     products: [
-        .library(name: "Glitch", targets: ["Glitch"]),
+        .library(name: "GlitchDesignSystem", targets: ["GlitchDesignSystem"]),
     ],
     targets: [
         .target(
-            name: "Glitch",
+            name: "GlitchDesignSystem",
             path: "Glitch Design System/Glitch",
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         .testTarget(
-            name: "GlitchTests",
-            dependencies: ["Glitch"],
+            name: "GlitchDesignSystemTests",
+            dependencies: ["GlitchDesignSystem"],
             path: "Tests/GlitchMathTests",
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),

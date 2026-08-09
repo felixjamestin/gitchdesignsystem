@@ -1,4 +1,4 @@
-# Glitch
+# GlitchDesignSystem
 
 A SwiftUI control set for macOS and iOS. Drawn from primitives rather than
 restyled from system controls, so a slider looks and behaves identically on
@@ -11,19 +11,22 @@ Requires **iOS 26 / macOS 26** (Liquid Glass, `Group(subviews:)`, `@Entry`).
 
 ## Adding it to a project
 
-**Local, while you're iterating on both:** in Xcode, *File → Add Package
-Dependencies… → Add Local…* and choose this folder. Then add the `Glitch`
-library to your target.
-
-**By URL, once it's pushed:**
+**By URL:** in Xcode, *File → Add Package Dependencies…*, paste the repository
+URL, and add the **GlitchDesignSystem** library to your target.
 
 ```swift
-.package(url: "https://github.com/you/glitch-design-system", from: "1.0.0")
+.package(url: "https://github.com/felixjamestin/gitchdesignsystem", from: "2.0.0")
 ```
 
 ```swift
-.target(name: "YourApp", dependencies: [.product(name: "Glitch", package: "glitch-design-system")])
+.target(name: "YourApp", dependencies: [
+    .product(name: "GlitchDesignSystem", package: "gitchdesignsystem")
+])
 ```
+
+**Local, while you're iterating on both:** *Add Local…* and choose this folder
+instead. Edits appear in the consuming app immediately, with no tag and no
+resolve step.
 
 The package vends the same files the demo app compiles — there is no mirrored
 copy to drift out of sync.
@@ -36,7 +39,7 @@ Install a theme once, at the root. Controls read everything else from there.
 
 ```swift
 import SwiftUI
-import Glitch
+import GlitchDesignSystem
 
 struct ContentView: View {
     @State private var flow = 73.0
