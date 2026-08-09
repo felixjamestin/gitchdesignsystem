@@ -18,26 +18,37 @@ import AppKit
 /// Generated rather than bundled, so there is no asset to ship and no
 /// photographer to credit.
 struct GlitchBackdrop: View {
-    /// Whether a photograph has been dropped into
-    /// `Assets.xcassets/GlassBackdrop.imageset`.
+    /// A photograph dropped into `Resources/`, if there is one.
     ///
-    /// Checked rather than assumed so the app still runs — and still shows
-    /// something worth refracting — when the asset is absent. A missing image
-    /// would otherwise render as a grey placeholder box, which is a worse
-    /// backdrop than the generated one.
-    private static let hasPhotograph: Bool = {
+    /// Loaded from the bundle as a plain file rather than through an asset
+    /// catalog. Compiling a catalog requires an installed simulator runtime
+    /// matching the SDK, and a machine can have the SDK without the runtime —
+    /// which is exactly enough to break the iOS build over a background image.
+    ///
+    /// Resolved once, and optional throughout: with no photograph the
+    /// generated field stands in, which is a far better backdrop than the grey
+    /// placeholder a missing image would otherwise draw.
+    private static let photograph: Image? = {
+        let names = ["jpg", "jpeg", "png", "heic"]
+        guard let url = names.lazy
+            .compactMap({ Bundle.main.url(forResource: "GlassBackdrop", withExtension: $0) })
+            .first
+        else { return nil }
+
         #if canImport(UIKit)
-        return UIImage(named: "GlassBackdrop") != nil
+        guard let image = UIImage(contentsOfFile: url.path) else { return nil }
+        return Image(uiImage: image)
         #elseif canImport(AppKit)
-        return NSImage(named: "GlassBackdrop") != nil
+        guard let image = NSImage(contentsOf: url) else { return nil }
+        return Image(nsImage: image)
         #else
-        return false
+        return nil
         #endif
     }()
 
     var body: some View {
-        if Self.hasPhotograph {
-            Image("GlassBackdrop")
+        if let photograph = Self.photograph {
+            photograph
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .ignoresSafeArea()

@@ -60,6 +60,27 @@ make the controls strictly worse: **keyboard operation, VoiceOver support, and i
   closing rolls up bottom-first on the quicker `snap`. `GlitchMotion.staggerDelay` is 35ms, and
   zero under Reduce Motion — which collapses a stagger into one simultaneous change.
 
+**Ninth pass.**
+
+- **`GlitchPathMenu`** wraps the `PathMenu` component (a SwiftUI rebuild of AwesomeMenu, imported
+  whole) and supplies everything the system already decides: surface via `glitchSurface`, motion
+  from `travel` expressed as spring parameters, geometry scaled from density, and the same three
+  sound voices. The component's own glass support is deliberately switched off — two materials in
+  one view is how a system starts disagreeing with itself.
+- **`GlitchDialStyle`** gives each theme its own knob face: `arc` (Glitch), `printed` — numerals
+  and engraved ticks (Engineering), `minimal` — a disc and a line (Film), `halo` — a luminous arc
+  with radiating ticks (Glass). Only the drawing varies; gesture, notches and value pipeline are
+  shared.
+- **Sound reaches every control.** `GlitchSound.isEnabled` is a global that `.glitchDelight`
+  mirrors into, rather than each control reading the environment — there is one speaker, and a
+  per-subtree read would let two halves of a screen disagree about whether the app makes noise.
+- **The section unroll actually works.** Two earlier attempts failed because `if isExpanded`
+  wrapped the *group*, making it the inserted view; SwiftUI animated it as a unit and the rows
+  never ran their own transitions. Each row is now individually conditional.
+- **No asset catalog.** The glass backdrop loads from `Resources/GlassBackdrop.jpg` as a plain
+  bundled file. Compiling a catalog requires a simulator runtime matching the SDK, and this machine
+  has the SDK without the runtime — enough to break the iOS build over a background image.
+
 **Eighth pass.**
 
 - **Notch foreshadowing is continuous.** `approachingNotch` now returns a strength from 0 → 1 across

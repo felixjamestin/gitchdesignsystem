@@ -39,6 +39,14 @@ public struct GlitchMotion: Equatable, Sendable {
     /// Motion, which collapses a stagger into a single simultaneous change.
     public var staggerDelay: Double
 
+    /// `travel` expressed as raw spring parameters.
+    ///
+    /// For components that take response and damping rather than an
+    /// `Animation` — the path menu drives its petals through a keyframe
+    /// timeline and needs the numbers, not the curve. Derived from the same
+    /// token so the two cannot drift apart.
+    public var travelSpring: Spring
+
     /// `scale` stretches every duration — 1.0 normal, 0.1 for inspection.
     /// `reduceMotion` collapses all five to a short curve with no spring
     /// overshoot and no positional character.
@@ -54,7 +62,8 @@ public struct GlitchMotion: Equatable, Sendable {
             let flat = Animation.easeOut(duration: 0.10 * s)
             return GlitchMotion(
                 snap: flat, glide: flat, pop: flat, drift: flat, travel: flat, tint: flat,
-                staggerDelay: 0
+                staggerDelay: 0,
+                travelSpring: Spring(duration: 0.10 * s, bounce: 0)
             )
         }
 
@@ -69,7 +78,8 @@ public struct GlitchMotion: Equatable, Sendable {
             drift: .spring(duration: 0.40 * s, bounce: 0.28),
             travel: .spring(duration: 0.46 * s, bounce: 0.26),
             tint: .easeOut(duration: 0.15 * s),
-            staggerDelay: 0.035 * s
+            staggerDelay: 0.035 * s,
+            travelSpring: Spring(duration: 0.46 * s, bounce: 0.26)
         )
     }
 

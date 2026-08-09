@@ -36,6 +36,23 @@ struct GalleryView: View {
     @State private var padY = 70.0
     @State private var rotation = 35.0
 
+    /// `nil` means "whatever this theme prefers", which is the state the
+    /// picker starts in.
+    @State private var dialStyle: GlitchDialStyle?
+
+    private var dialStyleOptions: [GlitchOption<GlitchDialStyle?>] {
+        [GlitchOption("Theme", value: nil)]
+            + GlitchDialStyle.allCases.map { GlitchOption($0.title, value: $0) }
+    }
+
+    private let menuItems = [
+        PathMenuItem(title: "Flow", systemImage: "wind"),
+        PathMenuItem(title: "Echo", systemImage: "waveform.path.ecg"),
+        PathMenuItem(title: "Noise", systemImage: "aqi.medium"),
+        PathMenuItem(title: "Warp", systemImage: "tornado"),
+        PathMenuItem(title: "Trim", systemImage: "scissors"),
+    ]
+
     private let palette: [(color: Color, label: String)] = [
         (GlitchPalette.signatureAccent, "Ember"),
         (Color(glitchHex: 0xFF9F1C), "Amber"),
@@ -133,11 +150,30 @@ struct GalleryView: View {
 
                 group("Two dimensional") {
                     GlitchXYPad("Displacement", x: $padX, y: $padY)
-                    HStack(spacing: 16) {
-                        GlitchDial("Rotation", value: $rotation, in: -180...180)
-                        GlitchDial("Depth", value: $flow)
+                }
+
+                group("Knobs") {
+                    GlitchSegmented(
+                        "Face",
+                        selection: $dialStyle,
+                        options: dialStyleOptions
+                    )
+                    HStack(alignment: .top, spacing: 20) {
+                        GlitchDial("Rotation", value: $rotation, in: -180...180, style: dialStyle)
+                        GlitchDial("Depth", value: $flow, style: dialStyle)
+                        Spacer(minLength: 0)
+                    }
+                    explain("Each theme picks its own face by default — printed for Engineering, minimal for Film, halo for Glass. Only the drawing changes; the gesture, the notches and the value pipeline are identical.")
+                }
+
+                group("Radial menu") {
+                    HStack {
+                        Spacer()
+                        GlitchPathMenu(items: menuItems) { _ in }
                         Spacer()
                     }
+                    .frame(height: 240)
+                    explain("Press and hold the trigger, then drag straight onto a petal to choose it in one gesture. Surface, motion, geometry and sound all come from the current theme.")
                 }
             }
             .padding(16)
