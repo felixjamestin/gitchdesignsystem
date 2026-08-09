@@ -32,6 +32,12 @@ public struct GlitchMotion: Equatable, Sendable {
     /// same amount reads as unstable, because the absolute distance it
     /// travels past its destination scales with its size.
     public var travel: Animation
+    /// Something leaving under its own steam — a label rising away and fading.
+    ///
+    /// Long by this system's standards, because it is the only motion nobody
+    /// is waiting on: it has already told you what it had to say, and the
+    /// drift afterwards is the part you enjoy rather than the part you read.
+    public var float: Animation
     /// Color and opacity crossfades only. (ease-out 0.15s)
     public var tint: Animation
 
@@ -61,7 +67,8 @@ public struct GlitchMotion: Equatable, Sendable {
         guard !reduceMotion else {
             let flat = Animation.easeOut(duration: 0.10 * s)
             return GlitchMotion(
-                snap: flat, glide: flat, pop: flat, drift: flat, travel: flat, tint: flat,
+                snap: flat, glide: flat, pop: flat, drift: flat, travel: flat,
+                float: flat, tint: flat,
                 staggerDelay: 0,
                 travelSpring: Spring(duration: 0.10 * s, bounce: 0)
             )
@@ -77,6 +84,7 @@ public struct GlitchMotion: Equatable, Sendable {
             pop: .spring(duration: 0.28 * s, bounce: 0.30),
             drift: .spring(duration: 0.40 * s, bounce: 0.28),
             travel: .spring(duration: 0.46 * s, bounce: 0.26),
+            float: .spring(duration: 0.85 * s, bounce: 0.10),
             tint: .easeOut(duration: 0.15 * s),
             staggerDelay: 0.035 * s,
             travelSpring: Spring(duration: 0.46 * s, bounce: 0.26)

@@ -69,6 +69,7 @@ public struct GlitchSoundGrille: View {
     private let edgeSoftness: Double = 0.16
 
     @State private var pokeScale: CGFloat = 1
+    @State private var floaters: [SoundFloater] = []
 
     public init(
         _ label: String? = "Output",
@@ -94,6 +95,17 @@ public struct GlitchSoundGrille: View {
                 .scaleEffect(pokeScale)
                 .contentShape(Rectangle())
                 .onTapGesture(perform: poke)
+                // Above the face rather than inside it, so a label can drift
+                // clear of the grille without being clipped by it.
+                .overlay(alignment: .center) {
+                    ZStack {
+                        ForEach(floaters) { floater in
+                            SoundFloaterLabel(floater: floater)
+                        }
+                    }
+                    .offset(y: -theme.metrics.rowHeight * 0.55)
+                    .allowsHitTesting(false)
+                }
             if let label {
                 GlitchLabel(label, secondary: true)
             }
@@ -120,10 +132,27 @@ public struct GlitchSoundGrille: View {
     /// would be saying different things.
     private func poke() {
         GlitchHaptics.impact()
-        if isOn { GlitchSound.playful() }
 
         withAnimation(motion.snap) { pokeScale = 0.9 }
         withAnimation(motion.pop.delay(0.06)) { pokeScale = 1 }
+
+        // The word appears exactly when there was a sound to name it after —
+        // `playful()` returns nil when the system is silent, so a muted grille
+        // stays quiet in both senses.
+        guard isOn, let noise = GlitchSound.playful() else { return }
+        release(noise)
+    }
+
+    private func release(_ noise: String) {
+        let floater = SoundFloater.random(noise)
+        floaters.append(floater)
+        // Rapid poking shouldn't accumulate a cloud.
+        if floaters.count > 6 { floaters.removeFirst() }
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(1500))
+            floaters.removeAll { $0.id == floater.id }
+        }
     }
 
     // MARK: - Faces
@@ -309,6 +338,73 @@ public struct GlitchSoundGrille: View {
         isOn
             ? "Volume \(GlitchNumberParsing.format(volume, decimals: 0))"
             : "Muted"
+    }
+}
+
+// MARK: - The word that escapes
+
+/// One flight path, rolled when the label is created.
+///
+/// Every dimension is randomised — where it drifts, how far it climbs, how far
+/// it leans, how big it starts and ends, and how fast the whole thing runs.
+/// The point is that two pokes never look the same: a decoration that replays
+/// identically stops being noticed after the third time, and the whole reason
+/// to put a word on screen is that someone keeps pressing the thing.
+private struct SoundFloater: Identifiable, Equatable {
+    let id = UUID()
+    let text: String
+    let drift: CGFloat
+    let rise: CGFloat
+    let tilt: Double
+    let startScale: CGFloat
+    let endScale: CGFloat
+    let speed: Double
+
+    static func random(_ text: String) -> SoundFloater {
+        SoundFloater(
+            text: text,
+            drift: .random(in: -28...28),
+            rise: .random(in: -78...(-46)),
+            tilt: .random(in: -18...18),
+            startScale: .random(in: 0.55...0.8),
+            // Ending larger than it started is what sells "escaping" rather
+            // than "receding".
+            endScale: .random(in: 1.05...1.35),
+            speed: .random(in: 0.85...1.25)
+        )
+    }
+}
+
+private struct SoundFloaterLabel: View {
+    @Environment(\.glitchTheme) private var theme
+    @Environment(\.glitchMotion) private var motion
+
+    let floater: SoundFloater
+
+    @State private var hasFlown = false
+    @State private var hasFaded = false
+
+    var body: some View {
+        Text(floater.text)
+            .font(GlitchType.value(theme))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(Capsule().fill(.black.opacity(0.4)))
+            .scaleEffect(hasFlown ? floater.endScale : floater.startScale)
+            .rotationEffect(.degrees(hasFlown ? floater.tilt : 0))
+            .offset(x: hasFlown ? floater.drift : 0, y: hasFlown ? floater.rise : 0)
+            .opacity(hasFaded ? 0 : 1)
+            .onAppear {
+                // Two animations rather than one: sharing the flight's curve
+                // would fade the word out over the whole climb, and it needs
+                // to be readable for the first half of it.
+                withAnimation(motion.float.speed(floater.speed)) { hasFlown = true }
+                withAnimation(motion.float.speed(floater.speed * 1.3).delay(0.22)) {
+                    hasFaded = true
+                }
+            }
     }
 }
 

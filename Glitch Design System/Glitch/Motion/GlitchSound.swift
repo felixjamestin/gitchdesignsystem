@@ -67,6 +67,24 @@ public final class GlitchSound {
             .beep, .boop, .bleep, .chirp, .squeak, .meow, .purr, .warble, .blip,
         ]
 
+        /// What to call it on screen. Lowercase: these are noises, not labels.
+        var name: String {
+            switch self {
+            case .tick: "tick"
+            case .commit: "click"
+            case .reject: "nope"
+            case .beep: "beep"
+            case .boop: "boop"
+            case .bleep: "bleep"
+            case .chirp: "chirp"
+            case .squeak: "squeak"
+            case .meow: "meow"
+            case .purr: "purr"
+            case .warble: "warble"
+            case .blip: "blip"
+            }
+        }
+
         var recipe: Recipe {
             switch self {
             // Pitched so the three are distinguishable without being musical:
@@ -152,7 +170,12 @@ public final class GlitchSound {
     ///
     /// Never the same one twice running: a random pick that repeats reads as a
     /// single sound misfiring, which is the opposite of playful.
-    public static func playful() { shared.playRandom() }
+    ///
+    /// - Returns: the name of the noise made — "boop", "meow" — so a caller
+    ///   can put it on screen, or `nil` when the system is silent. Callers get
+    ///   to show the word exactly when there was a sound to name it after.
+    @discardableResult
+    public static func playful() -> String? { shared.playRandom() }
 
     // MARK: - Engine
 
@@ -160,8 +183,12 @@ public final class GlitchSound {
         player.volume = Float(max(0, min(Self.volume, 1)))
     }
 
+    private var canPlay: Bool {
+        Self.isEnabled && !Self.isSuppressed && Self.volume > 0
+    }
+
     private func play(_ voice: Voice) {
-        guard Self.isEnabled, !Self.isSuppressed, Self.volume > 0 else { return }
+        guard canPlay else { return }
         prepareIfNeeded()
         guard isReady, let buffer = buffers[voice] else { return }
 
@@ -171,11 +198,16 @@ public final class GlitchSound {
         if !player.isPlaying { player.play() }
     }
 
-    private func playRandom() {
+    private func playRandom() -> String? {
+        // Checked before picking, so a silent system doesn't consume a voice
+        // and report a name for a sound nobody heard.
+        guard canPlay else { return nil }
+
         let choices = Voice.playful.filter { $0 != lastPlayful }
-        guard let voice = choices.randomElement() else { return }
+        guard let voice = choices.randomElement() else { return nil }
         lastPlayful = voice
         play(voice)
+        return voice.name
     }
 
     private func prepareIfNeeded() {

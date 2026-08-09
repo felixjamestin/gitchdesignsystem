@@ -344,10 +344,18 @@ GlitchSoundGrille("Output", isOn: soundOn, volume: volume, style: .matrix)
 
 Reports a value it doesn't own — no drag will change the volume, and VoiceOver
 is told it's a value rather than something adjustable. **Tapping auditions**:
-it squashes, springs back, and plays a random noise from a small menagerie at
-the configured volume, which answers the question the readout can only
-approximate. Forms: `.perforated`, `.matrix`, `.dotted`, `.rings`, one per
-theme by default.
+it squashes, springs back, plays a random noise from a small menagerie at the
+configured volume, and the word for that noise drifts up and away on a path
+rolled fresh each time. Forms: `.perforated`, `.matrix`, `.dotted`, `.rings`,
+one per theme by default.
+
+The noise names are available on their own if you want them elsewhere:
+
+```swift
+if let noise = GlitchSound.playful() {
+    print(noise)   // "boop", "meow", "squeak"… nil when the system is silent
+}
+```
 
 ### Radial menu
 
