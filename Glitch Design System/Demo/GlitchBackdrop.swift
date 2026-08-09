@@ -1,5 +1,11 @@
 import SwiftUI
 
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
+
 /// Something worth refracting.
 ///
 /// Glass is invisible against a flat colour — the whole material is a
@@ -12,7 +18,39 @@ import SwiftUI
 /// Generated rather than bundled, so there is no asset to ship and no
 /// photographer to credit.
 struct GlitchBackdrop: View {
+    /// Whether a photograph has been dropped into
+    /// `Assets.xcassets/GlassBackdrop.imageset`.
+    ///
+    /// Checked rather than assumed so the app still runs — and still shows
+    /// something worth refracting — when the asset is absent. A missing image
+    /// would otherwise render as a grey placeholder box, which is a worse
+    /// backdrop than the generated one.
+    private static let hasPhotograph: Bool = {
+        #if canImport(UIKit)
+        return UIImage(named: "GlassBackdrop") != nil
+        #elseif canImport(AppKit)
+        return NSImage(named: "GlassBackdrop") != nil
+        #else
+        return false
+        #endif
+    }()
+
     var body: some View {
+        if Self.hasPhotograph {
+            Image("GlassBackdrop")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+        } else {
+            generated
+        }
+    }
+
+    /// The fallback, tuned to the same palette as the intended photograph —
+    /// deep teal sky, warm lit peaks, dark conifer green — so the glass reads
+    /// the same way with or without the asset.
+    private var generated: some View {
         ZStack {
             MeshGradient(
                 width: 3,
@@ -23,9 +61,10 @@ struct GlitchBackdrop: View {
                     [0.0, 1.0], [0.4, 1.0], [1.0, 1.0],
                 ],
                 colors: [
-                    Color(glitchHex: 0x1B2A4A), Color(glitchHex: 0x3E2C63), Color(glitchHex: 0x7A2E52),
-                    Color(glitchHex: 0x14406B), Color(glitchHex: 0x6E3A6B), Color(glitchHex: 0xC2523C),
-                    Color(glitchHex: 0x0E5C6B), Color(glitchHex: 0x2E7A6B), Color(glitchHex: 0xE0873F),
+                    // Sky, lit rock, forest — read top to bottom.
+                    Color(glitchHex: 0x0E4E6B), Color(glitchHex: 0x156A86), Color(glitchHex: 0x2B87A0),
+                    Color(glitchHex: 0x8A5B45), Color(glitchHex: 0xC08055), Color(glitchHex: 0xE0A06B),
+                    Color(glitchHex: 0x123A22), Color(glitchHex: 0x1D5730), Color(glitchHex: 0x2A6B3A),
                 ]
             )
 

@@ -220,16 +220,13 @@ public struct GlitchSlider: View {
     /// is coarse, otherwise every 10%.
     ///
     /// Hidden until the row is engaged, unless the style prints its scale onto
-    /// the chassis. The nearest one brightens and grows as the value
-    /// approaches, so a notch announces itself *before* it pulls — the same
-    /// courtesy a magnet that only ever grabbed silently would not extend.
+    /// the chassis. The nearest one brightens as the value approaches — size
+    /// held constant, so the target never moves while you aim — announcing the
+    /// pull before it happens, which a magnet that only ever grabbed silently
+    /// would not do.
     private var hashmarks: some View {
         let metrics = theme.metrics
         let approaching = approachingNotch
-
-        // Kept inside the row: the tallest a notch may grow is the row itself,
-        // whatever height the style gave it at rest.
-        let maxGrowthY = max(1, (metrics.rowHeight - 4) / max(1, metrics.hashmarkHeight))
 
         return GeometryReader { proxy in
             ForEach(Array(tickFractions.enumerated()), id: \.offset) { _, tick in
@@ -241,21 +238,19 @@ public struct GlitchSlider: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: metrics.partRadius(metrics.hashmarkWidth))
                         .fill(theme.palette.hashmark)
-                    // The approaching notch takes on the handle's own colour,
-                    // so it reads as the thing about to catch the value rather
-                    // than as a brighter tick.
+                    // Brightness alone. The mark keeps its size, so nothing
+                    // shifts under the eye at the moment you are aiming at
+                    // it — it simply takes on the handle's own colour, which
+                    // is what makes it read as the thing about to catch the
+                    // value rather than as decoration.
                     RoundedRectangle(cornerRadius: metrics.partRadius(metrics.hashmarkWidth))
                         .fill(theme.palette.handle)
                         .opacity(Double(strength) * GlitchDelightTuning.notchHighlightOpacity)
                 }
                 .frame(width: metrics.hashmarkWidth, height: metrics.hashmarkHeight)
-                .scaleEffect(
-                    x: 1 + GlitchDelightTuning.notchGrowthX * strength,
-                    y: min(maxGrowthY, 1 + GlitchDelightTuning.notchGrowthY * strength)
-                )
                 .opacity(visible ? 1 : 0)
                 .position(x: proxy.size.width * tick, y: proxy.size.height / 2)
-                .animation(motion.pop, value: strength)
+                .animation(motion.tint, value: strength)
             }
         }
         .animation(motion.tint, value: isActive)

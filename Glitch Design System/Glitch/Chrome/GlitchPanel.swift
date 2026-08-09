@@ -86,6 +86,14 @@ public struct GlitchSection<Content: View>: View {
                         }
                     }
                 }
+                // Without this the container carries the default fade, and
+                // SwiftUI animates the group as a single unit — the rows are
+                // inserted as part of an already-animating parent and their
+                // own transitions never get a look in. `.identity` puts the
+                // container in place instantly and hands the animation to the
+                // rows, which is what makes the unroll happen on every expand
+                // rather than only on first appearance.
+                .transition(.identity)
             }
         }
         .clipped()

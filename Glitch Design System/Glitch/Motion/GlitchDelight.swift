@@ -49,21 +49,20 @@ public enum GlitchDelightTuning {
     /// only starts once the pull is imminent isn't foreshadowing.
     public static let notchProximity: Double = 0.09
 
-    /// How much taller and wider the nearest notch grows at full strength.
-    public static let notchGrowthY: CGFloat = 2.0
-    public static let notchGrowthX: CGFloat = 2.6
-
     /// How far the approaching notch takes on the handle's colour.
     ///
-    /// Well short of the handle's own strength: the notch is announcing what
-    /// is *about* to happen, and something that arrives already at full
-    /// brightness has nothing left to say when the value actually lands on it.
+    /// Brightness is the *only* thing that changes — the mark keeps its size,
+    /// so nothing shifts under the eye while you are aiming at it. Well short
+    /// of the handle's own strength, too: the notch is announcing what is
+    /// *about* to happen, and something arriving at full brightness has
+    /// nothing left to say when the value actually lands on it.
     public static let notchHighlightOpacity: Double = 0.45
 
-    /// Shapes the approach. Below 1 the notch reacts early and eases in, so
-    /// the growth is legible across the whole approach rather than appearing
-    /// all at once in the last few points.
-    public static let notchApproachCurve: Double = 0.6
+    /// Shapes the approach. Above 1 the brightening eases *in* — barely there
+    /// across most of the run and gathering quickly at the end, so the notch
+    /// reads as something the value is falling towards rather than a lamp
+    /// switching on at a fixed distance.
+    public static let notchApproachCurve: Double = 2.2
 
     /// Opening opacity of the ghost left behind by a jump.
     public static let ghostOpacity: Double = 0.55
