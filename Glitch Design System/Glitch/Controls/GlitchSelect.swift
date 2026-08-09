@@ -181,12 +181,14 @@ public struct GlitchSelect<Value: Hashable>: View {
         guard isEnabled, !options.isEmpty else { return }
         highlighted = selection
         isOpen = true
+        GlitchSound.tick()
     }
 
     private func select(_ value: Value) {
         selection = value
         isOpen = false
         GlitchHaptics.selection()
+        GlitchSound.commit()
     }
 
     private func moveHighlight(by offset: Int) {
@@ -194,6 +196,7 @@ public struct GlitchSelect<Value: Hashable>: View {
         let current = options.firstIndex { $0.value == highlighted } ?? 0
         let next = (current + offset + options.count) % options.count
         withAnimation(motion.snap) { highlighted = options[next].value }
+        GlitchSound.tick()
     }
 }
 

@@ -75,6 +75,7 @@ public struct GlitchChips: View {
             items.removeAll { $0 == item }
         }
         GlitchHaptics.selection()
+        GlitchSound.reject()
     }
 }
 

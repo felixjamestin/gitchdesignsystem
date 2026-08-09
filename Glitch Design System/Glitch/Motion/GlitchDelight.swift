@@ -20,8 +20,15 @@ extension EnvironmentValues {
 
 extension View {
     /// Turns the game-feel layer on or off for this subtree.
+    ///
+    /// Also mirrors the setting into `GlitchSound`, which is global because
+    /// there is only one speaker — a per-subtree environment read would let
+    /// two halves of a screen disagree about whether the app makes noise.
     public func glitchDelight(_ isEnabled: Bool) -> some View {
         environment(\.glitchDelight, isEnabled)
+            .onChange(of: isEnabled, initial: true) { _, enabled in
+                GlitchSound.isEnabled = enabled
+            }
     }
 }
 

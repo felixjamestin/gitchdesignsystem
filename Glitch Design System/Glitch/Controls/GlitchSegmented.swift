@@ -127,6 +127,7 @@ public struct GlitchSegmented<Value: Hashable>: View {
             selection = value
         }
         GlitchHaptics.selection()
+        GlitchSound.tick()
     }
 }
 

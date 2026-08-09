@@ -48,6 +48,7 @@ public struct GlitchSwatch: View {
             .glitchPressable(isPressed: $isPressed, isEnabled: isEnabled) {
                 action()
                 GlitchHaptics.selection()
+                GlitchSound.tick()
             }
             .glitchHover { hovering in
                 withAnimation(motion.snap) { isHovering = hovering }

@@ -99,6 +99,7 @@ public struct GlitchStepper: View {
         guard next != value else {
             stopRepeating()
             GlitchHaptics.limit()
+            GlitchSound.reject()
             return
         }
 
@@ -110,6 +111,7 @@ public struct GlitchStepper: View {
             withTransaction(transaction) { value = next }
         }
         GlitchHaptics.tick()
+        GlitchSound.tick()
     }
 
     private func startRepeating(_ delta: Double) {

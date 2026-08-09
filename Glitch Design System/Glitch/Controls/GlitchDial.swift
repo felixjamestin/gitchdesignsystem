@@ -172,6 +172,7 @@ public struct GlitchDial: View {
                 transaction.disablesAnimations = true
                 withTransaction(transaction) { value = next }
                 GlitchHaptics.tick()
+                GlitchSound.tick()
             }
             .onEnded { _ in
                 isDragging = false
@@ -183,10 +184,12 @@ public struct GlitchDial: View {
         let next = GlitchValueMath.snap(value + delta, step: step, in: range)
         guard next != value else {
             GlitchHaptics.limit()
+            GlitchSound.reject()
             return
         }
         withAnimation(motion.glide) { value = next }
         GlitchHaptics.tick()
+        GlitchSound.commit()
     }
 }
 

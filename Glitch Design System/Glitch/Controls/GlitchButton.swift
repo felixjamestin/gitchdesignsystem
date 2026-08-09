@@ -78,6 +78,7 @@ public struct GlitchButton: View {
     private func fire() {
         action()
         GlitchHaptics.impact()
+        GlitchSound.commit()
     }
 
     /// All three styles are the same neutral overlay at different strengths.

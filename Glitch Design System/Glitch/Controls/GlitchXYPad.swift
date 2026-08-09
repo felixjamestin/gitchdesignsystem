@@ -170,6 +170,7 @@ public struct GlitchXYPad: View {
             .onEnded { _ in
                 withAnimation(motion.glide) { isDragging = false }
                 GlitchHaptics.tick()
+                GlitchSound.commit()
             }
     }
 
@@ -184,6 +185,7 @@ public struct GlitchXYPad: View {
             }
         }
         GlitchHaptics.tick()
+        GlitchSound.tick()
     }
 }
 

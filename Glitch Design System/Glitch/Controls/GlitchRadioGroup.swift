@@ -95,6 +95,7 @@ public struct GlitchRadioGroup<Value: Hashable>: View {
         guard isEnabled, value != selection else { return }
         withAnimation(motion.snap) { selection = value }
         GlitchHaptics.selection()
+        GlitchSound.tick()
     }
 }
 

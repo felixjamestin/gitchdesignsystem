@@ -56,20 +56,30 @@ public final class GlitchSound {
         }
     }
 
+    /// Whether the system makes any sound at all.
+    ///
+    /// A global rather than an environment read, because sound *is* global —
+    /// there is one speaker, and a control has no more business asking whether
+    /// it may use it than it has asking whether it may exist. `.glitchDelight`
+    /// mirrors itself here, so the one switch still governs it.
+    public static var isEnabled = true
+
     private init() {}
 
     // MARK: - Public
 
-    /// A notch crossed while dragging. Fires often, so it is the quietest.
+    /// Traversal: a notch crossed, a selection moved, a step taken. Fires
+    /// often, so it is the quietest of the three.
     public static func tick() { shared.play(.tick) }
-    /// A value landed.
+    /// Something committed: a value landed, a button fired, a menu chose.
     public static func commit() { shared.play(.commit) }
-    /// A value refused.
+    /// Something refused: a limit reached, a value out of range.
     public static func reject() { shared.play(.reject) }
 
     // MARK: - Engine
 
     private func play(_ voice: Voice) {
+        guard Self.isEnabled else { return }
         prepareIfNeeded()
         guard isReady, let buffer = buffers[voice] else { return }
 

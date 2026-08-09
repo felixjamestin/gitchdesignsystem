@@ -116,6 +116,7 @@ public struct GlitchSwitch: View {
     private func toggle() {
         withAnimation(motion.snap) { isOn.toggle() }
         GlitchHaptics.impact()
+        GlitchSound.commit()
     }
 }
 
@@ -203,6 +204,7 @@ public struct GlitchCheckbox: View {
     private func toggle() {
         withAnimation(motion.snap) { isOn.toggle() }
         GlitchHaptics.selection()
+        GlitchSound.tick()
     }
 }
 

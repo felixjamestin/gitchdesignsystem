@@ -175,6 +175,7 @@ public struct GlitchDragField: View {
             withTransaction(transaction) { value = snapped }
         }
         GlitchHaptics.tick()
+        if animated { GlitchSound.commit() } else { GlitchSound.tick() }
     }
 
     // MARK: - Typing

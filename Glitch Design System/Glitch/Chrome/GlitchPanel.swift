@@ -73,27 +73,27 @@ public struct GlitchSection<Content: View>: View {
         VStack(alignment: .leading, spacing: theme.metrics.spacing) {
             header
 
-            if isExpanded {
-                VStack(alignment: .leading, spacing: theme.metrics.spacing) {
-                    // Each row is reached individually so it can carry its own
-                    // delay. A section that opens all at once tells you it
-                    // changed; one that unrolls tells you what it contains and
-                    // in what order.
-                    Group(subviews: content) { rows in
-                        ForEach(rows.indices, id: \.self) { index in
+            // The condition is on each row, not on the container.
+            //
+            // Wrapping the whole group in `if isExpanded` makes the *group* the
+            // thing being inserted, and SwiftUI then animates it as one unit —
+            // the rows arrive inside an already-animating parent and their own
+            // transitions never run. Two earlier attempts failed here, the
+            // second by putting `.transition(.identity)` on the container,
+            // which stops the fade but still doesn't hand the animation down.
+            //
+            // Making each row individually conditional is what actually works:
+            // every row is genuinely inserted and removed on its own, so every
+            // row gets its own transition, on every expand.
+            VStack(alignment: .leading, spacing: theme.metrics.spacing) {
+                Group(subviews: content) { rows in
+                    ForEach(rows.indices, id: \.self) { index in
+                        if isExpanded {
                             rows[index]
                                 .transition(stagger(index: index, of: rows.count))
                         }
                     }
                 }
-                // Without this the container carries the default fade, and
-                // SwiftUI animates the group as a single unit — the rows are
-                // inserted as part of an already-animating parent and their
-                // own transitions never get a look in. `.identity` puts the
-                // container in place instantly and hands the animation to the
-                // rows, which is what makes the unroll happen on every expand
-                // rather than only on first appearance.
-                .transition(.identity)
             }
         }
         .clipped()
@@ -141,6 +141,7 @@ public struct GlitchSection<Content: View>: View {
         .onTapGesture {
             withAnimation(motion.drift) { isExpanded.toggle() }
             GlitchHaptics.selection()
+            GlitchSound.tick()
         }
         .glitchHover { hovering in
             withAnimation(motion.snap) { isHovering = hovering }
