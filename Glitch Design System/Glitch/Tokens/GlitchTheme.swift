@@ -32,18 +32,21 @@ extension EnvironmentValues {
 }
 
 private struct GlitchThemeModifier: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorScheme) private var environmentScheme
 
     var style: GlitchThemeStyle
     var glass: GlitchGlassVariant
     var colors: GlitchColors
     var density: GlitchDensity?
+    var colorScheme: ColorScheme?
 
     func body(content: Content) -> some View {
+        let scheme = colorScheme ?? environmentScheme
+
         // Overrides layer on top of the resolved palette rather than replacing
         // it, so a caller who changes one colour keeps the other nineteen —
         // and keeps them responding to light and dark.
-        let palette = colors.applied(to: style.palette(colorScheme))
+        let palette = colors.applied(to: style.palette(scheme))
         let density = density ?? .platformDefault
 
         return content
@@ -59,6 +62,11 @@ private struct GlitchThemeModifier: ViewModifier {
             )
             .environment(\.glitchDensity, density)
             .environment(\.glitchThemeStyle, style)
+            // Pushed down as well as resolved here, so anything the caller
+            // nests inside — a plain `Text`, a system control, an image —
+            // agrees with the palette rather than staying on whatever the
+            // window happens to be.
+            .environment(\.colorScheme, scheme)
             .tint(palette.accent)
     }
 }
@@ -74,15 +82,32 @@ extension View {
     ///     .glitchTheme()                                      // defaults
     ///     .glitchTheme(.engineering, density: .comfortable)   // a style
     ///     .glitchTheme(colors: GlitchColors(accent: .mint))   // one colour
+    ///     .glitchTheme(colorScheme: .dark)                    // always dark
     /// ```
+    ///
+    /// - Parameter colorScheme: forces light or dark for this subtree. Leave
+    ///   it `nil` — the default — to follow the system.
+    ///
+    ///   Worth using rather than reaching for `.environment(\.colorScheme,)`
+    ///   yourself, which has to be applied *outside* this modifier to be seen
+    ///   by it: put it inside and the controls resolve a light palette while
+    ///   everything nested under them turns dark. Passing it here removes the
+    ///   ordering question entirely.
     public func glitchTheme(
         _ style: GlitchThemeStyle = .glitch,
         glass: GlitchGlassVariant = .regular,
         colors: GlitchColors = .none,
-        density: GlitchDensity? = nil
+        density: GlitchDensity? = nil,
+        colorScheme: ColorScheme? = nil
     ) -> some View {
         modifier(
-            GlitchThemeModifier(style: style, glass: glass, colors: colors, density: density)
+            GlitchThemeModifier(
+                style: style,
+                glass: glass,
+                colors: colors,
+                density: density,
+                colorScheme: colorScheme
+            )
         )
     }
 }

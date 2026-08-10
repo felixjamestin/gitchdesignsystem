@@ -53,9 +53,12 @@ struct RootView: View {
                 content
             }
         }
-        .glitchTheme(style, glass: glass, density: density)
+        .glitchTheme(style, glass: glass, density: density, colorScheme: scheme)
         .glitchMotion(scale: motionScale, reduceMotion: forceReduceMotion)
         .glitchDelight(delight)
+        // Told to the theme *and* to the window: the parameter makes the
+        // palette deterministic, and the preference brings the surrounding
+        // chrome — title bar, scroll bars — along with it.
         .preferredColorScheme(scheme)
     }
 

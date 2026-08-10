@@ -158,8 +158,36 @@ ContentView().glitchTheme(.film, density: .comfortable)  // or .compact
 `.compact` is the pointer default (36pt rows), `.comfortable` the touch default
 (48pt). Both are always available.
 
-Light and dark come from the environment, so `.preferredColorScheme` or the
-system setting both work.
+### Light and dark
+
+By default the palette follows the system. To pin it, pass the scheme to the
+theme:
+
+```swift
+SettingsView().glitchTheme(colorScheme: .dark)
+```
+
+For a user-selectable setting, hold it in state and tell both the theme and
+the window:
+
+```swift
+@AppStorage("appearance") private var isDark = true
+
+var body: some View {
+    SettingsView()
+        .glitchTheme(colorScheme: isDark ? .dark : .light)
+        .preferredColorScheme(isDark ? .dark : .light)
+}
+```
+
+The parameter makes the palette deterministic; the preference brings the
+surrounding chrome — title bar, scroll bars, keyboard — along with it. Omit
+the parameter entirely and it simply follows the system.
+
+Prefer the parameter over setting `\.colorScheme` yourself. That has to be
+applied *outside* `.glitchTheme()` to be seen by it, and putting it inside is
+a quiet failure: the controls resolve a light palette while everything nested
+under them turns dark.
 
 ### Colours
 
