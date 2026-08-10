@@ -59,7 +59,11 @@ public struct GlitchSegmented<Value: Hashable>: View {
         .glitchHover { hovering in
             withAnimation(motion.tint) { isHovering = hovering }
         }
-        .animation(motion.tint, value: isHovering)
+        // No `.animation` above the pill. One placed here — even scoped to
+        // hover — installs itself for the whole subtree and wins over the
+        // transaction the tap set up, so the pill would slide on `tint`'s
+        // 150ms instead of `glide`'s 360ms and read as no animation at all.
+        // The hover already carries its own `withAnimation`.
         .onAppear { hasAppeared = true }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(label ?? "Options")
@@ -77,6 +81,14 @@ public struct GlitchSegmented<Value: Hashable>: View {
             }
         }
         .padding(2)
+        // The pill's animation lives here, next to the pill, keyed on the
+        // thing that moves it — not on whatever transaction happened to be
+        // in flight when the selection changed. Nothing above can override
+        // it, and there is exactly one place to look when it misbehaves.
+        //
+        // Nil until the first layout has settled, so the pill never animates
+        // in from wherever it was initialised.
+        .animation(hasAppeared ? motion.glide : nil, value: selection)
     }
 
     private func segment(for option: GlitchOption<Value>) -> some View {
@@ -111,21 +123,20 @@ public struct GlitchSegmented<Value: Hashable>: View {
         .accessibilityAction { select(option.value) }
     }
 
+    /// Sets the value and nothing else.
+    ///
+    /// The animation is declared on `segments`, keyed on `selection` — using
+    /// `withAnimation` here as well would put two answers in the codebase for
+    /// one question, and the losing one would still be sitting there looking
+    /// authoritative.
+    ///
+    /// `glide` is the token, for the reason a slider uses it on a click: the
+    /// pill is travelling to a position you pointed at, and wants the same
+    /// overshoot. `snap` is for state that changes in place — a toggle knob, a
+    /// checkmark — where an overshoot has nowhere to go.
     private func select(_ value: Value) {
         guard isEnabled, value != selection else { return }
-        // `glide` rather than `snap`: the pill is travelling to a position you
-        // pointed at, which is the same thing a slider's value does on a
-        // click, and it wants the same overshoot. `snap` is for state that
-        // changes in place — a toggle knob, a checkmark — where an overshoot
-        // has nowhere to go.
-        //
-        // Instant before the first layout has settled, so the pill never
-        // animates in from nowhere.
-        if hasAppeared {
-            withAnimation(motion.glide) { selection = value }
-        } else {
-            selection = value
-        }
+        selection = value
         GlitchHaptics.selection()
         GlitchSound.tick()
     }
