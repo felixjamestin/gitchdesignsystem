@@ -20,6 +20,7 @@ struct RootView: View {
     @State private var scheme: ColorScheme = .dark
     @State private var density: GlitchDensity = .platformDefault
     @State private var delight = true
+    @State private var fonts: GlitchFonts = .none
 
     /// Held here for the same reason: a slowdown set in the Motion Lab applies
     /// everywhere.
@@ -53,7 +54,7 @@ struct RootView: View {
                 content
             }
         }
-        .glitchTheme(style, glass: glass, density: density, colorScheme: scheme)
+        .glitchTheme(style, glass: glass, fonts: fonts, density: density, colorScheme: scheme)
         .glitchMotion(scale: motionScale, reduceMotion: forceReduceMotion)
         .glitchDelight(delight)
         // Told to the theme *and* to the window: the parameter makes the
@@ -73,7 +74,8 @@ struct RootView: View {
                 glass: $glass,
                 scheme: $scheme,
                 density: $density,
-                delight: $delight
+                delight: $delight,
+                fonts: $fonts
             )
         default:
             MotionLabView(

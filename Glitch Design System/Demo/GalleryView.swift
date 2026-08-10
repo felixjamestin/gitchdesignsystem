@@ -15,6 +15,7 @@ struct GalleryView: View {
     @Binding var scheme: ColorScheme
     @Binding var density: GlitchDensity
     @Binding var delight: Bool
+    @Binding var fonts: GlitchFonts
 
     @State private var notches: GlitchNotchSnapping = .magnetic
     @State private var notched = 40.0
@@ -35,6 +36,13 @@ struct GalleryView: View {
     @State private var padX = 30.0
     @State private var padY = 70.0
     @State private var rotation = 35.0
+
+    @State private var atMinimum = 0.0
+    @State private var atMaximum = 100.0
+    @State private var bypass = false
+    @State private var quality = "High"
+    @State private var depth = 60.0
+    @State private var seed = "8841"
 
     @State private var soundVolume = 70.0
     @State private var soundOn = true
@@ -94,7 +102,16 @@ struct GalleryView: View {
                     // a click lands exactly on one.
                     GlitchSlider("Coarse", value: $coarse, in: 0...1, step: 0.1)
                     GlitchSlider("Disabled", value: $flow).disabled(true)
+                    // Parked at the limits, which is where the track stretches
+                    // past its row. If a container clips that overhang again,
+                    // these two are where it shows up first: the rounded end
+                    // squares off at the moment the limit is announced.
+                    GlitchSlider("At minimum", value: $atMinimum)
+                    GlitchSlider("At maximum", value: $atMaximum)
                 }
+
+                accessoryPanel
+                transparentPanel
 
                 group("Numeric") {
                     GlitchDragField("X", value: $precise, in: -500...500)
@@ -202,6 +219,18 @@ struct GalleryView: View {
         }
     }
 
+    /// Faces that ship with macOS, so the picker works without the demo having
+    /// to register a font of its own. `GlitchFonts` takes a family name either
+    /// way — a bundled face is the same call with a different string.
+    private static let fontOptions: [GlitchOption<GlitchFonts>] = [
+        GlitchOption("System", value: .none),
+        GlitchOption("Georgia", value: GlitchFonts("Georgia")),
+        GlitchOption("Menlo", value: GlitchFonts("Menlo")),
+        // One role only, which is the more common case: keep the style's label
+        // voice and change just the readouts.
+        GlitchOption("Courier values", value: GlitchFonts(value: "Courier New")),
+    ]
+
     private var appearancePanel: some View {
         GlitchPanel {
             GlitchSection("Appearance") {
@@ -231,6 +260,12 @@ struct GalleryView: View {
                     "Density",
                     selection: $density,
                     options: GlitchDensity.allCases.map { GlitchOption($0.title, value: $0) }
+                )
+                GlitchSelect(
+                    "Typeface",
+                    selection: $fonts,
+                    options: Self.fontOptions,
+                    accessory: .info("Overrides the style's face without touching its weights, tracking or casing.")
                 )
                 explain(styleExplanation)
             }
@@ -291,6 +326,50 @@ struct GalleryView: View {
             }
         }
     }
+
+    /// Both accessory kinds, on the controls that render them differently.
+    ///
+    /// `Gain` is the one worth watching: the slider draws its label inside a
+    /// clipped track and mirrors it into a second masked copy, so the glyph has
+    /// to invert with the word as the bar passes under it while the tooltip
+    /// escapes the clip entirely.
+    private var accessoryPanel: some View {
+        group("Label accessories") {
+            GlitchToggle("Loop", isOn: $loop, accessory: .icon("repeat"))
+            GlitchToggle(
+                "Bypass",
+                isOn: $bypass,
+                accessory: .info("Skips the effect chain without unloading it, so re-enabling is instant.")
+            )
+            GlitchSelect(
+                "Quality",
+                selection: $quality,
+                options: GlitchOption.list(["Low", "Medium", "High"]),
+                accessory: .info("Higher settings sample more often. Cost rises roughly with the square.")
+            )
+            GlitchSlider(
+                "Gain",
+                value: $depth,
+                accessory: .info("Applied after the limiter, so this one can clip.")
+            )
+            GlitchTextField(
+                "Seed",
+                text: $seed,
+                placeholder: "Random",
+                accessory: .info("Fixing the seed makes a run reproducible.")
+            )
+        }
+    }
+
+    /// A panel contributing no surface of its own — only padding and rhythm.
+    private var transparentPanel: some View {
+        GlitchPanel(background: .transparent) {
+            GlitchSection("Transparent panel") {
+                GlitchToggle("Still a panel", isOn: $trails)
+                GlitchSlider("Same spacing", value: $flow)
+            }
+        }
+    }
 }
 
 #Preview {
@@ -299,12 +378,13 @@ struct GalleryView: View {
     @Previewable @State var scheme = ColorScheme.dark
     @Previewable @State var density = GlitchDensity.compact
     @Previewable @State var delight = true
+    @Previewable @State var fonts = GlitchFonts.none
 
     GalleryView(
         style: $style, glass: $glass, scheme: $scheme,
-        density: $density, delight: $delight
+        density: $density, delight: $delight, fonts: $fonts
     )
-    .glitchTheme(style, glass: glass, density: density)
+    .glitchTheme(style, glass: glass, fonts: fonts, density: density)
     .glitchMotion()
     .glitchDelight(delight)
     .preferredColorScheme(scheme)
