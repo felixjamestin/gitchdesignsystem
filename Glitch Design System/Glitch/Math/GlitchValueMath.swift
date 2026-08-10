@@ -61,11 +61,20 @@ public enum GlitchValueMath {
     ///   resistance are the most visible and it flattens out from there.
     /// - It saturates at `maximum`. The stretch is a signal, not a distance
     ///   to be measured, and an unbounded one would tear the layout apart.
+    /// The furthest a track will ever stretch past its own edge.
+    ///
+    /// Named because containers have to know it. A row that grows by this much
+    /// needs whatever contains it to let the overhang through; clip it and the
+    /// stretch is cut flat, so the track's rounded end reads as a torn edge at
+    /// exactly the moment the limit is being announced. `GlitchRowClip` takes
+    /// its horizontal slack from here so the two cannot drift apart.
+    public static let maximumTrackOverscroll: Double = 8
+
     public static func trackOverscroll(
         pastEdge distance: Double,
         deadZone: Double = 32,
         ramp: Double = 200,
-        maximum: Double = 8
+        maximum: Double = maximumTrackOverscroll
     ) -> Double {
         let beyond = max(0, distance - deadZone)
         guard beyond > 0, ramp > 0 else { return 0 }

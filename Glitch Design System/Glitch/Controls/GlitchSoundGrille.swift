@@ -310,12 +310,6 @@ public struct GlitchSoundGrille: View {
     private func plate(_ shape: some Shape) -> some View {
         shape
             .fill(theme.palette.track)
-            .overlay {
-                shape.stroke(
-                    theme.metrics.tracksAreOutlined ? theme.palette.stroke : .clear,
-                    lineWidth: theme.metrics.borderWidth
-                )
-            }
     }
 
     /// The universal mute slash, drawn over everything so it cannot be

@@ -15,6 +15,7 @@ public struct GlitchStepper: View {
     private let range: ClosedRange<Double>
     private let step: Double
     private let decimals: Int
+    private let accessory: GlitchLabelAccessory
 
     @State private var isHovering = false
     @State private var isRepeating = false
@@ -25,13 +26,15 @@ public struct GlitchStepper: View {
         value: Binding<Double>,
         in range: ClosedRange<Double> = 0...100,
         step: Double = 1,
-        decimals: Int = 0
+        decimals: Int = 0,
+        accessory: GlitchLabelAccessory = .none
     ) {
         self.label = label
         self._value = value
         self.range = range
         self.step = step
         self.decimals = decimals
+        self.accessory = accessory
     }
 
     public var body: some View {
@@ -39,7 +42,7 @@ public struct GlitchStepper: View {
         let shape = RoundedRectangle(cornerRadius: metrics.controlRadius, style: .continuous)
 
         HStack(spacing: metrics.spacing) {
-            GlitchLabel(label)
+            GlitchLabel(label, accessory: accessory)
             Spacer(minLength: 4)
 
             // Buttons first, number last.
@@ -63,12 +66,12 @@ public struct GlitchStepper: View {
         .padding(.horizontal, metrics.hInset)
         .frame(height: metrics.rowHeight)
         .glitchSurface(shape, fill: state.trackFill(theme.palette))
-        .overlay { shape.strokeBorder(state.strokeColor(theme.palette), lineWidth: state.strokeWidth) }
         .opacity(state.contentOpacity)
         .glitchHover { hovering in
             withAnimation(motion.snap) { isHovering = hovering }
         }
         .accessibilityElement(children: .ignore)
+        .accessibilityHint(accessory.infoText ?? "")
         .accessibilityLabel(label)
         .accessibilityValue(GlitchNumberParsing.format(value, decimals: decimals))
         .accessibilityAdjustableAction { direction in

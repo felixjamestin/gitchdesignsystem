@@ -16,6 +16,7 @@ public struct GlitchDragField: View {
     private let range: ClosedRange<Double>
     private let step: Double
     private let decimals: Int
+    private let accessory: GlitchLabelAccessory
 
     /// Points of travel per step. Loose enough to be controllable, tight
     /// enough that crossing a wide range doesn't require a second screen.
@@ -36,13 +37,15 @@ public struct GlitchDragField: View {
         value: Binding<Double>,
         in range: ClosedRange<Double> = 0...100,
         step: Double = 1,
-        decimals: Int = 0
+        decimals: Int = 0,
+        accessory: GlitchLabelAccessory = .none
     ) {
         self.label = label
         self._value = value
         self.range = range
         self.step = step
         self.decimals = decimals
+        self.accessory = accessory
     }
 
     public var body: some View {
@@ -50,14 +53,13 @@ public struct GlitchDragField: View {
         let shape = RoundedRectangle(cornerRadius: metrics.controlRadius, style: .continuous)
 
         HStack(spacing: metrics.spacing) {
-            GlitchLabel(label)
+            GlitchLabel(label, accessory: accessory)
             Spacer(minLength: 4)
             readout
         }
         .padding(.horizontal, metrics.hInset)
         .frame(height: metrics.rowHeight)
         .glitchSurface(shape, fill: state.trackFill(theme.palette))
-        .overlay { shape.strokeBorder(state.strokeColor(theme.palette), lineWidth: state.strokeWidth) }
         .opacity(state.contentOpacity)
         .contentShape(Rectangle())
         .gesture(scrubGesture)
@@ -67,6 +69,7 @@ public struct GlitchDragField: View {
         .glitchHorizontalScrubCursor(isActive: isHovering && isEnabled && !isEditing)
         .glitchModifierKeys { modifiers = $0 }
         .accessibilityElement(children: .ignore)
+        .accessibilityHint(accessory.infoText ?? "")
         .accessibilityLabel(label)
         .accessibilityValue(GlitchNumberParsing.format(value, decimals: decimals))
         .accessibilityAdjustableAction { direction in

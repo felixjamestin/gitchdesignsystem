@@ -9,7 +9,8 @@ import SwiftUI
 public enum GlitchType {
 
     public static func label(_ theme: GlitchTheme) -> Font {
-        .system(
+        resolve(
+            face: theme.typography.labelFace,
             size: theme.metrics.labelSize,
             weight: theme.typography.labelWeight,
             design: theme.typography.labelDesign
@@ -19,7 +20,8 @@ public enum GlitchType {
     /// Numeric readouts. Monospaced in every style, so a changing value never
     /// reflows the row it sits in — no layout jitter, motion rule 3.
     public static func value(_ theme: GlitchTheme) -> Font {
-        .system(
+        resolve(
+            face: theme.typography.valueFace,
             size: theme.metrics.valueSize,
             weight: theme.typography.valueWeight,
             design: theme.typography.valueDesign
@@ -27,11 +29,34 @@ public enum GlitchType {
     }
 
     public static func title(_ theme: GlitchTheme) -> Font {
-        .system(
+        resolve(
+            face: theme.typography.titleFace,
             size: theme.metrics.titleSize,
             weight: theme.typography.titleWeight,
             design: theme.typography.labelDesign
         )
+    }
+
+    /// The system font, or a named family at the same size and weight.
+    ///
+    /// `Font.custom(_:size:)` scales with Dynamic Type just as `.system(size:)`
+    /// does, so naming a face doesn't quietly opt a control out of respecting
+    /// the reader's text size — which `.custom(_:fixedSize:)` would have.
+    ///
+    /// `design` is dropped for a named face because it has nowhere to go: it
+    /// selects among the system font's variants, and a custom family has its
+    /// own. Weight is applied on top, which works for a variable font or a
+    /// family with named weights and is ignored by a single-weight face.
+    private static func resolve(
+        face: String?,
+        size: CGFloat,
+        weight: Font.Weight,
+        design: Font.Design
+    ) -> Font {
+        guard let face else {
+            return .system(size: size, weight: weight, design: design)
+        }
+        return .custom(face, size: size).weight(weight)
     }
 
     /// A label, cased and tracked as the current style writes it.
@@ -47,22 +72,31 @@ public enum GlitchType {
     }
 }
 
-/// A control's label.
+/// A control's label, and whatever follows it.
 public struct GlitchLabel: View {
     @Environment(\.glitchTheme) private var theme
 
     private let text: String
     private let secondary: Bool
+    private let accessory: GlitchLabelAccessory
 
-    public init(_ text: String, secondary: Bool = false) {
+    public init(
+        _ text: String,
+        secondary: Bool = false,
+        accessory: GlitchLabelAccessory = .none
+    ) {
         self.text = text
         self.secondary = secondary
+        self.accessory = accessory
     }
 
     public var body: some View {
-        GlitchType.labelText(text, theme)
-            .foregroundStyle(secondary ? theme.palette.labelSecondary : theme.palette.label)
-            .lineLimit(1)
+        HStack(spacing: 4) {
+            GlitchType.labelText(text, theme)
+                .foregroundStyle(secondary ? theme.palette.labelSecondary : theme.palette.label)
+                .lineLimit(1)
+            GlitchLabelAccessoryView(accessory: accessory)
+        }
     }
 }
 

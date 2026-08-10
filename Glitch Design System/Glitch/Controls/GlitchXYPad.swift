@@ -16,6 +16,7 @@ public struct GlitchXYPad: View {
     @Binding private var y: Double
     private let xRange: ClosedRange<Double>
     private let yRange: ClosedRange<Double>
+    private let accessory: GlitchLabelAccessory
 
     @State private var size: CGSize = .zero
     @State private var isDragging = false
@@ -27,13 +28,15 @@ public struct GlitchXYPad: View {
         x: Binding<Double>,
         y: Binding<Double>,
         xRange: ClosedRange<Double> = 0...100,
-        yRange: ClosedRange<Double> = 0...100
+        yRange: ClosedRange<Double> = 0...100,
+        accessory: GlitchLabelAccessory = .none
     ) {
         self.label = label
         self._x = x
         self._y = y
         self.xRange = xRange
         self.yRange = yRange
+        self.accessory = accessory
     }
 
     public var body: some View {
@@ -42,7 +45,7 @@ public struct GlitchXYPad: View {
 
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                GlitchLabel(label, secondary: true)
+                GlitchLabel(label, secondary: true, accessory: accessory)
                 Spacer()
                 // Two numbers in one string, so there is no single value to
                 // give the roll a direction — it falls back to plain
@@ -61,7 +64,6 @@ public struct GlitchXYPad: View {
             }
             .aspectRatio(1, contentMode: .fit)
             .clipShape(shape)
-            .overlay { shape.strokeBorder(state.strokeColor(theme.palette), lineWidth: state.strokeWidth) }
             .contentShape(Rectangle())
             .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
             .gesture(dragGesture)
@@ -80,6 +82,7 @@ public struct GlitchXYPad: View {
         }
         .opacity(state.contentOpacity)
         .accessibilityElement(children: .ignore)
+        .accessibilityHint(accessory.infoText ?? "")
         .accessibilityLabel(label)
         .accessibilityValue(
             "X \(GlitchNumberParsing.format(x, decimals: 0)), Y \(GlitchNumberParsing.format(y, decimals: 0))"

@@ -31,29 +31,26 @@ public struct ControlState: Equatable, Sendable {
         self.isErrored = isErrored
     }
 
-    /// Precedence: disabled → active → hovering or focused → resting.
+    /// Precedence: disabled → errored → active → hovering or focused → resting.
     ///
     /// Focus deliberately resolves to the same lift as hover. With no focus
     /// ring anywhere in the system, the surface is the only thing left to say
     /// "the keyboard is pointed here", and a tabbing user gets exactly the
     /// feedback a pointer user already had.
+    ///
+    /// Error is carried here too, now that controls have no border to colour.
+    /// It sits above the interaction states rather than below them: a field
+    /// holding a rejected value is still wrong while you hover it, and having
+    /// the warning disappear under the pointer would be worse than never
+    /// showing it. The tint is deliberately weak — enough to read as "this one"
+    /// when scanning a panel, not enough to compete with the message beneath
+    /// the field, which is the part that says *what* is wrong.
     public func trackFill(_ palette: GlitchPalette) -> Color {
         if isDisabled { return palette.track.opacity(0.4) }
+        if isErrored { return palette.danger.opacity(isDragging || isPressed ? 0.28 : 0.18) }
         if isDragging || isPressed { return palette.trackActive }
         if isHovering || isFocused { return palette.trackHover }
         return palette.track
-    }
-
-    /// Precedence: disabled → errored → resting. Focus is carried by the fill,
-    /// not by the border.
-    public func strokeColor(_ palette: GlitchPalette) -> Color {
-        if isDisabled { return palette.stroke.opacity(0.5) }
-        if isErrored { return palette.danger }
-        return palette.stroke
-    }
-
-    public var strokeWidth: CGFloat {
-        isErrored && !isDisabled ? 1.5 : 1
     }
 
     /// Deliberately subtle. A press should register, not perform.

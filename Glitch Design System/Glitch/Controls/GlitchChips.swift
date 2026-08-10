@@ -8,16 +8,22 @@ public struct GlitchChips: View {
 
     private let label: String?
     @Binding private var items: [String]
+    private let accessory: GlitchLabelAccessory
 
-    public init(_ label: String? = nil, items: Binding<[String]>) {
+    public init(
+        _ label: String? = nil,
+        items: Binding<[String]>,
+        accessory: GlitchLabelAccessory = .none
+    ) {
         self.label = label
         self._items = items
+        self.accessory = accessory
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             if let label {
-                GlitchLabel(label, secondary: true)
+                GlitchLabel(label, secondary: true, accessory: accessory)
             }
 
             if items.isEmpty {
@@ -62,9 +68,6 @@ public struct GlitchChips: View {
         .frame(height: metrics.rowHeight * 0.72)
         .background {
             Capsule().fill(theme.palette.trackActive)
-        }
-        .overlay {
-            Capsule().strokeBorder(theme.palette.stroke, lineWidth: 1)
         }
         .accessibilityElement(children: .combine)
     }

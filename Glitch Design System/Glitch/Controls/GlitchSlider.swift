@@ -67,6 +67,7 @@ public struct GlitchSlider: View {
     private let step: Double
     private let decimalsOverride: Int?
     private let notchSnapping: GlitchNotchSnapping
+    private let accessory: GlitchLabelAccessory
 
     /// Movement beyond this many points turns a press into a drag.
     private let dragThreshold: CGFloat = 3
@@ -120,7 +121,8 @@ public struct GlitchSlider: View {
         in range: ClosedRange<Double> = 0...100,
         step: Double = 1,
         decimals: Int? = nil,
-        notches: GlitchNotchSnapping = .off
+        notches: GlitchNotchSnapping = .off,
+        accessory: GlitchLabelAccessory = .none
     ) {
         self.label = label
         self._value = value
@@ -128,6 +130,7 @@ public struct GlitchSlider: View {
         self.step = step
         self.decimalsOverride = decimals
         self.notchSnapping = notches
+        self.accessory = accessory
     }
 
     public var body: some View {
@@ -157,6 +160,7 @@ public struct GlitchSlider: View {
             .onDisappear { revealTask?.cancel() }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(label)
+            .accessibilityHint(accessory.infoText ?? "")
             .accessibilityValue(formattedValue)
             .accessibilityAdjustableAction { direction in
                 switch direction {
@@ -176,14 +180,6 @@ public struct GlitchSlider: View {
 
         return Color.clear
             .glitchSurface(shape, fill: palette.track)
-            .overlay {
-                // Styles that draw their edges outline the track; the default
-                // one separates surfaces by tone alone.
-                shape.strokeBorder(
-                    metrics.tracksAreOutlined ? palette.stroke : .clear,
-                    lineWidth: metrics.borderWidth
-                )
-            }
             .overlay(alignment: .leading) { hashmarks }
             .overlay(alignment: .leading) { ghost }
             .overlay(alignment: .leading) {
@@ -201,12 +197,11 @@ public struct GlitchSlider: View {
             }
             .overlay(alignment: .leading) { handle }
             .overlay(alignment: .leading) {
-                GlitchType.labelText(label, theme)
-                    .foregroundStyle(palette.label)
-                    .lineLimit(1)
+                labelRun(colour: palette.label, interactive: true)
+                    // Measured with the glyph included, so the handle knows to
+                    // duck under the accessory as well as the word.
                     .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { labelWidth = $0 }
                     .padding(.leading, metrics.labelInset)
-                    .allowsHitTesting(false)
             }
             .overlay(alignment: .trailing) {
                 readout.padding(.trailing, metrics.labelInset)
@@ -276,9 +271,7 @@ public struct GlitchSlider: View {
         if covered > 0 {
             ZStack {
                 HStack(spacing: 0) {
-                    GlitchType.labelText(label, theme)
-                        .foregroundStyle(theme.palette.onFill)
-                        .lineLimit(1)
+                    labelRun(colour: theme.palette.onFill, interactive: false)
                     Spacer(minLength: 0)
                 }
                 .padding(.leading, metrics.labelInset)
@@ -397,6 +390,40 @@ public struct GlitchSlider: View {
                 .animation(motion.tint, value: offersEditing)
                 .animation(motion.tint, value: isActive)
         }
+    }
+
+    // MARK: - Label and accessory
+
+    /// The label and whatever follows it, as one run.
+    ///
+    /// Drawn twice: once in `label` inside the track, and once in `onFill`
+    /// masked to the filled region. Both go through here so the glyph inverts
+    /// along with the word it belongs to, rather than staying one colour while
+    /// the text beside it flips — which is the whole point of `invertedText`.
+    ///
+    /// The inverted copy passes `interactive: false`. It sits under
+    /// `allowsHitTesting(false)` already, but a second tap gesture on a
+    /// decorative duplicate is the kind of thing that starts working by
+    /// accident later.
+    private func labelRun(colour: Color, interactive: Bool) -> some View {
+        HStack(spacing: 4) {
+            GlitchType.labelText(label, theme)
+                .foregroundStyle(colour)
+                .lineLimit(1)
+                .allowsHitTesting(false)
+            accessoryGlyph(colour: colour, interactive: interactive)
+        }
+    }
+
+    /// The glyph only. The tooltip is drawn by whichever `glitchTooltipLayer`
+    /// is above this slider — the track is clipped to its rounded shape, so
+    /// anything rendered in here is sliced off at the edge.
+    private func accessoryGlyph(colour: Color, interactive: Bool) -> some View {
+        GlitchLabelAccessoryView(
+            accessory: accessory,
+            colour: colour,
+            interactive: interactive
+        )
     }
 
     // MARK: - Derived geometry

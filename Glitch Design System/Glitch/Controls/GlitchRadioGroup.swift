@@ -12,23 +12,26 @@ public struct GlitchRadioGroup<Value: Hashable>: View {
     private let label: String?
     @Binding private var selection: Value
     private let options: [GlitchOption<Value>]
+    private let accessory: GlitchLabelAccessory
 
     @State private var hovered: Value?
 
     public init(
         _ label: String? = nil,
         selection: Binding<Value>,
-        options: [GlitchOption<Value>]
+        options: [GlitchOption<Value>],
+        accessory: GlitchLabelAccessory = .none
     ) {
         self.label = label
         self._selection = selection
         self.options = options
+        self.accessory = accessory
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             if let label {
-                GlitchLabel(label, secondary: true)
+                GlitchLabel(label, secondary: true, accessory: accessory)
                     .padding(.bottom, 2)
             }
 

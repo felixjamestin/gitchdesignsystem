@@ -18,6 +18,7 @@ public struct GlitchSegmented<Value: Hashable>: View {
     private let label: String?
     @Binding private var selection: Value
     private let options: [GlitchOption<Value>]
+    private let accessory: GlitchLabelAccessory
 
     @Namespace private var pill
     @State private var hasAppeared = false
@@ -26,11 +27,13 @@ public struct GlitchSegmented<Value: Hashable>: View {
     public init(
         _ label: String? = nil,
         selection: Binding<Value>,
-        options: [GlitchOption<Value>]
+        options: [GlitchOption<Value>],
+        accessory: GlitchLabelAccessory = .none
     ) {
         self.label = label
         self._selection = selection
         self.options = options
+        self.accessory = accessory
     }
 
     public var body: some View {
@@ -39,7 +42,7 @@ public struct GlitchSegmented<Value: Hashable>: View {
 
         HStack(spacing: metrics.spacing) {
             if let label {
-                GlitchLabel(label)
+                GlitchLabel(label, accessory: accessory)
                 Spacer(minLength: 8)
             }
             segments
@@ -49,12 +52,6 @@ public struct GlitchSegmented<Value: Hashable>: View {
         .frame(height: metrics.rowHeight)
         .glitchSurface(shape, fill: isHovering && isEnabled ? theme.palette.trackHover : theme.palette.track)
         .clipShape(shape)
-        .overlay {
-            shape.strokeBorder(
-                metrics.tracksAreOutlined ? theme.palette.stroke : .clear,
-                lineWidth: metrics.borderWidth
-            )
-        }
         .opacity(isEnabled ? 1 : 0.4)
         .glitchHover { hovering in
             withAnimation(motion.tint) { isHovering = hovering }

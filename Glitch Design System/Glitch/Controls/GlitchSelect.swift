@@ -34,6 +34,7 @@ public struct GlitchSelect<Value: Hashable>: View {
     @Binding private var selection: Value
     private let options: [GlitchOption<Value>]
     private let placeholder: String
+    private let accessory: GlitchLabelAccessory
 
     @State private var isOpen = false
     @State private var isHovering = false
@@ -45,12 +46,14 @@ public struct GlitchSelect<Value: Hashable>: View {
         _ label: String? = nil,
         selection: Binding<Value>,
         options: [GlitchOption<Value>],
-        placeholder: String = "Select"
+        placeholder: String = "Select",
+        accessory: GlitchLabelAccessory = .none
     ) {
         self.label = label
         self._selection = selection
         self.options = options
         self.placeholder = placeholder
+        self.accessory = accessory
     }
 
     public var body: some View {
@@ -59,7 +62,7 @@ public struct GlitchSelect<Value: Hashable>: View {
 
         HStack(spacing: metrics.spacing) {
             if let label {
-                GlitchLabel(label, secondary: true)
+                GlitchLabel(label, secondary: true, accessory: accessory)
             }
             Spacer(minLength: 4)
             Text(selectedTitle)
@@ -74,7 +77,6 @@ public struct GlitchSelect<Value: Hashable>: View {
         .padding(.horizontal, metrics.hInset)
         .frame(height: metrics.rowHeight)
         .glitchSurface(shape, fill: state.trackFill(theme.palette))
-        .overlay { shape.strokeBorder(state.strokeColor(theme.palette), lineWidth: state.strokeWidth) }
         .opacity(state.contentOpacity)
         .contentShape(Rectangle())
         .onTapGesture { open() }
@@ -90,13 +92,28 @@ public struct GlitchSelect<Value: Hashable>: View {
             return .handled
         }
         .animation(motion.snap, value: isOpen)
-        .popover(isPresented: $isOpen, arrowEdge: .bottom) {
+        // Anchored to the row's trailing edge rather than its centre.
+        //
+        // The whole row is the tap target, but everything that says "this is a
+        // dropdown" — the current value, the chevron — is stacked on the right,
+        // and that is where the tap lands. A list unfolding from the middle of
+        // a wide row appears to come from somewhere nobody touched.
+        //
+        // The system still keeps the popover on screen, so close to the right
+        // edge it slides inward. That is the correct trade: an anchor is a
+        // preference, and being fully visible outranks it.
+        .popover(
+            isPresented: $isOpen,
+            attachmentAnchor: .point(.bottomTrailing),
+            arrowEdge: .bottom
+        ) {
             list
                 .presentationCompactAdaptation(.popover)
                 .presentationBackground(theme.palette.panel)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label ?? "Select")
+        .accessibilityHint(accessory.infoText ?? "")
         .accessibilityValue(selectedTitle)
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { open() }

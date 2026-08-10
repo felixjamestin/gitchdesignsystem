@@ -1,16 +1,36 @@
 import SwiftUI
 
+/// What a panel draws behind its contents.
+public enum GlitchPanelBackground: Equatable, Sendable {
+    /// The style's own surface: a fill, an edge, and glass where the style
+    /// calls for it.
+    case surface
+    /// Nothing at all. The panel keeps its padding, spacing and staggered
+    /// reveal, and contributes no appearance of its own — for a panel laid over
+    /// artwork, or one grouping controls that should read as loose on the page.
+    ///
+    /// A distinct case rather than a clear `fill`, because a clear fill is not
+    /// the same thing: under a glass style the material would still be drawn,
+    /// tinted by nothing, and the panel would remain visible.
+    case transparent
+}
+
 /// The container that makes a stack of controls read as one inspector.
 public struct GlitchPanel<Content: View>: View {
     @Environment(\.glitchTheme) private var theme
     @Environment(\.glitchMotion) private var motion
     @Environment(\.glitchDelight) private var delight
 
+    private let background: GlitchPanelBackground
     private let content: Content
 
     @State private var hasAppeared = false
 
-    public init(@ViewBuilder content: () -> Content) {
+    public init(
+        background: GlitchPanelBackground = .surface,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.background = background
         self.content = content()
     }
 
@@ -37,14 +57,37 @@ public struct GlitchPanel<Content: View>: View {
             }
         }
         .padding(metrics.panelPadding)
-        .glitchSurface(shape, fill: theme.palette.panel)
-        .overlay { shape.strokeBorder(theme.palette.stroke, lineWidth: theme.metrics.borderWidth) }
+        .modifier(GlitchPanelSurface(background: background, shape: shape))
+        // Outside the sections, which clip. A tooltip opened on any row in this
+        // panel is drawn here, where nothing crops it.
+        .glitchTooltipLayer()
         .onAppear { hasAppeared = true }
     }
 
     /// With the game-feel layer off there is nothing to reveal — the panel is
     /// simply present from the first frame.
     private var isRevealed: Bool { !delight || hasAppeared }
+}
+
+/// Draws a panel's surface, or declines to draw anything.
+private struct GlitchPanelSurface<S: InsettableShape>: ViewModifier {
+    @Environment(\.glitchTheme) private var theme
+
+    let background: GlitchPanelBackground
+    let shape: S
+
+    func body(content: Content) -> some View {
+        switch background {
+        case .surface:
+            content
+                .glitchSurface(shape, fill: theme.palette.panel)
+                .overlay {
+                    shape.strokeBorder(theme.palette.stroke, lineWidth: theme.metrics.borderWidth)
+                }
+        case .transparent:
+            content
+        }
+    }
 }
 
 /// A collapsible group, with the disclosure chevron from the second reference.
@@ -96,7 +139,13 @@ public struct GlitchSection<Content: View>: View {
                 }
             }
         }
-        .clipped()
+        // Vertical only. The clip is here to stop a collapsing row sliding out
+        // from under the header, which is a vertical problem — but `.clipped()`
+        // solves it on both axes, and a slider straining at a limit grows
+        // *horizontally* past the row. That overhang was being cut flat, which
+        // squares off the track's rounded end at the one moment the control is
+        // trying to say it has run out of room.
+        .clipShape(GlitchRowClip())
         .accessibilityElement(children: .contain)
     }
 
@@ -153,6 +202,24 @@ public struct GlitchSection<Content: View>: View {
         .accessibilityAction {
             withAnimation(motion.drift) { isExpanded.toggle() }
         }
+    }
+}
+
+/// Clips vertically and lets content overflow horizontally.
+///
+/// Rows in this system are free to grow sideways — a slider stretches past its
+/// own edge at a limit, and a tooltip reaches beyond the label it belongs to —
+/// while nothing is ever meant to escape a section vertically. One axis of
+/// containment, which is what `.clipped()` cannot express.
+///
+/// The slack is generous rather than exact: it comes from the largest stretch
+/// the system produces, doubled, so a control that overhangs a little more
+/// later doesn't quietly reintroduce the flat edge this exists to prevent.
+struct GlitchRowClip: Shape {
+    var slack: CGFloat = CGFloat(GlitchValueMath.maximumTrackOverscroll) * 2
+
+    func path(in rect: CGRect) -> Path {
+        Path(rect.insetBy(dx: -slack, dy: 0))
     }
 }
 

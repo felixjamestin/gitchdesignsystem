@@ -114,12 +114,6 @@ public struct GlitchPathMenu: View {
                 : theme.palette.trackActive)
             .frame(width: diameter, height: diameter)
             .overlay {
-                Circle().strokeBorder(
-                    theme.metrics.tracksAreOutlined ? theme.palette.stroke : .clear,
-                    lineWidth: theme.metrics.borderWidth
-                )
-            }
-            .overlay {
                 Image(systemName: systemImage)
                     .font(.system(size: theme.metrics.iconSize * 1.3, weight: .semibold))
                     .foregroundStyle(phase.isExpanded
@@ -137,12 +131,6 @@ public struct GlitchPathMenu: View {
                 ? theme.palette.selectionFill
                 : theme.palette.trackActive)
             .frame(width: diameter, height: diameter)
-            .overlay {
-                Circle().strokeBorder(
-                    theme.metrics.tracksAreOutlined ? theme.palette.stroke : .clear,
-                    lineWidth: theme.metrics.borderWidth
-                )
-            }
             .overlay {
                 Image(systemName: item.systemImage)
                     .font(.system(size: theme.metrics.iconSize, weight: .semibold))

@@ -70,6 +70,7 @@ public struct GlitchDial: View {
     private let step: Double
     private let decimals: Int
     private let styleOverride: GlitchDialStyle?
+    private let accessory: GlitchLabelAccessory
 
     private let sweep = GlitchAngleMath.defaultSweep
 
@@ -91,7 +92,8 @@ public struct GlitchDial: View {
         in range: ClosedRange<Double> = 0...100,
         step: Double = 1,
         decimals: Int = 0,
-        style: GlitchDialStyle? = nil
+        style: GlitchDialStyle? = nil,
+        accessory: GlitchLabelAccessory = .none
     ) {
         self.label = label
         self._value = value
@@ -99,6 +101,7 @@ public struct GlitchDial: View {
         self.step = step
         self.decimals = decimals
         self.styleOverride = style
+        self.accessory = accessory
     }
 
     private var style: GlitchDialStyle {
@@ -108,7 +111,7 @@ public struct GlitchDial: View {
     public var body: some View {
         VStack(spacing: 6) {
             dial
-            GlitchLabel(label, secondary: true)
+            GlitchLabel(label, secondary: true, accessory: accessory)
             GlitchValueText(
                 GlitchNumberParsing.format(value, decimals: decimals),
                 value: value,
@@ -118,6 +121,7 @@ public struct GlitchDial: View {
         }
         .opacity(isEnabled ? 1 : 0.4)
         .accessibilityElement(children: .ignore)
+        .accessibilityHint(accessory.infoText ?? "")
         .accessibilityLabel(label)
         .accessibilityValue(GlitchNumberParsing.format(value, decimals: decimals))
         .accessibilityAdjustableAction { direction in
@@ -276,12 +280,6 @@ public struct GlitchDial: View {
         Circle()
             .fill(theme.palette.trackActive)
             .frame(width: diameter, height: diameter)
-            .overlay {
-                Circle().strokeBorder(
-                    theme.metrics.tracksAreOutlined ? theme.palette.stroke : .clear,
-                    lineWidth: theme.metrics.borderWidth
-                )
-            }
             .scaleEffect(isDragging ? 0.94 : (isHovering ? 1.03 : 1))
             .animation(motion.snap, value: isDragging)
             .animation(motion.snap, value: isHovering)

@@ -52,12 +52,6 @@ public struct GlitchTabBar: View {
         }
         .padding(3)
         .glitchSurface(shape, fill: theme.palette.track)
-        .overlay {
-            shape.strokeBorder(
-                metrics.tracksAreOutlined ? theme.palette.stroke : .clear,
-                lineWidth: metrics.borderWidth
-            )
-        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Tabs")
     }

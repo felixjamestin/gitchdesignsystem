@@ -21,6 +21,7 @@ public struct GlitchTextField: View {
     /// a message that appears by pushing everything below it down is a worse
     /// experience than one that fades into space already allotted.
     private let reservesErrorSpace: Bool
+    private let accessory: GlitchLabelAccessory
 
     @State private var isHovering = false
     @FocusState private var isFocused: Bool
@@ -28,26 +29,30 @@ public struct GlitchTextField: View {
     public init(
         _ label: String? = nil,
         text: Binding<String>,
-        placeholder: String = ""
+        placeholder: String = "",
+        accessory: GlitchLabelAccessory = .none
     ) {
         self.label = label
         self._text = text
         self.placeholder = placeholder
         self.error = nil
         self.reservesErrorSpace = false
+        self.accessory = accessory
     }
 
     public init(
         _ label: String? = nil,
         text: Binding<String>,
         placeholder: String = "",
-        error: String?
+        error: String?,
+        accessory: GlitchLabelAccessory = .none
     ) {
         self.label = label
         self._text = text
         self.placeholder = placeholder
         self.error = error
         self.reservesErrorSpace = true
+        self.accessory = accessory
     }
 
     public var body: some View {
@@ -66,7 +71,7 @@ public struct GlitchTextField: View {
 
         return HStack(spacing: metrics.spacing) {
             if let label {
-                GlitchLabel(label, secondary: true)
+                GlitchLabel(label, secondary: true, accessory: accessory)
             }
             TextField(
                 "",
@@ -82,7 +87,6 @@ public struct GlitchTextField: View {
         .padding(.horizontal, metrics.hInset)
         .frame(height: metrics.rowHeight)
         .glitchSurface(shape, fill: state.trackFill(theme.palette))
-        .overlay { shape.strokeBorder(state.strokeColor(theme.palette), lineWidth: state.strokeWidth) }
         .opacity(state.contentOpacity)
         .contentShape(Rectangle())
         .onTapGesture { isFocused = true }
@@ -170,7 +174,6 @@ public struct GlitchSearchField: View {
         .padding(.horizontal, metrics.hInset)
         .frame(height: metrics.rowHeight)
         .glitchSurface(shape, fill: state.trackFill(theme.palette))
-        .overlay { shape.strokeBorder(state.strokeColor(theme.palette), lineWidth: state.strokeWidth) }
         .opacity(state.contentOpacity)
         .contentShape(Rectangle())
         .onTapGesture { isFocused = true }

@@ -35,7 +35,6 @@ public struct GlitchPalette: Equatable, Sendable {
     public var labelSecondary: Color
 
     public var stroke: Color
-    public var strokeHover: Color
 
     /// Used only for focus rings and any opt-in tinting. Neutral by default so
     /// the system stays monochrome unless asked otherwise.
@@ -77,7 +76,6 @@ public struct GlitchPalette: Equatable, Sendable {
         label: .white.opacity(0.70),
         labelSecondary: .white.opacity(0.50),
         stroke: .white.opacity(0.10),
-        strokeHover: .white.opacity(0.15),
         accent: .white.opacity(0.90),
         onAccent: Color(glitchHex: 0x161718),
         danger: Color(glitchHex: 0xFF6B6B),
@@ -99,7 +97,6 @@ public struct GlitchPalette: Equatable, Sendable {
         label: .black.opacity(0.68),
         labelSecondary: .black.opacity(0.48),
         stroke: .black.opacity(0.10),
-        strokeHover: .black.opacity(0.15),
         accent: .black.opacity(0.75),
         onAccent: .white,
         danger: Color(glitchHex: 0xD93A3A),
@@ -152,7 +149,6 @@ public struct GlitchColors: Equatable, Sendable {
     public var labelSecondary: Color?
 
     public var stroke: Color?
-    public var strokeHover: Color?
 
     public var accent: Color?
     public var onAccent: Color?
@@ -176,7 +172,6 @@ public struct GlitchColors: Equatable, Sendable {
         label: Color? = nil,
         labelSecondary: Color? = nil,
         stroke: Color? = nil,
-        strokeHover: Color? = nil,
         accent: Color? = nil,
         onAccent: Color? = nil,
         danger: Color? = nil,
@@ -197,7 +192,6 @@ public struct GlitchColors: Equatable, Sendable {
         self.label = label
         self.labelSecondary = labelSecondary
         self.stroke = stroke
-        self.strokeHover = strokeHover
         self.accent = accent
         self.onAccent = onAccent
         self.danger = danger
@@ -224,7 +218,6 @@ public struct GlitchColors: Equatable, Sendable {
         if let label { result.label = label }
         if let labelSecondary { result.labelSecondary = labelSecondary }
         if let stroke { result.stroke = stroke }
-        if let strokeHover { result.strokeHover = strokeHover }
         if let accent { result.accent = accent }
         if let onAccent { result.onAccent = onAccent }
         if let danger { result.danger = danger }

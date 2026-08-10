@@ -66,7 +66,6 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
             metrics.controlRadius = 2
             metrics.panelRadius = 3
             metrics.borderWidth = 1
-            metrics.tracksAreOutlined = true
             // The scale is printed on the panel, not summoned by touching it.
             metrics.hashmarksAlwaysVisible = true
             metrics.hashmarkHeight = metrics.rowHeight * 0.55
@@ -82,7 +81,6 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
             metrics.controlRadius = 2
             metrics.panelRadius = 0
             metrics.borderWidth = 0
-            metrics.tracksAreOutlined = false
             metrics.panelPadding = metrics.panelPadding * 1.6
             metrics.spacing = metrics.spacing * 2.2
             metrics.labelSize = max(9, metrics.labelSize - 3)
@@ -102,7 +100,6 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
             metrics.controlRadius = round(metrics.rowHeight / 2)
             metrics.panelRadius = round(metrics.panelRadius * 1.6)
             metrics.borderWidth = 1
-            metrics.tracksAreOutlined = true
         }
     }
 
@@ -186,7 +183,6 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
         label: .black.opacity(0.80),
         labelSecondary: .black.opacity(0.45),
         stroke: .black.opacity(0.35),
-        strokeHover: .black.opacity(0.55),
         accent: Color(glitchHex: 0xFF5A00),
         onAccent: .black,
         danger: Color(glitchHex: 0xD1293D),
@@ -213,7 +209,6 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
         label: .white.opacity(0.80),
         labelSecondary: .white.opacity(0.45),
         stroke: .white.opacity(0.30),
-        strokeHover: .white.opacity(0.50),
         accent: Color(glitchHex: 0xFF5A00),
         onAccent: .black,
         danger: Color(glitchHex: 0xFF5C69),
@@ -246,7 +241,6 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
         label: .black.opacity(0.42),
         labelSecondary: .black.opacity(0.30),
         stroke: .black.opacity(0.07),
-        strokeHover: .black.opacity(0.12),
         accent: .black.opacity(0.82),
         onAccent: .white,
         danger: Color(glitchHex: 0xC0392B),
@@ -271,7 +265,6 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
         label: .white.opacity(0.45),
         labelSecondary: .white.opacity(0.32),
         stroke: .white.opacity(0.09),
-        strokeHover: .white.opacity(0.15),
         accent: .white.opacity(0.86),
         onAccent: Color(glitchHex: 0x0A0A0A),
         danger: Color(glitchHex: 0xE74C3C),
@@ -294,7 +287,6 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
         label: .white.opacity(0.85),
         labelSecondary: .white.opacity(0.60),
         stroke: .white.opacity(0.22),
-        strokeHover: .white.opacity(0.34),
         accent: .white.opacity(0.95),
         onAccent: Color(glitchHex: 0x0C1018),
         danger: Color(glitchHex: 0xFF6B6B),
@@ -315,7 +307,6 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
         label: .black.opacity(0.70),
         labelSecondary: .black.opacity(0.45),
         stroke: .white.opacity(0.60),
-        strokeHover: .white.opacity(0.80),
         accent: .black.opacity(0.70),
         onAccent: .white,
         danger: Color(glitchHex: 0xD1293D),
@@ -325,6 +316,12 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
 }
 
 /// A style's typographic voice.
+///
+/// The three `…Face` names are the escape hatch from the system font. Left
+/// `nil` — as every built-in style leaves them — a role resolves to
+/// `.system(size:weight:design:)` exactly as before; named, it resolves to that
+/// family at the same size and weight. `Font.Design` is only meaningful for the
+/// system font, so it is ignored on a role that has been given a face.
 public struct GlitchTypography: Equatable, Sendable {
     public var labelDesign: Font.Design
     public var valueDesign: Font.Design
@@ -333,4 +330,57 @@ public struct GlitchTypography: Equatable, Sendable {
     public var titleWeight: Font.Weight
     public var tracking: CGFloat
     public var uppercaseLabels: Bool
+
+    public var labelFace: String?
+    public var valueFace: String?
+    public var titleFace: String?
+}
+
+/// Typeface overrides, layered onto whatever the style already specifies.
+///
+/// The same shape as `GlitchColors`, for the same reason: naming one face
+/// leaves the rest of the voice — weights, tracking, casing — intact, so a
+/// custom family doesn't cost you the style you picked it for.
+///
+/// ```swift
+/// .glitchTheme(fonts: GlitchFonts("Departure Mono"))        // all three roles
+/// .glitchTheme(fonts: GlitchFonts(value: "IBM Plex Mono"))  // readouts only
+/// ```
+///
+/// The family has to be registered by the app — `UIAppFonts` in the Info.plist,
+/// or `ATSApplicationFontsPath` on macOS. This type takes a name and nothing
+/// else; an unregistered one falls back to the system font, which is SwiftUI's
+/// own behaviour and not worth diverging from.
+///
+/// One caution on `value`. Readouts are monospaced in every built-in style so a
+/// changing number never reflows the row it sits in. A proportional face there
+/// reintroduces exactly the jitter that choice exists to prevent.
+public struct GlitchFonts: Hashable, Sendable {
+    public static let none = GlitchFonts()
+
+    /// Control labels.
+    public var label: String?
+    /// Numeric readouts.
+    public var value: String?
+    /// Section and panel titles.
+    public var title: String?
+
+    public init(label: String? = nil, value: String? = nil, title: String? = nil) {
+        self.label = label
+        self.value = value
+        self.title = title
+    }
+
+    /// One family across all three roles.
+    public init(_ family: String) {
+        self.init(label: family, value: family, title: family)
+    }
+
+    public func applied(to typography: GlitchTypography) -> GlitchTypography {
+        var result = typography
+        if let label { result.labelFace = label }
+        if let value { result.valueFace = value }
+        if let title { result.titleFace = title }
+        return result
+    }
 }

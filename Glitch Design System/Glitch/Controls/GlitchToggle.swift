@@ -13,10 +13,16 @@ import SwiftUI
 public struct GlitchToggle: View {
     private let label: String
     @Binding private var isOn: Bool
+    private let accessory: GlitchLabelAccessory
 
-    public init(_ label: String, isOn: Binding<Bool>) {
+    public init(
+        _ label: String,
+        isOn: Binding<Bool>,
+        accessory: GlitchLabelAccessory = .none
+    ) {
         self.label = label
         self._isOn = isOn
+        self.accessory = accessory
     }
 
     public var body: some View {
@@ -26,7 +32,8 @@ public struct GlitchToggle: View {
             options: [
                 GlitchOption("Off", value: false),
                 GlitchOption("On", value: true),
-            ]
+            ],
+            accessory: accessory
         )
         .accessibilityElement(children: .contain)
         .accessibilityLabel(label)
@@ -42,14 +49,20 @@ public struct GlitchSwitch: View {
 
     private let label: String
     @Binding private var isOn: Bool
+    private let accessory: GlitchLabelAccessory
 
     @State private var isHovering = false
     @State private var isPressed = false
     @FocusState private var isFocused: Bool
 
-    public init(_ label: String, isOn: Binding<Bool>) {
+    public init(
+        _ label: String,
+        isOn: Binding<Bool>,
+        accessory: GlitchLabelAccessory = .none
+    ) {
         self.label = label
         self._isOn = isOn
+        self.accessory = accessory
     }
 
     public var body: some View {
@@ -57,7 +70,7 @@ public struct GlitchSwitch: View {
         let shape = RoundedRectangle(cornerRadius: metrics.controlRadius, style: .continuous)
 
         HStack(spacing: metrics.spacing) {
-            GlitchLabel(label)
+            GlitchLabel(label, accessory: accessory)
             Spacer(minLength: 4)
             switchTrack
         }
@@ -79,6 +92,7 @@ public struct GlitchSwitch: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
+        .accessibilityHint(accessory.infoText ?? "")
         .accessibilityAddTraits(.isToggle)
         .accessibilityValue(isOn ? "On" : "Off")
         .accessibilityAction { toggle() }
@@ -128,14 +142,20 @@ public struct GlitchCheckbox: View {
 
     private let label: String
     @Binding private var isOn: Bool
+    private let accessory: GlitchLabelAccessory
 
     @State private var isHovering = false
     @State private var isPressed = false
     @FocusState private var isFocused: Bool
 
-    public init(_ label: String, isOn: Binding<Bool>) {
+    public init(
+        _ label: String,
+        isOn: Binding<Bool>,
+        accessory: GlitchLabelAccessory = .none
+    ) {
         self.label = label
         self._isOn = isOn
+        self.accessory = accessory
     }
 
     public var body: some View {
@@ -144,7 +164,7 @@ public struct GlitchCheckbox: View {
 
         HStack(spacing: metrics.spacing) {
             box
-            GlitchLabel(label)
+            GlitchLabel(label, accessory: accessory)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, metrics.hInset)
@@ -166,6 +186,7 @@ public struct GlitchCheckbox: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
+        .accessibilityHint(accessory.infoText ?? "")
         .accessibilityAddTraits(.isToggle)
         .accessibilityValue(isOn ? "Checked" : "Unchecked")
         .accessibilityAction { toggle() }

@@ -53,7 +53,6 @@ public struct GlitchButton: View {
         .padding(.horizontal, metrics.hInset)
         .frame(height: metrics.rowHeight)
         .glitchSurface(shape, fill: background)
-        .overlay { shape.strokeBorder(border, lineWidth: metrics.borderWidth) }
         .opacity(isEnabled ? 1 : 0.4)
         .scaleEffect(isPressed && isEnabled ? 0.97 : 1)
         .glitchPressable(isPressed: $isPressed, isEnabled: isEnabled, onTap: fire)
@@ -105,10 +104,6 @@ public struct GlitchButton: View {
         case .secondary: theme.palette.label
         case .ghost: theme.palette.labelSecondary
         }
-    }
-
-    private var border: Color {
-        theme.metrics.tracksAreOutlined ? theme.palette.stroke : .clear
     }
 }
 

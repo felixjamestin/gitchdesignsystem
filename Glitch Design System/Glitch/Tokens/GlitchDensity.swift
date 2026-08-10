@@ -75,9 +75,6 @@ public struct GlitchMetrics: Equatable, Sendable {
 
     /// Outline weight for panels and, where a style asks for them, tracks.
     public var borderWidth: CGFloat = 1
-    /// Whether control tracks carry a visible outline. The default style's
-    /// surfaces separate by tone alone; the other two draw their edges.
-    public var tracksAreOutlined: Bool = false
     /// Squares off the handle and hashmarks, which are otherwise capsules.
     public var sharpEdges: Bool = false
     /// Keeps the notch marks permanently visible instead of revealing them on

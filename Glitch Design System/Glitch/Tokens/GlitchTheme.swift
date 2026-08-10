@@ -37,6 +37,7 @@ private struct GlitchThemeModifier: ViewModifier {
     var style: GlitchThemeStyle
     var glass: GlitchGlassVariant
     var colors: GlitchColors
+    var fonts: GlitchFonts
     var density: GlitchDensity?
     var colorScheme: ColorScheme?
 
@@ -47,6 +48,10 @@ private struct GlitchThemeModifier: ViewModifier {
         // it, so a caller who changes one colour keeps the other nineteen —
         // and keeps them responding to light and dark.
         let palette = colors.applied(to: style.palette(scheme))
+        // Typefaces layer the same way, for the same reason: naming a family
+        // shouldn't cost you the weights, tracking and casing that make the
+        // style what it is.
+        let typography = fonts.applied(to: style.typography)
         let density = density ?? .platformDefault
 
         return content
@@ -56,7 +61,7 @@ private struct GlitchThemeModifier: ViewModifier {
                     style: style,
                     palette: palette,
                     metrics: .resolve(density, style: style),
-                    typography: style.typography,
+                    typography: typography,
                     surface: style.surface(glass: glass)
                 )
             )
@@ -82,6 +87,7 @@ extension View {
     ///     .glitchTheme()                                      // defaults
     ///     .glitchTheme(.engineering, density: .comfortable)   // a style
     ///     .glitchTheme(colors: GlitchColors(accent: .mint))   // one colour
+    ///     .glitchTheme(fonts: GlitchFonts("Departure Mono"))  // a typeface
     ///     .glitchTheme(colorScheme: .dark)                    // always dark
     /// ```
     ///
@@ -97,6 +103,7 @@ extension View {
         _ style: GlitchThemeStyle = .glitch,
         glass: GlitchGlassVariant = .regular,
         colors: GlitchColors = .none,
+        fonts: GlitchFonts = .none,
         density: GlitchDensity? = nil,
         colorScheme: ColorScheme? = nil
     ) -> some View {
@@ -105,6 +112,7 @@ extension View {
                 style: style,
                 glass: glass,
                 colors: colors,
+                fonts: fonts,
                 density: density,
                 colorScheme: colorScheme
             )
