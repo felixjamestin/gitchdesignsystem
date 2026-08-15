@@ -27,6 +27,12 @@ struct GooMenuUnderlay: View {
     /// overshoot plus a petal and the blend range.
     var extent: CGFloat
 
+    /// The petals arm their keyframe timelines one frame after the phase
+    /// changes (`PathMenuPetal`'s `onAppear`/`onChange` arming). The clock
+    /// here mirrors that exactly — armed by `onChange`, one state-set late —
+    /// or the liquid would run a frame ahead of the icons riding it.
+    @State private var armedOpen = false
+
     /// The last petal to move plus its spring's settling; the clock runs a
     /// little past the nominal duration so the necks finish snapping.
     private var total: Double {
@@ -34,9 +40,9 @@ struct GooMenuUnderlay: View {
     }
 
     var body: some View {
-        KeyframeAnimator(initialValue: total, trigger: isOpen) { elapsed in
+        KeyframeAnimator(initialValue: total, trigger: armedOpen) { elapsed in
             GooSurface(
-                blobs: blobs(at: elapsed),
+                blobs: blobs(at: elapsed, opening: armedOpen),
                 smoothing: smoothing,
                 edge: edge,
                 fill: fill
@@ -50,9 +56,10 @@ struct GooMenuUnderlay: View {
         .frame(width: extent, height: extent)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+        .onChange(of: isOpen) { _, open in armedOpen = open }
     }
 
-    private func blobs(at elapsed: Double) -> [GooBlob] {
+    private func blobs(at elapsed: Double, opening isOpen: Bool) -> [GooBlob] {
         let centre = CGPoint(x: extent / 2, y: extent / 2)
         var blobs: [GooBlob] = [GooBlob(center: centre, radius: triggerRadius)]
 
