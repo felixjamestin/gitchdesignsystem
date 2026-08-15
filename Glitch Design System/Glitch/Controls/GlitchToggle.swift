@@ -45,6 +45,7 @@ public struct GlitchToggle: View {
 public struct GlitchSwitch: View {
     @Environment(\.glitchTheme) private var theme
     @Environment(\.glitchMotion) private var motion
+    @Environment(\.glitchDelight) private var delight
     @Environment(\.isEnabled) private var isEnabled
 
     private let label: String
@@ -114,7 +115,9 @@ public struct GlitchSwitch: View {
                     .frame(width: isPressed ? knob * 1.35 : knob, height: knob)
                     .padding(inset)
             }
-            .animation(motion.snap, value: isOn)
+            // The crossing overshoots and settles under delight — the thunk
+            // of a real switch — and simply snaps without it.
+            .animation(delight ? motion.pop : motion.snap, value: isOn)
             .animation(motion.snap, value: isPressed)
     }
 

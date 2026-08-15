@@ -21,7 +21,12 @@ public final class GlitchSound {
 
     private let engine = AVAudioEngine()
     private let player = AVAudioPlayerNode()
-    private var buffers: [Voice: AVAudioPCMBuffer] = [:]
+    /// Several renderings per voice, at slightly different pitches. A tick
+    /// that is identical every time reads as a machine gun after twenty
+    /// crossings; a few cents of variation is what a physical mechanism does,
+    /// and the ear forgives it indefinitely.
+    private var buffers: [Voice: [AVAudioPCMBuffer]] = [:]
+    private var lastVariant: [Voice: Int] = [:]
     private var isReady = false
     private var didFail = false
     private var lastPlayful: Voice?
@@ -52,6 +57,15 @@ public final class GlitchSound {
         var decay: Double = 6
         /// Blends the sine toward a square. Cheap way to sound like a toy.
         var square: Double = 0
+
+        /// The same recipe transposed, for the pitch-varied variants.
+        func pitched(by rate: Double) -> Recipe {
+            var copy = self
+            copy.start *= rate
+            copy.end *= rate
+            if let peak { copy.peak = peak * rate }
+            return copy
+        }
     }
 
     private enum Voice: Hashable, CaseIterable {
@@ -190,11 +204,19 @@ public final class GlitchSound {
     private func play(_ voice: Voice) {
         guard canPlay else { return }
         prepareIfNeeded()
-        guard isReady, let buffer = buffers[voice] else { return }
+        guard isReady, let variants = buffers[voice], !variants.isEmpty else { return }
+
+        // A random variant, never the same one twice running — repetition is
+        // what the variants exist to break.
+        var index = Int.random(in: 0..<variants.count)
+        if variants.count > 1, index == lastVariant[voice] {
+            index = (index + 1) % variants.count
+        }
+        lastVariant[voice] = index
 
         // `.interrupts` rather than queueing: during a fast drag the ticks
         // would otherwise pile into a buzz.
-        player.scheduleBuffer(buffer, at: nil, options: [.interrupts])
+        player.scheduleBuffer(variants[index], at: nil, options: [.interrupts])
         if !player.isPlaying { player.play() }
     }
 
@@ -230,7 +252,16 @@ public final class GlitchSound {
         engine.connect(player, to: engine.mainMixerNode, format: format)
 
         for voice in Voice.allCases {
-            buffers[voice] = Self.render(voice.recipe, format: format)
+            // The working voices fire constantly, so they get the pitch
+            // spread; the playful ones are already varied by being nine
+            // different sounds.
+            let rates: [Double] = switch voice {
+            case .tick, .commit: [0.94, 0.97, 1.0, 1.03, 1.06]
+            default: [1.0]
+            }
+            buffers[voice] = rates.compactMap {
+                Self.render(voice.recipe.pitched(by: $0), format: format)
+            }
         }
 
         do {

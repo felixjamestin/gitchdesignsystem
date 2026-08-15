@@ -41,6 +41,7 @@ extension View {
 
 private struct GlitchPressable: ViewModifier {
     @Environment(\.glitchMotion) private var motion
+    @Environment(\.glitchDelight) private var delight
 
     @Binding var isPressed: Bool
     var isEnabled: Bool
@@ -63,7 +64,11 @@ private struct GlitchPressable: ViewModifier {
                     }
                     .onEnded { value in
                         guard isEnabled else { return }
-                        withAnimation(motion.snap) { isPressed = false }
+                        // Down is a snap — the press must feel instant — but
+                        // the release springs back with a little overshoot,
+                        // which is what makes the surface read as something
+                        // with give rather than a state that flipped.
+                        withAnimation(delight ? motion.pop : motion.snap) { isPressed = false }
 
                         // Only commit if the finger came up inside: dragging
                         // off a control is how you change your mind.

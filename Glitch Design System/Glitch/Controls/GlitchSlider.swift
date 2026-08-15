@@ -97,6 +97,9 @@ public struct GlitchSlider: View {
     @State private var ghostFraction: Double?
     @State private var ghostOpacity: Double = 0
     @State private var ghostTask: Task<Void, Never>?
+    /// The most recent notch crossing. A fresh id per crossing remounts the
+    /// ripple view, which is what restarts its one-shot animation.
+    @State private var notchRipple: NotchRipple?
     @State private var jumpTask: Task<Void, Never>?
     /// While set, the value is held still: the drag keeps happening, but the
     /// control refuses to move until the moment passes.
@@ -246,6 +249,18 @@ public struct GlitchSlider: View {
                 .opacity(visible ? 1 : 0)
                 .position(x: proxy.size.width * tick, y: proxy.size.height / 2)
                 .animation(motion.tint, value: strength)
+            }
+
+            // The pre-glow announces a notch; this confirms it. One expanding
+            // ring from the mark just crossed, gone in a third of a second —
+            // the visual sibling of the tick the crossing already makes.
+            if let notchRipple {
+                NotchRippleView(colour: theme.palette.handle)
+                    .id(notchRipple.id)
+                    .position(
+                        x: proxy.size.width * CGFloat(notchRipple.fraction),
+                        y: proxy.size.height / 2
+                    )
             }
         }
         .animation(motion.tint, value: isActive)
@@ -780,22 +795,23 @@ public struct GlitchSlider: View {
             }
         } else {
             GlitchHaptics.tick()
-            if delight, crossedNotch(from: previous, to: next) {
+            if delight, let crossing = crossedNotchFraction(from: previous, to: next) {
                 GlitchSound.tick()
+                notchRipple = NotchRipple(fraction: crossing)
             }
         }
     }
 
-    /// Whether a change stepped over one of the drawn notches — the only
-    /// crossings worth making a sound about, since a tick on every step of a
-    /// 700-unit range would be a buzz.
-    private func crossedNotch(from previous: Double, to next: Double) -> Bool {
+    /// The drawn notch a change stepped over, if any — the only crossings
+    /// worth announcing, since a tick on every step of a 700-unit range would
+    /// be a buzz. Returns the notch's fraction so the ripple knows where.
+    private func crossedNotchFraction(from previous: Double, to next: Double) -> Double? {
         let span = range.upperBound - range.lowerBound
-        guard span > 0 else { return false }
+        guard span > 0 else { return nil }
 
         let low = min(previous, next)
         let high = max(previous, next)
-        return GlitchValueMath.notchFractions(in: range, step: step).contains { fraction in
+        return GlitchValueMath.notchFractions(in: range, step: step).first { fraction in
             let notch = range.lowerBound + fraction * span
             return notch > low && notch <= high
         }
@@ -872,6 +888,32 @@ public struct GlitchSlider: View {
         isFieldFocused = false
         isEditing = false
         cancelEditOffer()
+    }
+}
+
+/// One crossing. Equatable by id, so consecutive crossings of the same notch
+/// still read as distinct events and each restarts the ring.
+private struct NotchRipple: Equatable {
+    var fraction: Double
+    var id = UUID()
+}
+
+/// The ring itself: mounts, expands, fades, and is gone. State-free from the
+/// slider's point of view — remounting with a fresh id is the whole API.
+private struct NotchRippleView: View {
+    let colour: Color
+
+    @State private var expanded = false
+
+    var body: some View {
+        Circle()
+            .stroke(colour, lineWidth: 1.5)
+            .frame(width: 7, height: 7)
+            .scaleEffect(expanded ? 3.4 : 0.8)
+            .opacity(expanded ? 0 : 0.65)
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.32)) { expanded = true }
+            }
     }
 }
 
