@@ -125,15 +125,7 @@ struct GlitchGooLayer: View {
         Rectangle()
             .fill(fill)
             .mask {
-                ZStack {
-                    ForEach(Array(centred.enumerated()), id: \.offset) { _, shape in
-                        RoundedRectangle(cornerRadius: shape.cornerRadius, style: .continuous)
-                            .fill(.white)
-                            .frame(width: shape.size.width, height: shape.size.height)
-                            .position(shape.center)
-                    }
-                }
-                .compositingGroup()
+                silhouette
                 // A Gaussian whose sigma is a third of the blend width bridges
                 // shapes at about the distance the field does, so the one
                 // slider means roughly the same thing in either renderer.
@@ -151,17 +143,33 @@ struct GlitchGooLayer: View {
 
     // MARK: - Plain
 
-    /// The floor: every shape drawn, none of them merged. What delight switching
-    /// off resolves to, and proof that the merge was only ever decoration.
+    /// The floor: every shape drawn, none of them blended. What delight
+    /// switching off resolves to, and proof that the merge was only ever
+    /// decoration.
+    ///
+    /// Masked rather than drawn shape by shape, for the same reason the blur
+    /// path is. Every resting surface here is translucent, so overlapping shapes
+    /// drawn separately stack their alpha — which put a seam wherever two
+    /// touched, and left a phantom disc sitting in the goo field's capsule
+    /// where the button had not yet come out of it. Through a mask the union is
+    /// flat, and a shape tucked inside another simply is not visible.
     private var plain: some View {
+        Rectangle()
+            .fill(fill)
+            .mask { silhouette }
+    }
+
+    /// Every shape, filled opaque, with no blending between them.
+    private var silhouette: some View {
         ZStack {
             ForEach(Array(centred.enumerated()), id: \.offset) { _, shape in
                 RoundedRectangle(cornerRadius: shape.cornerRadius, style: .continuous)
-                    .fill(fill)
+                    .fill(.white)
                     .frame(width: shape.size.width, height: shape.size.height)
                     .position(shape.center)
             }
         }
+        .compositingGroup()
     }
 }
 

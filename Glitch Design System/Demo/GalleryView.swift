@@ -44,6 +44,8 @@ struct GalleryView: View {
     @State private var depth = 60.0
     @State private var seed = "8841"
 
+    @State private var signup = ""
+    @State private var menuSurface = PathMenuSurface.solid
     @State private var soundVolume = 70.0
     @State private var soundOn = true
     @State private var grilleStyle: GlitchGrilleStyle?
@@ -203,14 +205,36 @@ struct GalleryView: View {
                     explain("Display only — no gesture, no focus, no VoiceOver action. Volume reaches it from the knob beside it. Each theme wears a different form, but the reading never changes: lit means loud, and a mute mark rather than mere dimness says whether sound is on, because at low volume 'quiet' and 'muted' would otherwise look identical.")
                 }
 
+                group("Gooey") {
+                    GlitchGooField(text: $signup, placeholder: "you@example.com")
+                    GlitchGooField(
+                        text: $signup,
+                        placeholder: "Sheds once filled",
+                        trigger: .nonEmpty
+                    )
+                    GlitchGooField(text: $signup, placeholder: "Locked").disabled(true)
+                    explain("The submit button is part of the same body as the field until it is wanted, and separates with a neck that thins and breaks. The merge is decoration only: the button is a real button behind it, and the field submits identically with delight switched off — which is what the plain fallback is.")
+                }
+
                 group("Radial menu") {
+                    GlitchSegmented(
+                        "Surface",
+                        selection: $menuSurface,
+                        options: PathMenuSurface.allCases.map {
+                            GlitchOption($0.title, value: $0)
+                        }
+                    )
                     HStack {
                         Spacer()
-                        GlitchPathMenu(items: menuItems) { _ in }
+                        GlitchPathMenu(
+                            items: menuItems,
+                            surface: menuSurface,
+                            spread: menuSurface == .gooey ? 0.6 : 1
+                        ) { _ in }
                         Spacer()
                     }
                     .frame(height: 240)
-                    explain("Press and hold the trigger, then drag straight onto a petal to choose it in one gesture. Surface, motion, geometry and sound all come from the current theme.")
+                    explain(menuExplanation)
                 }
             }
             .padding(16)
@@ -295,6 +319,17 @@ struct GalleryView: View {
             "Almost nothing: no containers, no borders, no wells. A slider becomes a hairline with a dot on it and its caption on the line above — the interface getting out of the way of the work."
         case .liquidGlass:
             "Every surface is the platform's glass material, tinted by the same tokens the other styles fill with. Radii open right up — glass with tight corners reads as a chip of it."
+        }
+    }
+
+    private var menuExplanation: String {
+        switch menuSurface {
+        case .solid:
+            "Press and hold the trigger, then drag straight onto a petal to choose it in one gesture. Surface, motion, geometry and sound all come from the current theme."
+        case .regularGlass, .clearGlass:
+            "The same menu with each petal made of the platform's glass. A material per petal, applied by the component rather than by our own surface path."
+        case .gooey:
+            "One surface beneath all of them rather than a material on each — so the petals bond to the trigger and to one another as they travel, and part again as they reach. It is the only surface that needs the menu to know where every petal is at once, and the petals are drawn closer here so the bridges survive at rest."
         }
     }
 

@@ -317,6 +317,19 @@ GlitchSearchField(text: $query)
 Passing `error:` reserves the message's row, so it fades into space already
 allotted rather than shoving everything below it down.
 
+```swift
+GlitchGooField(text: $email, placeholder: "you@example.com") { subscribe() }
+GlitchGooField(text: $email, trigger: .nonEmpty, reach: 1.6) { subscribe() }
+```
+
+`GlitchGooField` is a capsule that sheds its submit button, joined to it by a
+neck that thins and breaks. `trigger:` decides when — `.focus` (the default),
+`.nonEmpty`, or `.always` — and `reach:` how far it travels, which paired with
+the blend is what decides whether the bridge ever snaps.
+
+The merge is decoration. Behind it are a real text field and a real button,
+so the control submits identically whether it is merging or not.
+
 ### Booleans and choices
 
 ```swift
@@ -400,6 +413,65 @@ GlitchPathMenu(items: [
 ```
 
 Press the trigger and drag straight onto a petal to choose in one gesture.
+
+`surface:` picks what the petals are made of, and `spread:` how far they
+travel:
+
+```swift
+GlitchPathMenu(items: items, surface: .gooey, spread: 0.6) { perform($0) }
+```
+
+`.gooey` is unlike the other surfaces in kind: rather than a material on each
+petal it is **one silhouette beneath all of them**, so they bond to the trigger
+and to each other on the way out and part again as they reach. Draw them close
+and the menu reads as one body; draw them far and the bridges form and break
+during the travel.
+
+---
+
+## Goo
+
+Both the gooey field and the gooey menu draw through one shared layer, tuned by
+one value type:
+
+```swift
+ContentView().glitchGooStyle(.tight)      // .standard, .tight, .loose
+```
+
+```swift
+var goo = GlitchGooStyle()
+goo.blend = 26
+goo.renderer = .blurThreshold
+ContentView().glitchGooStyle(goo)
+```
+
+| Token | Drives |
+|---|---|
+| `blend` | The widest gap two shapes still bridge across, in points — and so how thick the bridge is |
+| `crispness` | How hard the merged edge lands |
+| `edgeSoftness` | Antialias width. Distance field only |
+| `rimWidth`, `rimOpacity` | The highlight just inside the silhouette |
+| `rimOffsetY`, `rimSecondaryOpacity` | Its offset twin, which reads as a lit top rather than an outline |
+| `shadowRadius`, `shadowOpacity`, `shadowOffsetY` | The shadow just outside it |
+| `fill` | `nil` takes the theme's `trackActive` |
+| `wobble`, `wobbleSpeed` | A ripple through the field, driven by the control's own progress. Off by default |
+
+### Two renderers
+
+`renderer` picks how the merge is drawn, and the two fail in different places:
+
+| | Cost | Notes |
+|---|---|---|
+| `.sdf` | One fragment pass. No texture sampling, no offscreen buffer | The default. Exact, and the only one where `blend` and `crispness` are genuinely independent |
+| `.blurThreshold` | An offscreen composite and a full Gaussian, every frame | Works without a compiled shader, and could merge arbitrary views. Both knobs fall out of the same blur, and there is no rim highlight |
+| `.plain` | Nothing | Shapes drawn unmerged. What `.glitchDelight(false)` resolves to |
+
+`.sdf` falls back to `.blurThreshold` on its own if the compiled shader cannot
+be found, so asking for it is always safe.
+
+The shader is compiled into the package by a build-tool plugin —
+`Plugins/CompileGlitchShaders` — because SwiftPM has no handling for Metal of
+its own. Nothing is checked in, and consuming the package needs no extra step.
 
 ### Chrome
 
