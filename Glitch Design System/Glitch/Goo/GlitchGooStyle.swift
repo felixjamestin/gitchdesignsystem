@@ -48,8 +48,8 @@ public struct GlitchGooStyle: Equatable, Sendable {
 
     public var renderer: GlitchGooRenderer = .sdf
 
-    /// Width of the blend between two shapes: how thick the bridge is, in
-    /// points, and how far apart they can drift before it breaks.
+    /// The widest gap, in points, that two shapes still bridge across — and so
+    /// also how thick the bridge between them is.
     ///
     /// Independent of `crispness`. Under `.blurThreshold` it becomes a blur
     /// radius, which does not separate the two — so the slider means roughly the

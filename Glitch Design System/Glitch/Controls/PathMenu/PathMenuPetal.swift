@@ -204,6 +204,14 @@ struct PathMenuPetal<Content: View>: View {
     let phase: PetalMotionPhase
     let reduceMotion: Bool
     let isInteractive: Bool
+    /// Progress supplied by the menu instead of run here.
+    ///
+    /// `nil` — every surface but the gooey one — leaves the petal animating
+    /// itself, which is cheaper and touches nothing outside this subtree. The
+    /// gooey surface needs every petal's position at once to build one merged
+    /// silhouette from them, so there it runs a single timeline at the container
+    /// and hands each petal its share of it.
+    var externalProgress: Double?
     let onTap: () -> Void
     let onHover: (Bool) -> Void
 
@@ -229,6 +237,27 @@ struct PathMenuPetal<Content: View>: View {
         // width even for the first petal.
         let hold = max(timeline.delay, 1e-4)
 
+        Group {
+            if let externalProgress {
+                driven(by: externalProgress, timeline)
+            } else {
+                selfAnimating(timeline, hold: hold)
+            }
+        }
+        // Keeps the petal's animating geometry from propagating into the container.
+        .geometryGroup()
+        .onAppear { armedPhase = phase }
+        .onChange(of: phase) { _, newPhase in armedPhase = newPhase }
+        .allowsHitTesting(isInteractive)
+        // These branches are constant for the duration of a phase, and the phase and
+        // the animator's trigger change together, so no identity churn mid-flight.
+        .accessibilityHidden(!isInteractive)
+        .onTapGesture(perform: onTap)
+        .onHover { hovering in onHover(isInteractive && hovering) }
+    }
+
+    /// The petal running its own timeline. Every surface but the gooey one.
+    private func selfAnimating(_ timeline: PetalTimeline, hold: Double) -> some View {
         KeyframeAnimator(initialValue: timeline.initialPose, trigger: armedPhase) { pose in
             // Order matters: scale and opacity must be applied before the offset, or
             // scaling would scale the translation and move the petal.
@@ -260,16 +289,21 @@ struct PathMenuPetal<Content: View>: View {
                 LinearKeyframe(timeline.endOpacity, duration: timeline.duration, timingCurve: .easeOut)
             }
         }
-        // Keeps the petal's animating geometry from propagating into the container.
-        .geometryGroup()
-        .onAppear { armedPhase = phase }
-        .onChange(of: phase) { _, newPhase in armedPhase = newPhase }
-        .allowsHitTesting(isInteractive)
-        // These branches are constant for the duration of a phase, and the phase and
-        // the animator's trigger change together, so no identity churn mid-flight.
-        .accessibilityHidden(!isInteractive)
-        .onTapGesture(perform: onTap)
-        .onHover { hovering in onHover(isInteractive && hovering) }
+    }
+
+    /// The petal placed where the menu says it is.
+    ///
+    /// Same path, same sampler, same order of modifiers — only the source of
+    /// `progress` differs, which is what keeps the two paths landing on
+    /// identical geometry.
+    private func driven(by progress: Double, _ timeline: PetalTimeline) -> some View {
+        let pose = PetalPose(
+            progress: progress,
+            scale: timeline.startScale + (timeline.endScale - timeline.startScale) * progress,
+            opacity: timeline.startOpacity + (timeline.endOpacity - timeline.startOpacity) * progress
+        )
+        return emphasised(pose, timeline)
+            .offset(timeline.path.point(at: progress))
     }
 
     @ViewBuilder

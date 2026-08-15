@@ -60,6 +60,10 @@ where
     @State private var hoveredID: Data.Element.ID?
     @State private var selectedID: Data.Element.ID?
     @State private var triggerSize: CGSize = .zero
+    /// Arms the gooey surface's container-level animator, for the same reason
+    /// `PathMenuPetal` arms its own: a `KeyframeAnimator` plays when its trigger
+    /// *changes*, and the menu is mounted at the moment it is told to open.
+    @State private var armedRuntime: RuntimePhase?
 
     // MARK: Init
 
@@ -125,7 +129,11 @@ where
                 // and, more importantly, so neither contributes to the layout size.
                 .background(alignment: .center) {
                     if runtime != .collapsed {
-                        petals(style: style, geometry: geometry)
+                        if style.surface == .gooey {
+                            gooey(style: style, geometry: geometry)
+                        } else {
+                            petals(style: style, geometry: geometry)
+                        }
                     }
                 }
                 .background(alignment: .center) {
@@ -137,6 +145,7 @@ where
         .task(id: runtime) {
                 await advance(style: style)
             }
+            .onChange(of: runtime, initial: true) { _, phase in armedRuntime = phase }
             .onChange(of: externalExpanded?.wrappedValue) { _, newValue in
                 guard let newValue else { return }
                 if newValue, runtime == .collapsed { runtime = .opening }
@@ -265,7 +274,11 @@ where
 
     // MARK: Petals
 
-    private func petals(style: PathMenuStyle, geometry: PathMenuGeometry) -> some View {
+    private func petals(
+        style: PathMenuStyle,
+        geometry: PathMenuGeometry,
+        progressFor: ((Int) -> Double?)? = nil
+    ) -> some View {
         ForEach(resolvedItems) { entry in
             let itemPhase = PathMenuItemPhase(
                 index: entry.index,
@@ -282,6 +295,7 @@ where
                 phase: petalPhase(for: entry.id, style: style),
                 reduceMotion: reduceMotion,
                 isInteractive: runtime == .open,
+                externalProgress: progressFor?(entry.index),
                 onTap: { select(id: entry.id, style: style) },
                 onHover: { hovering in
                     guard style.highlightsOnHover else { return }
@@ -295,14 +309,141 @@ where
         }
     }
 
-    private func petalPhase(for id: Data.Element.ID, style: PathMenuStyle) -> PetalMotionPhase {
+    // MARK: Gooey
+
+    /// The gooey surface: one timeline for the whole menu, and one silhouette
+    /// built from where it says every petal is.
+    ///
+    /// This is the only surface that cannot let the petals animate themselves.
+    /// A merged blob has to be drawn from all their positions at once, and a
+    /// blob built from stale positions slides off the icons it is carrying — so
+    /// here a single `KeyframeAnimator` runs at the container and `PathMenuClock`
+    /// gives each petal its share of it. Still no layout per frame: the animated
+    /// value reaches only `offset` and the shader's arguments.
+    ///
+    /// One difference worth knowing about. With `.classic` motion the overshoot
+    /// lives in the path's own waypoints — far, then near, then end — so this
+    /// reproduces it exactly. With `.spring` motion the overshoot came from each
+    /// petal's own spring, and a shared clock cannot give every petal its own;
+    /// the group springs instead, and the petals do not individually sail past
+    /// their resting radius.
+    private func gooey(style: PathMenuStyle, geometry: PathMenuGeometry) -> some View {
+        let clock = PathMenuClock()
+        let reversed = runtime == .closing || runtime == .collapsed
+        let duration = reduceMotion ? 0.2 : style.duration
+
+        return KeyframeAnimator(
+            initialValue: 0.0,
+            trigger: armedRuntime
+        ) { master in
+            ZStack {
+                GlitchGooLayer(
+                    shapes: gooShapes(at: master, clock: clock, reversed: reversed,
+                                      duration: duration, style: style, geometry: geometry),
+                    style: style.goo,
+                    fill: gooFill(style: style),
+                    size: gooCanvas(style: style),
+                    phase: master
+                )
+                .opacity(runtime == .selecting ? 0 : 1)
+
+                petals(
+                    style: style,
+                    geometry: geometry,
+                    progressFor: { index in
+                        // Selection plays out through each petal's own emphasis
+                        // tracks, so the shared clock stops driving them.
+                        guard runtime != .selecting else { return nil }
+                        return clock.petalProgress(
+                            master: master, index: index, count: count,
+                            duration: duration, stagger: style.stagger, reversed: reversed
+                        )
+                    }
+                )
+            }
+        } keyframes: { _ in
+            KeyframeTrack(\.self) {
+                if let spring = style.motion.springParameters, !reduceMotion {
+                    SpringKeyframe(
+                        1.0,
+                        duration: clock.totalDuration(count: count, duration: duration, stagger: style.stagger),
+                        spring: Spring(response: spring.response, dampingRatio: spring.dampingRatio)
+                    )
+                } else {
+                    LinearKeyframe(
+                        1.0,
+                        duration: clock.totalDuration(count: count, duration: duration, stagger: style.stagger),
+                        timingCurve: .easeIn
+                    )
+                }
+            }
+        }
+    }
+
+    /// The merged silhouette's shapes at a point on the master clock.
+    private func gooShapes(
+        at master: Double,
+        clock: PathMenuClock,
+        reversed: Bool,
+        duration: Double,
+        style: PathMenuStyle,
+        geometry: PathMenuGeometry
+    ) -> [GlitchGooShape] {
+        var shapes: [GlitchGooShape] = []
+
+        if style.bondsTrigger {
+            shapes.append(.circle(center: .zero, diameter: style.triggerDiameter))
+        }
+
+        for index in 0 ..< min(count, geometry.anchors.count) {
+            let timeline = PetalTimeline.make(
+                phase: petalPhase(for: nil, style: style),
+                anchors: geometry.anchors[index],
+                index: index,
+                count: count,
+                style: style,
+                reduceMotion: reduceMotion
+            )
+            let progress = clock.petalProgress(
+                master: master, index: index, count: count,
+                duration: duration, stagger: style.stagger, reversed: reversed
+            )
+            let point = timeline.path.point(at: progress)
+            shapes.append(
+                .circle(
+                    center: CGPoint(x: point.width, y: point.height),
+                    diameter: style.petalDiameter
+                )
+            )
+        }
+        return shapes
+    }
+
+    /// Large enough to hold the petals at full reach, their shadows, and the
+    /// blend that reaches past both.
+    ///
+    /// Stated rather than inherited: the menu's layout footprint is only its
+    /// trigger, which is the same reason `scrimExtent` is an explicit number.
+    private func gooCanvas(style: PathMenuStyle) -> CGSize {
+        let extent = style.farRadius
+            + style.petalDiameter / 2
+            + style.goo.shadowRadius
+            + style.goo.blend
+        return CGSize(width: extent * 2, height: extent * 2)
+    }
+
+    private func gooFill(style: PathMenuStyle) -> Color {
+        style.goo.fill ?? .white.opacity(0.12)
+    }
+
+    private func petalPhase(for id: Data.Element.ID?, style: PathMenuStyle) -> PetalMotionPhase {
         switch runtime {
         case .opening, .open:
             return .opening
         case .closing, .collapsed:
             return .closing
         case .selecting:
-            return id == selectedID ? .blowingUp : .shrinking
+            return id != nil && id == selectedID ? .blowingUp : .shrinking
         }
     }
 

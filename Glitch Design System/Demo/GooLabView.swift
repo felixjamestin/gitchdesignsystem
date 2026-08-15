@@ -13,11 +13,21 @@ struct GooLabView: View {
     @State private var email = ""
     @State private var fieldTrigger = GlitchGooFieldTrigger.focus
     @State private var reach = 1.0
+    @State private var menuSurface = PathMenuSurface.gooey
+    @State private var spread = 0.55
+
+    private let menuItems = [
+        PathMenuItem(title: "Flow", systemImage: "wind"),
+        PathMenuItem(title: "Echo", systemImage: "waveform.path.ecg"),
+        PathMenuItem(title: "Noise", systemImage: "aqi.medium"),
+        PathMenuItem(title: "Warp", systemImage: "tornado"),
+    ]
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 effects
+                menu
                 comparison
                 mergePanel
                 lightingPanel
@@ -43,6 +53,28 @@ struct GooLabView: View {
                 .glitchGooStyle(style)
                 GlitchSlider("Reach", value: $reach, in: 0.4...2.4, step: 0.05)
                 explain("How far the button travels, as a multiple of its own width. Paired with a wide blend it never quite lets go; wind it up and the neck thins until it snaps.")
+            }
+        }
+    }
+
+    private var menu: some View {
+        GlitchPanel {
+            GlitchSection("Radial menu") {
+                GlitchSegmented("Surface", selection: $menuSurface, options:
+                    PathMenuSurface.allCases.map { GlitchOption($0.title, value: $0) })
+                HStack {
+                    Spacer()
+                    GlitchPathMenu(
+                        items: menuItems,
+                        surface: menuSurface,
+                        spread: CGFloat(spread)
+                    ) { _ in }
+                        .glitchGooStyle(style)
+                    Spacer()
+                }
+                .frame(height: 260)
+                GlitchSlider("Spread", value: $spread, in: 0.3...1.6, step: 0.05)
+                explain("Press and drag onto a petal to choose. On the gooey surface the petals bond to one another and to the trigger as they travel — one silhouette drawn beneath all of them, from a single timeline the whole menu shares.")
             }
         }
     }

@@ -71,3 +71,67 @@ struct GooMathTests {
         #expect(circle.size == CGSize(width: 40, height: 40))
     }
 }
+
+/// The derivation that keeps the merged blob and the icons drawn on it in step.
+///
+/// Worth testing rather than eyeballing: a defect here desynchronises the two
+/// silently, and a screenshot of a menu mid-flight cannot tell you whether the
+/// blob is where the petal is or merely near it.
+@Suite("Path menu clock")
+struct PathMenuClockTests {
+
+    private let clock = PathMenuClock()
+
+    @Test("the first petal leaves immediately and the last one waits its turn")
+    func staggerOrder() {
+        #expect(clock.petalProgress(master: 0, index: 0, count: 3, duration: 0.5, stagger: 0.1, reversed: false) == 0)
+        #expect(clock.petalProgress(master: 0.5, index: 0, count: 3, duration: 0.5, stagger: 0.1, reversed: false) > 0)
+        #expect(clock.petalProgress(master: 0.1, index: 2, count: 3, duration: 0.5, stagger: 0.1, reversed: false) == 0)
+    }
+
+    @Test("every petal has arrived once the master clock completes")
+    func allArrive() {
+        for index in 0 ..< 5 {
+            #expect(clock.petalProgress(master: 1, index: index, count: 5, duration: 0.5, stagger: 0.036, reversed: false) == 1)
+        }
+    }
+
+    /// Closing runs the stagger backwards, as the original's countdown timer did.
+    @Test("closing reverses the order")
+    func reversedOrder() {
+        let first = clock.petalProgress(master: 0.3, index: 0, count: 3, duration: 0.5, stagger: 0.1, reversed: true)
+        let last = clock.petalProgress(master: 0.3, index: 2, count: 3, duration: 0.5, stagger: 0.1, reversed: true)
+        #expect(last > first)
+    }
+
+    @Test("a lone petal ignores the stagger entirely")
+    func singlePetal() {
+        #expect(clock.petalProgress(master: 0.5, index: 0, count: 1, duration: 0.5, stagger: 0.2, reversed: false) == 0.5)
+    }
+
+    @Test("progress never leaves nought to one")
+    func staysBounded() {
+        for master in stride(from: -0.5, through: 1.5, by: 0.1) {
+            for index in 0 ..< 6 {
+                let p = clock.petalProgress(master: master, index: index, count: 6, duration: 0.5, stagger: 0.04, reversed: false)
+                #expect(p >= 0 && p <= 1)
+            }
+        }
+    }
+
+    /// The gooey path must land on the geometry the self-animating path already
+    /// produces, or switching surface would move the petals.
+    @Test("the delays match the ones the petal timeline computes for itself")
+    func matchesExistingDelays() {
+        let stagger = 0.036, duration = 0.5, count = 5
+        let total = duration + stagger * Double(count - 1)
+
+        for index in 0 ..< count {
+            // The petal's own delay, from PetalTimeline.make.
+            let delay = Double(index) * stagger
+            // The master clock at the instant that petal should be starting.
+            let master = delay / total
+            #expect(abs(clock.petalProgress(master: master, index: index, count: count, duration: duration, stagger: stagger, reversed: false)) < 1e-9)
+        }
+    }
+}

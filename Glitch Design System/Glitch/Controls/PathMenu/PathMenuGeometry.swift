@@ -70,6 +70,53 @@ struct PathMenuGeometry: Equatable, Sendable {
     }
 }
 
+// MARK: - Master clock
+
+/// Turns one clock into every petal's own progress.
+///
+/// The self-animating petals each run their own keyframe timeline, which is
+/// cheap and correct and tells the menu nothing about where any of them is. A
+/// gooey surface has to know: the merged silhouette is built from the petals'
+/// positions, and a blob drawn from stale positions slides off the icons it is
+/// supposed to be carrying.
+///
+/// So on that path a single timeline runs at the container, and each petal's
+/// progress is derived from it here. The delays reproduce exactly those
+/// `PetalTimeline.make` computes — forwards on the way out, backwards on the way
+/// home, as the original's countdown timer did — because switching surface must
+/// not move the petals.
+public struct PathMenuClock: Equatable, Sendable {
+
+    public init() {}
+
+    /// How long the whole transition takes, last petal included.
+    public func totalDuration(count: Int, duration: Double, stagger: Double) -> Double {
+        duration + stagger * Double(max(count - 1, 0))
+    }
+
+    /// One petal's own progress, `0` to `1`, at a given point on the master clock.
+    public func petalProgress(
+        master: Double,
+        index: Int,
+        count: Int,
+        duration: Double,
+        stagger: Double,
+        reversed: Bool
+    ) -> Double {
+        guard duration > 0 else { return 1 }
+
+        let total = totalDuration(count: count, duration: duration, stagger: stagger)
+        let delay = stagger * Double(reversed ? max(count - 1 - index, 0) : index)
+        let elapsed = master.clamped01 * total - delay
+
+        return (elapsed / duration).clamped01
+    }
+}
+
+private extension Double {
+    var clamped01: Double { Swift.min(Swift.max(self, 0), 1) }
+}
+
 // MARK: - Petal path
 
 /// The waypoints a petal travels through, held inline rather than in an array so

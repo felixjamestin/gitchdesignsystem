@@ -22,8 +22,12 @@ public struct GlitchPathMenu: View {
     @Environment(\.glitchDelight) private var delight
     @Environment(\.isEnabled) private var isEnabled
 
+    @Environment(\.glitchGooStyle) private var gooStyle
+
     private let items: [PathMenuItem]
     private let systemImage: String
+    private let surface: PathMenuSurface
+    private let spread: CGFloat
     private let onSelect: (PathMenuItem) -> Void
 
     @State private var isExpanded = false
@@ -31,10 +35,14 @@ public struct GlitchPathMenu: View {
     public init(
         items: [PathMenuItem],
         systemImage: String = "plus",
+        surface: PathMenuSurface = .solid,
+        spread: CGFloat = 1,
         onSelect: @escaping (PathMenuItem) -> Void
     ) {
         self.items = items
         self.systemImage = systemImage
+        self.surface = surface
+        self.spread = spread
         self.onSelect = onSelect
     }
 
@@ -66,7 +74,11 @@ public struct GlitchPathMenu: View {
         let unit = metrics.rowHeight
         style.petalDiameter = unit * 1.25
         style.triggerDiameter = unit * 1.55
-        style.endRadius = unit * 3.3
+        // How far the petals travel. Drawn close, they stay bonded to the trigger
+        // and to each other on a gooey surface even at rest; drawn far, the
+        // bridges form and break during the travel and the menu settles as
+        // separate discs. Both are worth having, so it is a parameter.
+        style.endRadius = unit * 3.3 * spread
         style.nearRadius = style.endRadius * 0.92
         style.farRadius = style.endRadius * 1.17
 
@@ -77,8 +89,19 @@ public struct GlitchPathMenu: View {
         style.stagger = motion.staggerDelay
 
         // Our own material path draws the petals, so the component's glass is
-        // left off; enabling both would put glass on glass.
-        style.surface = .solid
+        // left off; enabling both would put glass on glass. Goo is different in
+        // kind — one silhouette beneath all of them rather than a material on
+        // each — so it is the one surface this wrapper does pass through.
+        //
+        // And, being a flourish, it goes the way the other flourishes go when
+        // delight is switched off.
+        style.surface = (surface == .gooey && delight) ? .gooey : .solid
+        style.goo = gooStyle
+        // The petals draw their own discs on top, so the goo takes the resting
+        // surface colour and lets those carry the states.
+        if style.goo.fill == nil {
+            style.goo.fill = theme.palette.trackActive
+        }
         style.hapticsEnabled = true
         style.highlightsOnHover = true
         style.dragToSelect = true

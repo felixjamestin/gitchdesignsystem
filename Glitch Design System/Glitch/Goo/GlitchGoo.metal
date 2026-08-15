@@ -52,13 +52,19 @@ static float gooDistance(
     // where the zeros it finds draw a phantom shape at the origin.
     int shapeCount = count / 5;
 
+    // A quadratic smooth minimum pulls the surface in by at most k/4, so two
+    // shapes bond only once the gap between them is under k/2. Doubling here
+    // makes `blend` mean the thing anyone setting it expects — the widest gap
+    // that still bridges — rather than twice that.
+    float k = blend * 2.0;
+
     float d = 1e6;
     for (int i = 0; i < shapeCount; ++i) {
         int base = i * 5;
         float2 center = float2(shapes[base], shapes[base + 1]);
         float2 halfSize = float2(shapes[base + 2], shapes[base + 3]);
         float radius = shapes[base + 4];
-        d = smoothMin(d, sdRoundedBox(p - center, halfSize, radius), blend);
+        d = smoothMin(d, sdRoundedBox(p - center, halfSize, radius), k);
     }
     return d;
 }

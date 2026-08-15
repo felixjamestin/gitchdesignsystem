@@ -36,16 +36,27 @@ public enum PathMenuSurface: String, CaseIterable, Hashable, Sendable, Identifia
     /// Liquid Glass, clear: far more of the backdrop shows through. Meant for use
     /// over rich content, and worth pairing with a tint for legibility.
     case clearGlass
+    /// One merged surface: petals bond to each other and to the trigger as they
+    /// pass, and part again as they travel out.
+    ///
+    /// Unlike the others this is not a per-petal material — there is one
+    /// silhouette drawn beneath all of them — so it is the one surface that
+    /// needs the menu to know where every petal is at once.
+    case gooey
 
     public var id: String { rawValue }
 
-    public var isGlass: Bool { self != .solid }
+    /// Deliberately false for `.gooey`. This gates `GlassEffectContainer`, and
+    /// goo is not glass; merging it as though it were would put two materials in
+    /// one view, which is how a system starts disagreeing with itself.
+    public var isGlass: Bool { self == .regularGlass || self == .clearGlass }
 
     public var title: String {
         switch self {
         case .solid: "Solid"
         case .regularGlass: "Regular glass"
         case .clearGlass: "Clear glass"
+        case .gooey: "Gooey"
         }
     }
 }
@@ -131,6 +142,13 @@ public struct PathMenuStyle: Equatable, Sendable {
     /// the union of every nearby glass shape is recomputed as the petals travel —
     /// so it is opt-in rather than something every menu pays for.
     public var glassBlendSpacing: CGFloat = 0
+
+    /// How the gooey surface merges. Ignored by every other surface.
+    public var goo: GlitchGooStyle = .standard
+    /// Whether petals bond to the trigger as well as to one another. Off leaves
+    /// the trigger a separate disc that the petals flow out from rather than out
+    /// of.
+    public var bondsTrigger: Bool = true
 
     // Behaviour --------------------------------------------------------------
 
