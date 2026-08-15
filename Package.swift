@@ -26,6 +26,10 @@ let package = Package(
         .target(
             name: "GlitchDesignSystem",
             path: "Glitch Design System/Glitch",
+            // The goo shader. SwiftPM does not pick .metal files up on its
+            // own; declared as a processed resource it is compiled into the
+            // module's default.metallib, which `GooShader.library` loads.
+            resources: [.process("Goo/Goo.metal")],
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         .testTarget(
