@@ -112,6 +112,25 @@ public enum GlitchDelightTuning {
     /// Lateral kick when a typed value is rejected.
     public static let rejectionKick: CGFloat = 4
 
+    // MARK: Flick
+
+    /// Angular speed, in radians per second, above which releasing a dial
+    /// keeps it spinning. Below this a release is just a release.
+    public static let flickEngageVelocity: Double = 2.2
+    /// Exponential friction on the spin, per second. Sized so a hard flick
+    /// runs for well under a second — a flywheel, not a roulette wheel.
+    public static let flickFriction: Double = 4.2
+    /// The spin stops once it slows to this, rather than crawling forever.
+    public static let flickMinimumVelocity: Double = 0.15
+
+    // MARK: Travel
+
+    /// How far the segmented pill stretches along its slide, as an x-scale.
+    /// The y compresses by the complement, conserving area.
+    public static let pillStretch: CGFloat = 1.14
+    /// How many recent pointer positions the XY pad's comet trail keeps.
+    public static let trailLength = 12
+
     // MARK: Forgiveness
 
     /// How long after a release a new press still counts as the same drag.

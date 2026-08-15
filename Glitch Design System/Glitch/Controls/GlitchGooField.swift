@@ -30,6 +30,7 @@ public struct GlitchGooFieldStyle: Sendable {
 public struct GlitchGooField: View {
     @Environment(\.glitchTheme) private var theme
     @Environment(\.glitchMotion) private var motion
+    @Environment(\.glitchDelight) private var delight
     @Environment(\.isEnabled) private var isEnabled
 
     @Binding private var text: String
@@ -38,6 +39,9 @@ public struct GlitchGooField: View {
     private let onSubmit: (String) -> Void
 
     @FocusState private var isFocused: Bool
+    /// A vertical swell of the liquid at the moment the button re-merges —
+    /// the follow-through of the impact, timed to the spring's arrival.
+    @State private var mergePulse: CGFloat = 1
 
     public init(
         text: Binding<String>,
@@ -94,12 +98,20 @@ public struct GlitchGooField: View {
                 fill: style.tint ?? theme.palette.trackActive,
                 margin: margin
             )
+            .scaleEffect(x: 1, y: mergePulse)
             .padding(-margin)
         }
         .contentShape(Rectangle())
         .onTapGesture { isFocused = true }
         .opacity(isEnabled ? 1 : 0.4)
         .animation(.spring(spring), value: isFocused)
+        .onChange(of: isFocused) { _, focused in
+            guard !focused, delight else { return }
+            // Delayed to roughly when the returning blob strikes the capsule,
+            // so the swell reads as the splash of the impact.
+            withAnimation(motion.snap.delay(0.16)) { mergePulse = 1.06 }
+            withAnimation(motion.pop.delay(0.3)) { mergePulse = 1 }
+        }
     }
 
     private func submitButton(diameter: CGFloat) -> some View {

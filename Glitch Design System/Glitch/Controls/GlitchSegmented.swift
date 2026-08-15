@@ -13,6 +13,7 @@ import SwiftUI
 public struct GlitchSegmented<Value: Hashable>: View {
     @Environment(\.glitchTheme) private var theme
     @Environment(\.glitchMotion) private var motion
+    @Environment(\.glitchDelight) private var delight
     @Environment(\.isEnabled) private var isEnabled
 
     private let label: String?
@@ -23,6 +24,10 @@ public struct GlitchSegmented<Value: Hashable>: View {
     @Namespace private var pill
     @State private var hasAppeared = false
     @State private var isHovering = false
+    /// Elongation of the pill along its slide. Set the instant a selection
+    /// moves and relaxed over the same `glide` the travel uses, so the pill
+    /// is stretched mid-flight and settled on arrival.
+    @State private var pillStretch: CGFloat = 1
 
     public init(
         _ label: String? = nil,
@@ -96,6 +101,9 @@ public struct GlitchSegmented<Value: Hashable>: View {
             if isSelected {
                 RoundedRectangle(cornerRadius: max(2, metrics.controlRadius - 2), style: .continuous)
                     .fill(theme.palette.selectionFill)
+                    // Squash and stretch on the slide, conserving area: long
+                    // and low while travelling, its own shape once landed.
+                    .scaleEffect(x: pillStretch, y: 2 - pillStretch)
                     .matchedGeometryEffect(id: "pill", in: pill)
             }
 
@@ -134,6 +142,13 @@ public struct GlitchSegmented<Value: Hashable>: View {
     private func select(_ value: Value) {
         guard isEnabled, value != selection else { return }
         selection = value
+        if delight, hasAppeared {
+            // Instantly long, relaxing on the same clock as the travel.
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { pillStretch = GlitchDelightTuning.pillStretch }
+            withAnimation(motion.glide) { pillStretch = 1 }
+        }
         GlitchHaptics.selection()
         GlitchSound.tick()
     }

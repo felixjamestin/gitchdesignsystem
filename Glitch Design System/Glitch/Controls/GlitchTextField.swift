@@ -9,6 +9,7 @@ import SwiftUI
 public struct GlitchTextField: View {
     @Environment(\.glitchTheme) private var theme
     @Environment(\.glitchMotion) private var motion
+    @Environment(\.glitchDelight) private var delight
     @Environment(\.isEnabled) private var isEnabled
 
     private let label: String?
@@ -24,6 +25,7 @@ public struct GlitchTextField: View {
     private let accessory: GlitchLabelAccessory
 
     @State private var isHovering = false
+    @State private var shake: CGFloat = 0
     @FocusState private var isFocused: Bool
 
     public init(
@@ -58,11 +60,25 @@ public struct GlitchTextField: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             field
+                .offset(x: shake)
             if reservesErrorSpace {
                 errorMessage
             }
         }
         .animation(motion.pop, value: error)
+        // The classic refusal: an error arriving shakes the field side to
+        // side, the head-shake every platform's sign-in form has taught.
+        // Only on nil → error — a message merely changing its wording while
+        // already showing is not a fresh refusal.
+        .onChange(of: error != nil) { hadError, hasError in
+            guard hasError, !hadError else { return }
+            GlitchHaptics.limit()
+            GlitchSound.reject()
+            guard delight else { return }
+            withAnimation(motion.snap) { shake = GlitchDelightTuning.rejectionKick }
+            withAnimation(motion.pop.delay(0.07)) { shake = -GlitchDelightTuning.rejectionKick * 0.6 }
+            withAnimation(motion.drift.delay(0.15)) { shake = 0 }
+        }
     }
 
     private var field: some View {

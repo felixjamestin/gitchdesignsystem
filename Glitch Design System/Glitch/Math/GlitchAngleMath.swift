@@ -44,4 +44,17 @@ public enum GlitchAngleMath {
     public static func shortestDelta(from a: Double, to b: Double) -> Double {
         (b - a).remainder(dividingBy: 2 * .pi)
     }
+
+    /// A flicked dial's angular velocity after `dt` seconds of friction.
+    ///
+    /// Exponential decay: each second removes the same *fraction* of speed,
+    /// which is what a real flywheel against a constant drag does, and why a
+    /// hard flick and a soft one both die away rather than stopping abruptly.
+    public static func decayedVelocity(
+        _ velocity: Double,
+        after dt: Double,
+        friction: Double
+    ) -> Double {
+        velocity * exp(-friction * dt)
+    }
 }

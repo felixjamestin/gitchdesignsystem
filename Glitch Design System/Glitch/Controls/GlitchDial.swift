@@ -86,6 +86,13 @@ public struct GlitchDial: View {
     @State private var landPulse: CGFloat = 1
     @FocusState private var isFocused: Bool
 
+    // The flywheel. Velocity is measured while rotating; a fast release keeps
+    // the dial spinning under friction, and touching it again grabs it still.
+    @State private var angularVelocity: Double = 0
+    @State private var lastAngleAt: ContinuousClock.Instant?
+    @State private var isSpinning = false
+    @State private var flickTask: Task<Void, Never>?
+
     public init(
         _ label: String,
         value: Binding<Double>,
@@ -115,11 +122,12 @@ public struct GlitchDial: View {
             GlitchValueText(
                 GlitchNumberParsing.format(value, decimals: decimals),
                 value: value,
-                animated: !isDragging
+                animated: !isDragging && !isSpinning
             )
             .foregroundStyle(theme.palette.label)
         }
         .opacity(isEnabled ? 1 : 0.4)
+        .onDisappear { flickTask?.cancel() }
         .accessibilityElement(children: .ignore)
         .accessibilityHint(accessory.infoText ?? "")
         .accessibilityLabel(label)
@@ -337,9 +345,13 @@ public struct GlitchDial: View {
                 let pointerAngle = pointerAngle(at: gesture.location)
 
                 guard let previous = lastPointerAngle else {
+                    // Grabbing a spinning dial stops it — a hand on a
+                    // flywheel — and the grab itself is the acknowledgement.
+                    stopFlick()
                     isDragging = true
                     isFocused = true
                     lastPointerAngle = pointerAngle
+                    lastAngleAt = ContinuousClock.now
                     return
                 }
 
@@ -353,6 +365,17 @@ public struct GlitchDial: View {
 
                 let delta = GlitchAngleMath.shortestDelta(from: previous, to: pointerAngle)
                 lastPointerAngle = pointerAngle
+
+                // A blended instantaneous velocity, so one noisy frame can't
+                // fake a flick and a genuine spin isn't diluted to nothing.
+                let now = ContinuousClock.now
+                if let lastAt = lastAngleAt {
+                    let dt = seconds(now - lastAt)
+                    if dt > 0 {
+                        angularVelocity = 0.6 * (delta / dt) + 0.4 * angularVelocity
+                    }
+                }
+                lastAngleAt = now
 
                 let span = range.upperBound - range.lowerBound
                 let next = GlitchValueMath.snap(
@@ -375,14 +398,81 @@ public struct GlitchDial: View {
                 // stop counting as a drag *before* the value changes, or the
                 // number it lands on arrives with no animation at all.
                 let wasTap = !didRotate
+                let releaseVelocity = angularVelocity
                 isDragging = false
                 didRotate = false
                 lastPointerAngle = nil
+                lastAngleAt = nil
+                angularVelocity = 0
 
                 if wasTap {
                     jump(to: gesture.location)
+                } else if delight,
+                          abs(releaseVelocity) > GlitchDelightTuning.flickEngageVelocity {
+                    startFlick(velocity: releaseVelocity)
                 }
             }
+    }
+
+    /// Lets a fast release keep turning the dial, slowing under friction.
+    ///
+    /// The spin is real input — every step it crosses ticks and can be caught
+    /// mid-flight by touching the dial — and it stops dead on a limit, the
+    /// same wall every other route to the value hits.
+    private func startFlick(velocity: Double) {
+        isSpinning = true
+
+        flickTask = Task { @MainActor in
+            var speed = velocity
+            var lastFrame = ContinuousClock.now
+            let span = range.upperBound - range.lowerBound
+
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(16))
+                guard !Task.isCancelled else { break }
+
+                let now = ContinuousClock.now
+                let dt = seconds(now - lastFrame)
+                lastFrame = now
+
+                speed = GlitchAngleMath.decayedVelocity(
+                    speed, after: dt, friction: GlitchDelightTuning.flickFriction
+                )
+                guard abs(speed) > GlitchDelightTuning.flickMinimumVelocity else { break }
+
+                let next = GlitchValueMath.snap(
+                    value + speed * dt / sweep * span,
+                    step: step,
+                    in: range
+                )
+                if next != value {
+                    var transaction = Transaction()
+                    transaction.disablesAnimations = true
+                    withTransaction(transaction) { value = next }
+                    GlitchHaptics.tick()
+                    GlitchSound.tick()
+                }
+                if next == range.lowerBound || next == range.upperBound {
+                    GlitchHaptics.limit()
+                    GlitchSound.reject()
+                    break
+                }
+            }
+
+            isSpinning = false
+            land()
+        }
+    }
+
+    private func stopFlick() {
+        flickTask?.cancel()
+        flickTask = nil
+        isSpinning = false
+    }
+
+    private func seconds(_ duration: Duration) -> Double {
+        Double(duration.components.seconds)
+            + Double(duration.components.attoseconds) * 1e-18
     }
 
     /// Where a point sits on the dial, measured from straight up, clockwise
