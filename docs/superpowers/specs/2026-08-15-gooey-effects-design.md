@@ -69,7 +69,17 @@ glass cases, which are unaffected by this work.
 `animatesEmphasis` goes out of its way to avoid, and that `GlitchPathMenu` avoids again by pinning
 `glassBlendSpacing` to zero. Choosing B is choosing that cost knowingly; the default must be A.
 
-## Shader packaging — the open question
+## Shader packaging — resolved
+
+**Outcome (2026-08-15): option 1 works.** The build-tool plugin compiles the shader, and its output
+is copied into the resource bundle — but *only* because the manifest also declares the shader source
+as a resource, since SwiftPM copies plugin output into a bundle it is already creating and will not
+create one on the plugin's account. Verified from both directions: `Bundle.module` contains
+`default.metallib` after `swift build`, and the app bundle contains one at `Contents/Resources/`
+after `xcodebuild`, so `ShaderLibrary.bundle(.module)` and `ShaderLibrary.default` each resolve on
+their own side. Neither fallback below is needed. The reasoning that led there is kept as written:
+
+
 
 **The `#if SWIFT_PACKAGE` shim proposed during brainstorming does not work**, and this was verified
 rather than assumed:

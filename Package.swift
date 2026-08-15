@@ -23,10 +23,25 @@ let package = Package(
         .library(name: "GlitchDesignSystem", targets: ["GlitchDesignSystem"]),
     ],
     targets: [
+        // SwiftPM has no idea what a `.metal` file is: undeclared it is dropped
+        // with a warning, and declared as a resource its source is copied
+        // uncompiled — leaving `ShaderLibrary.bundle(.module)` nothing to find.
+        // The plugin compiles it into the resource bundle instead.
+        .plugin(
+            name: "CompileGlitchShaders",
+            capability: .buildTool(),
+            path: "Plugins/CompileGlitchShaders"
+        ),
         .target(
             name: "GlitchDesignSystem",
             path: "Glitch Design System/Glitch",
-            swiftSettings: [.swiftLanguageMode(.v5)]
+            // Declaring the shader source is what gives the target a resource
+            // bundle at all — and the plugin's compiled `default.metallib` is
+            // only copied into a bundle that already exists. It also spares the
+            // build an "unhandled file" warning about the same file.
+            resources: [.copy("Goo/GlitchGoo.metal")],
+            swiftSettings: [.swiftLanguageMode(.v5)],
+            plugins: ["CompileGlitchShaders"]
         ),
         .testTarget(
             name: "GlitchDesignSystemTests",
