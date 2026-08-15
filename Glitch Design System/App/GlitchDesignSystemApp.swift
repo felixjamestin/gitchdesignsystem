@@ -36,6 +36,7 @@ struct RootView: View {
         GlitchTabItem(id: 0, title: "Playground", systemImage: "slider.horizontal.3"),
         GlitchTabItem(id: 1, title: "Gallery", systemImage: "square.grid.2x2"),
         GlitchTabItem(id: 2, title: "Motion Lab", systemImage: "waveform.path"),
+        GlitchTabItem(id: 3, title: "Goo Lab", systemImage: "drop"),
     ]
 
     var body: some View {
@@ -77,11 +78,13 @@ struct RootView: View {
                 delight: $delight,
                 fonts: $fonts
             )
-        default:
+        case 2:
             MotionLabView(
                 motionScale: $motionScale,
                 forceReduceMotion: $forceReduceMotion
             )
+        default:
+            GooLabView()
         }
     }
 
