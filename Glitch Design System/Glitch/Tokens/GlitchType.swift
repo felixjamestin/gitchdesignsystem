@@ -68,7 +68,18 @@ public enum GlitchType {
 
     /// A numeric readout in the current style.
     public static func valueText(_ text: String, _ theme: GlitchTheme) -> Text {
-        Text(text).font(value(theme))
+        Text(text)
+            .font(value(theme))
+            .tracking(theme.typography.valueTracking)
+    }
+
+    /// A section or panel title, cased and tracked as the current style
+    /// writes it. Titles fall back to the labels' voice for both unless the
+    /// typography separates them.
+    public static func titleText(_ text: String, _ theme: GlitchTheme) -> Text {
+        Text(theme.displayTitle(text))
+            .font(title(theme))
+            .tracking(theme.typography.titleTracking ?? theme.typography.tracking)
     }
 }
 

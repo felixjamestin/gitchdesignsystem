@@ -66,6 +66,10 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
             metrics.controlRadius = 2
             metrics.panelRadius = 3
             metrics.borderWidth = 1
+            // Every part gets its seam — the outline around a component let
+            // into the chassis, which is most of what makes the hardware
+            // reading stick.
+            metrics.outlinesControls = true
             // The scale is printed on the panel, not summoned by touching it.
             metrics.hashmarksAlwaysVisible = true
             metrics.hashmarkHeight = metrics.rowHeight * 0.55
@@ -118,16 +122,22 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
                 uppercaseLabels: false
             )
         case .engineering:
-            // Engraved legends: small, heavy, and spaced far enough apart to
-            // read as printing rather than as text.
+            // Engraved legends: small, spaced far enough apart to read as
+            // printing rather than as text. Semibold, not bold — engraving
+            // is thin; the wide tracking is what carries the instrument
+            // reading, and heavier weight on top of it just shouts. Titles
+            // go wider still, the way a chassis prints MASTER over a section.
             GlitchTypography(
                 labelDesign: .default,
                 valueDesign: .monospaced,
-                labelWeight: .bold,
-                valueWeight: .bold,
-                titleWeight: .black,
-                tracking: 1.6,
-                uppercaseLabels: true
+                labelWeight: .semibold,
+                valueWeight: .semibold,
+                titleWeight: .heavy,
+                tracking: 2.2,
+                uppercaseLabels: true,
+                valueTracking: 0.6,
+                titleTracking: 3.2,
+                uppercaseTitles: true
             )
         case .film:
             // Small, light, and spaced far apart. The type is a caption on a
@@ -170,25 +180,29 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
     /// the fill is full-strength orange, the marks are always printed, and the
     /// pointer is a hard black line the full height of its slot.
     private static let engineeringLight = GlitchPalette(
-        background: Color(glitchHex: 0xC9C9C4),
-        panel: Color(glitchHex: 0xE4E4DF),
+        // Warmer than before: the chassis is bone, not concrete, which is
+        // most of what separates an instrument from an appliance.
+        background: Color(glitchHex: 0xCCCAC3),
+        panel: Color(glitchHex: 0xE9E7E0),
         track: .black.opacity(0.05),
         trackHover: .black.opacity(0.09),
         trackActive: .black.opacity(0.12),
-        fill: Color(glitchHex: 0xFF5A00).opacity(0.92),
-        fillActive: Color(glitchHex: 0xFF5A00),
+        // Pantone 021 — the orange, not an orange.
+        fill: Color(glitchHex: 0xFF4E00).opacity(0.92),
+        fillActive: Color(glitchHex: 0xFF4E00),
         handle: .black.opacity(0.88),
-        hashmark: .black.opacity(0.32),
+        // Printed scales sit darker than engraving would: they are ink.
+        hashmark: .black.opacity(0.38),
         textPrimary: .black,
-        label: .black.opacity(0.80),
+        label: .black.opacity(0.85),
         labelSecondary: .black.opacity(0.45),
-        stroke: .black.opacity(0.35),
-        accent: Color(glitchHex: 0xFF5A00),
+        stroke: .black.opacity(0.30),
+        accent: Color(glitchHex: 0xFF4E00),
         onAccent: .black,
         danger: Color(glitchHex: 0xD1293D),
         // Selection is a printed switch: solid black, knocked-out legend.
         selectionFill: .black.opacity(0.88),
-        onSelection: Color(glitchHex: 0xE4E4DF),
+        onSelection: Color(glitchHex: 0xE9E7E0),
         // Black on full-strength orange, which is more legible than the
         // chassis-coloured legend would be.
         onFill: .black.opacity(0.88)
@@ -196,24 +210,24 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
 
     /// The black-chassis variant of the same instrument.
     private static let engineeringDark = GlitchPalette(
-        background: Color(glitchHex: 0x0F0F0F),
-        panel: Color(glitchHex: 0x1A1A1A),
+        background: Color(glitchHex: 0x0E0E0E),
+        panel: Color(glitchHex: 0x181816),
         track: .white.opacity(0.05),
         trackHover: .white.opacity(0.09),
         trackActive: .white.opacity(0.12),
-        fill: Color(glitchHex: 0xFF5A00).opacity(0.92),
-        fillActive: Color(glitchHex: 0xFF5A00),
+        fill: Color(glitchHex: 0xFF4E00).opacity(0.92),
+        fillActive: Color(glitchHex: 0xFF4E00),
         handle: .white.opacity(0.92),
-        hashmark: .white.opacity(0.30),
+        hashmark: .white.opacity(0.36),
         textPrimary: .white,
-        label: .white.opacity(0.80),
+        label: .white.opacity(0.85),
         labelSecondary: .white.opacity(0.45),
-        stroke: .white.opacity(0.30),
-        accent: Color(glitchHex: 0xFF5A00),
+        stroke: .white.opacity(0.26),
+        accent: Color(glitchHex: 0xFF4E00),
         onAccent: .black,
         danger: Color(glitchHex: 0xFF5C69),
         selectionFill: .white.opacity(0.90),
-        onSelection: Color(glitchHex: 0x1A1A1A),
+        onSelection: Color(glitchHex: 0x181816),
         onFill: .black.opacity(0.88)
     )
 
@@ -328,26 +342,43 @@ public struct GlitchTypography: Equatable, Sendable {
     public var labelWeight: Font.Weight
     public var valueWeight: Font.Weight
     public var titleWeight: Font.Weight
+    /// Letter spacing of labels, in points.
     public var tracking: CGFloat
     public var uppercaseLabels: Bool
+
+    /// Letter spacing of readouts. Zero in every built-in style — digits are
+    /// already monospaced — but a display face may want air between them.
+    public var valueTracking: CGFloat = 0
+    /// Letter spacing of titles. `nil` follows the label tracking.
+    public var titleTracking: CGFloat? = nil
+    /// Whether titles are shouted. `nil` follows `uppercaseLabels`.
+    public var uppercaseTitles: Bool? = nil
 
     public var labelFace: String?
     public var valueFace: String?
     public var titleFace: String?
 }
 
-/// Typeface overrides, layered onto whatever the style already specifies.
+/// Typographic overrides, layered onto whatever the style already specifies.
 ///
-/// The same shape as `GlitchColors`, for the same reason: naming one face
-/// leaves the rest of the voice — weights, tracking, casing — intact, so a
-/// custom family doesn't cost you the style you picked it for.
+/// The same shape as `GlitchColors`, for the same reason: naming one aspect
+/// leaves the rest of the voice intact, so a custom family — or a wider
+/// kerning, or a change of case — doesn't cost you the style you picked it
+/// for. Every aspect is per-role: section titles, control labels and value
+/// readouts can each go their own way.
 ///
 /// ```swift
 /// .glitchTheme(fonts: GlitchFonts("Departure Mono"))        // all three roles
 /// .glitchTheme(fonts: GlitchFonts(value: "IBM Plex Mono"))  // readouts only
+/// .glitchTheme(fonts: GlitchFonts(
+///     title: "Georgia",             // serif titles…
+///     titleTracking: 3,             // …spaced wide…
+///     uppercaseTitles: true,        // …and shouted,
+///     labelTracking: 0.5            // over gently-tracked labels
+/// ))
 /// ```
 ///
-/// The family has to be registered by the app — `UIAppFonts` in the Info.plist,
+/// A family has to be registered by the app — `UIAppFonts` in the Info.plist,
 /// or `ATSApplicationFontsPath` on macOS. This type takes a name and nothing
 /// else; an unregistered one falls back to the system font, which is SwiftUI's
 /// own behaviour and not worth diverging from.
@@ -358,17 +389,40 @@ public struct GlitchTypography: Equatable, Sendable {
 public struct GlitchFonts: Hashable, Sendable {
     public static let none = GlitchFonts()
 
-    /// Control labels.
+    /// Control labels' family.
     public var label: String?
-    /// Numeric readouts.
+    /// Numeric readouts' family.
     public var value: String?
-    /// Section and panel titles.
+    /// Section and panel titles' family.
     public var title: String?
 
-    public init(label: String? = nil, value: String? = nil, title: String? = nil) {
+    /// Letter spacing per role, in points. `nil` keeps the style's own.
+    public var labelTracking: CGFloat?
+    public var valueTracking: CGFloat?
+    public var titleTracking: CGFloat?
+
+    /// Casing per role. `nil` keeps the style's own.
+    public var uppercaseLabels: Bool?
+    public var uppercaseTitles: Bool?
+
+    public init(
+        label: String? = nil,
+        value: String? = nil,
+        title: String? = nil,
+        labelTracking: CGFloat? = nil,
+        valueTracking: CGFloat? = nil,
+        titleTracking: CGFloat? = nil,
+        uppercaseLabels: Bool? = nil,
+        uppercaseTitles: Bool? = nil
+    ) {
         self.label = label
         self.value = value
         self.title = title
+        self.labelTracking = labelTracking
+        self.valueTracking = valueTracking
+        self.titleTracking = titleTracking
+        self.uppercaseLabels = uppercaseLabels
+        self.uppercaseTitles = uppercaseTitles
     }
 
     /// One family across all three roles.
@@ -381,6 +435,11 @@ public struct GlitchFonts: Hashable, Sendable {
         if let label { result.labelFace = label }
         if let value { result.valueFace = value }
         if let title { result.titleFace = title }
+        if let labelTracking { result.tracking = labelTracking }
+        if let valueTracking { result.valueTracking = valueTracking }
+        if let titleTracking { result.titleTracking = titleTracking }
+        if let uppercaseLabels { result.uppercaseLabels = uppercaseLabels }
+        if let uppercaseTitles { result.uppercaseTitles = uppercaseTitles }
         return result
     }
 }

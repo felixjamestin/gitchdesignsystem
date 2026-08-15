@@ -23,6 +23,12 @@ public struct GlitchTheme: Equatable, Sendable {
     public func display(_ text: String) -> String {
         typography.uppercaseLabels ? text.uppercased() : text
     }
+
+    /// A title as this style writes it. Titles follow the labels' casing
+    /// unless the typography says otherwise.
+    public func displayTitle(_ text: String) -> String {
+        (typography.uppercaseTitles ?? typography.uppercaseLabels) ? text.uppercased() : text
+    }
 }
 
 extension EnvironmentValues {

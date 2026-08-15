@@ -643,7 +643,9 @@ public struct GlitchSlider: View {
             }
             GlitchHaptics.selection()
             GlitchSound.commit()
-            landValue()
+            // No landing squash here: a click already answers with the
+            // anticipation, the travel and the click sound, and the extra
+            // pulse on top read as noise.
         }
     }
 

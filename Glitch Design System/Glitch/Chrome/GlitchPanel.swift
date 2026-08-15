@@ -174,8 +174,7 @@ public struct GlitchSection<Content: View>: View {
 
     private var header: some View {
         HStack {
-            Text(title)
-                .font(GlitchType.title(theme))
+            GlitchType.titleText(title, theme)
                 .foregroundStyle(theme.palette.textPrimary)
             Spacer()
             Image(systemName: "chevron.down")

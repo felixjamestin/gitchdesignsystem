@@ -64,13 +64,29 @@ public enum GlitchMaterial: String, CaseIterable, Sendable, Hashable {
     }
 }
 
-private struct GlitchSurfaceModifier<S: Shape>: ViewModifier {
+private struct GlitchSurfaceModifier<S: InsettableShape>: ViewModifier {
     @Environment(\.glitchTheme) private var theme
 
     let shape: S
     let fill: Color
 
     func body(content: Content) -> some View {
+        surfaced(content)
+            .overlay {
+                // The engineering seam: a hairline around the part. Skipped
+                // for a clear fill — an invisible control (the gooey petals)
+                // must not acquire a visible ring.
+                if theme.metrics.outlinesControls, fill != Color.clear {
+                    shape.strokeBorder(
+                        theme.palette.stroke,
+                        lineWidth: theme.metrics.borderWidth
+                    )
+                }
+            }
+    }
+
+    @ViewBuilder
+    private func surfaced(_ content: Content) -> some View {
         switch theme.surface {
         case .solid:
             content.background(shape.fill(fill))
@@ -92,7 +108,10 @@ extension View {
     ///
     /// Call sites pass the colour they would have used anyway; a glass style
     /// reinterprets it as a tint. Nothing at the call site knows which it got.
-    public func glitchSurface(_ shape: some Shape, fill: Color) -> some View {
+    ///
+    /// Insettable because the engineering style strokes a seam just inside
+    /// the shape; every shape a control actually passes qualifies.
+    public func glitchSurface(_ shape: some InsettableShape, fill: Color) -> some View {
         modifier(GlitchSurfaceModifier(shape: shape, fill: fill))
     }
 }

@@ -51,6 +51,16 @@ struct GalleryView: View {
 
     @State private var gooEmail = ""
 
+    // The Type panel's working state, folded into `fonts` on any change.
+    @State private var titleFace = "System"
+    @State private var labelFace = "System"
+    @State private var valueFace = "System"
+    @State private var titleKerning = 0.0
+    @State private var labelKerning = 0.0
+    @State private var valueKerning = 0.0
+    @State private var titleCaps: Bool?
+    @State private var labelCaps: Bool?
+
     /// The liquid shows best with an opaque fill and a touch more goo than
     /// the control's own default, so the neck reads clearly. The signature
     /// Ember rather than the theme accent: Glitch's accent is a near-white
@@ -103,6 +113,7 @@ struct GalleryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 appearancePanel
+                typePanel
                 delightPanel
 
                 group("Notches") {
@@ -253,17 +264,65 @@ struct GalleryView: View {
         }
     }
 
-    /// Faces that ship with macOS, so the picker works without the demo having
-    /// to register a font of its own. `GlitchFonts` takes a family name either
-    /// way — a bundled face is the same call with a different string.
-    private static let fontOptions: [GlitchOption<GlitchFonts>] = [
-        GlitchOption("System", value: .none),
-        GlitchOption("Georgia", value: GlitchFonts("Georgia")),
-        GlitchOption("Menlo", value: GlitchFonts("Menlo")),
-        // One role only, which is the more common case: keep the style's label
-        // voice and change just the readouts.
-        GlitchOption("Courier values", value: GlitchFonts(value: "Courier New")),
-    ]
+    /// Faces that ship with macOS, so the pickers work without the demo
+    /// having to register a font of its own. A bundled face is the same call
+    /// with a different string.
+    private static let faceChoices = ["System", "Georgia", "Menlo", "Courier New"]
+
+    private var caseOptions: [GlitchOption<Bool?>] {
+        [
+            GlitchOption("Theme", value: nil),
+            GlitchOption("Lower", value: false),
+            GlitchOption("Caps", value: true),
+        ]
+    }
+
+    /// The whole panel folded into one override value. Zero kerning means
+    /// "the theme's own", matching `GlitchFonts`' nil-leaves-it-alone rule.
+    private var assembledFonts: GlitchFonts {
+        func family(_ name: String) -> String? { name == "System" ? nil : name }
+        return GlitchFonts(
+            label: family(labelFace),
+            value: family(valueFace),
+            title: family(titleFace),
+            labelTracking: labelKerning > 0 ? CGFloat(labelKerning) : nil,
+            valueTracking: valueKerning > 0 ? CGFloat(valueKerning) : nil,
+            titleTracking: titleKerning > 0 ? CGFloat(titleKerning) : nil,
+            uppercaseLabels: labelCaps,
+            uppercaseTitles: titleCaps
+        )
+    }
+
+    private var typePanel: some View {
+        GlitchPanel {
+            GlitchSection("Type") {
+                GlitchSelect("Titles", selection: $titleFace, options: GlitchOption.list(Self.faceChoices))
+                GlitchSelect("Labels", selection: $labelFace, options: GlitchOption.list(Self.faceChoices))
+                GlitchSelect("Values", selection: $valueFace, options: GlitchOption.list(Self.faceChoices))
+                GlitchSlider("Title kerning", value: $titleKerning, in: 0...6, step: 0.5, decimals: 1)
+                GlitchSlider("Label kerning", value: $labelKerning, in: 0...6, step: 0.5, decimals: 1)
+                GlitchSlider("Value kerning", value: $valueKerning, in: 0...6, step: 0.5, decimals: 1)
+                GlitchSegmented("Title case", selection: $titleCaps, options: caseOptions)
+                GlitchSegmented("Label case", selection: $labelCaps, options: caseOptions)
+                explain("Each row is one GlitchFonts override layered onto the theme — GlitchFonts(title: \"Georgia\", titleTracking: 3, uppercaseTitles: true) gives serif titles spaced wide without touching labels or values. Kerning at 0 keeps the theme's own. The gallery re-renders live: the section titles above are the example.")
+            }
+        }
+        .onAppear(perform: syncFromFonts)
+        .onChange(of: assembledFonts) { _, next in fonts = next }
+    }
+
+    /// The gallery remounts when you switch tabs; the theme's fonts do not.
+    /// Reading them back on appearance keeps the panel telling the truth.
+    private func syncFromFonts() {
+        titleFace = fonts.title ?? "System"
+        labelFace = fonts.label ?? "System"
+        valueFace = fonts.value ?? "System"
+        titleKerning = fonts.titleTracking.map(Double.init) ?? 0
+        labelKerning = fonts.labelTracking.map(Double.init) ?? 0
+        valueKerning = fonts.valueTracking.map(Double.init) ?? 0
+        titleCaps = fonts.uppercaseTitles
+        labelCaps = fonts.uppercaseLabels
+    }
 
     private var appearancePanel: some View {
         GlitchPanel {
@@ -301,12 +360,6 @@ struct GalleryView: View {
                     "Density",
                     selection: $density,
                     options: GlitchDensity.allCases.map { GlitchOption($0.title, value: $0) }
-                )
-                GlitchSelect(
-                    "Typeface",
-                    selection: $fonts,
-                    options: Self.fontOptions,
-                    accessory: .info("Overrides the style's face without touching its weights, tracking or casing.")
                 )
                 explain(styleExplanation)
             }

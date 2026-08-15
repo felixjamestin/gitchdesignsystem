@@ -75,6 +75,13 @@ public struct GlitchMetrics: Equatable, Sendable {
 
     /// Outline weight for panels and, where a style asks for them, tracks.
     public var borderWidth: CGFloat = 1
+
+    /// Draw a hairline outline around every control surface.
+    ///
+    /// The engineering style's construction: each control is a separate part
+    /// let into the chassis, and the outline is the seam around the part.
+    /// Off everywhere else — a seam on a floating card is just a border.
+    public var outlinesControls: Bool = false
     /// Squares off the handle and hashmarks, which are otherwise capsules.
     public var sharpEdges: Bool = false
     /// Keeps the notch marks permanently visible instead of revealing them on
