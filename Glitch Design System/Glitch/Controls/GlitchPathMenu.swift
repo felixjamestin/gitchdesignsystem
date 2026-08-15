@@ -16,6 +16,28 @@ import SwiftUI
 /// - **Geometry** scales with density, so the petals stay reachable on a thumb.
 /// - **Sound and haptics** use the same three voices as everything else: a tick
 ///   as a petal takes the highlight, a commit when one is chosen.
+/// Which rendering the themed menu uses.
+public enum GlitchPathMenuVariant: Hashable, Sendable {
+    /// Discrete petals on the theme's surface — glass where the theme says so.
+    case standard
+    /// Petals joined to the trigger by a liquid membrane while they travel.
+    /// The liquid is a solid shader-drawn fill: Liquid Glass petals cannot
+    /// melt into one another, so glass does not apply to this variant.
+    case gooey
+}
+
+/// The gooey variant's own knobs.
+public struct GlitchGooMenuStyle: Sendable {
+    /// Blend range of the liquid union, in points.
+    public var goo: CGFloat = 18
+    /// Extra edge softness in points. Zero is a crisp antialiased edge.
+    public var edgeSoftness: CGFloat = 0
+    /// Fill of the liquid. `nil` uses the palette's active track.
+    public var tint: Color? = nil
+
+    public init() {}
+}
+
 public struct GlitchPathMenu: View {
     @Environment(\.glitchTheme) private var theme
     @Environment(\.glitchMotion) private var motion
@@ -24,24 +46,38 @@ public struct GlitchPathMenu: View {
 
     private let items: [PathMenuItem]
     private let systemImage: String
+    private let variant: GlitchPathMenuVariant
+    private let gooStyle: GlitchGooMenuStyle
+    private let configure: ((inout PathMenuStyle) -> Void)?
     private let onSelect: (PathMenuItem) -> Void
 
     @State private var isExpanded = false
+    /// Which petal the liquid should swell under. Fed by the petal builder's
+    /// highlight callback, the one place highlight state surfaces.
+    @State private var highlightedIndex: Int?
 
     public init(
         items: [PathMenuItem],
         systemImage: String = "plus",
+        variant: GlitchPathMenuVariant = .standard,
+        gooStyle: GlitchGooMenuStyle = .init(),
+        configure: ((inout PathMenuStyle) -> Void)? = nil,
         onSelect: @escaping (PathMenuItem) -> Void
     ) {
         self.items = items
         self.systemImage = systemImage
+        self.variant = variant
+        self.gooStyle = gooStyle
+        self.configure = configure
         self.onSelect = onSelect
     }
 
     public var body: some View {
+        let style = resolvedStyle
+
         PathMenu(
             items: items,
-            style: resolvedStyle,
+            style: style,
             isExpanded: expansion,
             onSelect: { item in
                 GlitchHaptics.impact()
@@ -51,8 +87,46 @@ public struct GlitchPathMenu: View {
             trigger: { phase in trigger(phase) },
             item: { item, phase in petal(item, phase) }
         )
+        .background(alignment: .center) {
+            if variant == .gooey {
+                gooUnderlay(style: style)
+            }
+        }
         .opacity(isEnabled ? 1 : 0.4)
         .accessibilityLabel("Menu")
+    }
+
+    private func gooUnderlay(style: PathMenuStyle) -> some View {
+        let geometry = PathMenuGeometry(
+            count: items.count,
+            nearRadius: style.nearRadius,
+            endRadius: style.endRadius,
+            farRadius: style.farRadius,
+            wholeAngle: style.wholeAngle.radians,
+            rotationOffset: style.rotationOffset.radians
+        )
+        let spring = style.motion.springParameters.map {
+            Spring(response: $0.response, dampingRatio: $0.dampingRatio)
+        } ?? motion.travelSpring
+
+        return GooMenuUnderlay(
+            count: items.count,
+            anchors: geometry.anchors.map(\.end),
+            triggerRadius: style.triggerDiameter / 2,
+            petalRadius: style.petalDiameter / 2,
+            spring: spring,
+            duration: style.duration,
+            stagger: style.stagger,
+            isOpen: isExpanded,
+            highlightedIndex: highlightedIndex,
+            smoothing: gooStyle.goo,
+            edge: gooStyle.edgeSoftness,
+            fill: gooStyle.tint ?? theme.palette.trackActive,
+            // A loosely damped spring can overshoot past farRadius, and a
+            // blob crossing the canvas edge would render a flat clipped side.
+            extent: 2 * (max(style.farRadius, style.endRadius * 1.4)
+                + style.petalDiameter / 2 + gooStyle.goo + 8)
+        )
     }
 
     // MARK: - Style
@@ -87,6 +161,18 @@ public struct GlitchPathMenu: View {
         style.selectionEffect = delight ? .blowUp : .close
         style.rotatesPetals = delight
 
+        if variant == .gooey {
+            // The membrane needs an analytic spring to mirror, and the blow-up
+            // flourish would tear it, so the gooey menu closes plainly.
+            style.motion = .spring(
+                response: motion.travelSpring.response,
+                dampingRatio: motion.travelSpring.dampingRatio
+            )
+            style.selectionEffect = .close
+            style.rotatesPetals = false
+        }
+        configure?(&style)
+
         return style
     }
 
@@ -109,9 +195,9 @@ public struct GlitchPathMenu: View {
         let diameter = theme.metrics.rowHeight * 1.55
 
         return Color.clear
-            .glitchSurface(Circle(), fill: phase.isExpanded
-                ? theme.palette.selectionFill
-                : theme.palette.trackActive)
+            .glitchSurface(Circle(), fill: variant == .gooey
+                ? Color.clear
+                : phase.isExpanded ? theme.palette.selectionFill : theme.palette.trackActive)
             .frame(width: diameter, height: diameter)
             .overlay {
                 Image(systemName: systemImage)
@@ -127,9 +213,9 @@ public struct GlitchPathMenu: View {
         let diameter = theme.metrics.rowHeight * 1.25
 
         return Color.clear
-            .glitchSurface(Circle(), fill: phase.isHighlighted
-                ? theme.palette.selectionFill
-                : theme.palette.trackActive)
+            .glitchSurface(Circle(), fill: variant == .gooey
+                ? Color.clear
+                : phase.isHighlighted ? theme.palette.selectionFill : theme.palette.trackActive)
             .frame(width: diameter, height: diameter)
             .overlay {
                 Image(systemName: item.systemImage)
@@ -139,15 +225,40 @@ public struct GlitchPathMenu: View {
                         : theme.palette.label)
             }
             .clipShape(Circle())
+            // With the gooey variant's clear fill the petal would otherwise
+            // lose its hit area — the liquid beneath it takes no hits.
+            .contentShape(Circle())
             .scaleEffect(phase.isHighlighted ? 1.14 : 1)
             .animation(motion.pop, value: phase.isHighlighted)
             // The same tick a segmented control makes as the selection moves,
             // for the same reason: something under the finger changed.
             .onChange(of: phase.isHighlighted) { _, highlighted in
-                if highlighted { GlitchSound.tick() }
+                if highlighted {
+                    GlitchSound.tick()
+                    highlightedIndex = phase.index
+                } else if highlightedIndex == phase.index {
+                    highlightedIndex = nil
+                }
             }
             .accessibilityLabel(item.title)
     }
+}
+
+#Preview("Gooey path menu") {
+    GlitchPathMenu(
+        items: [
+            PathMenuItem(title: "Flow", systemImage: "wind"),
+            PathMenuItem(title: "Echo", systemImage: "waveform.path.ecg"),
+            PathMenuItem(title: "Noise", systemImage: "aqi.medium"),
+            PathMenuItem(title: "Warp", systemImage: "tornado"),
+        ],
+        variant: .gooey,
+        onSelect: { _ in }
+    )
+    .frame(width: 420, height: 420)
+    .background(GlitchPalette.dark.background)
+    .glitchTheme()
+    .preferredColorScheme(.dark)
 }
 
 #Preview("Path menu") {
