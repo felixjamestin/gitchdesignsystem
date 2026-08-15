@@ -223,6 +223,13 @@ public struct GlitchPathMenu: View {
                     .foregroundStyle(phase.isHighlighted
                         ? theme.palette.onSelection
                         : theme.palette.label)
+                    // Returning petals converge on the centre, and on the
+                    // theme's translucent surfaces they show through one
+                    // another — a pile of overlapping glyphs. Every icon
+                    // dissolves the moment the close begins; the discs (or
+                    // the liquid, in the gooey variant) travel home alone.
+                    .opacity(phase.isExpanded ? 1 : 0)
+                    .animation(motion.snap, value: phase.isExpanded)
             }
             .clipShape(Circle())
             // With the gooey variant's clear fill the petal would otherwise
@@ -230,13 +237,6 @@ public struct GlitchPathMenu: View {
             .contentShape(Circle())
             .scaleEffect(phase.isHighlighted ? 1.14 : 1)
             .animation(motion.pop, value: phase.isHighlighted)
-            // A returning petal in the standard variant slides beneath the
-            // opaque trigger, which hides it. The gooey petal has no disc of
-            // its own, so its icon would pile up with every other returning
-            // icon at the centre — instead the liquid swallows it: the icon
-            // dissolves the moment the close begins.
-            .opacity(variant == .gooey && !phase.isExpanded ? 0 : 1)
-            .animation(motion.snap, value: phase.isExpanded)
             // The same tick a segmented control makes as the selection moves,
             // for the same reason: something under the finger changed.
             .onChange(of: phase.isHighlighted) { _, highlighted in
