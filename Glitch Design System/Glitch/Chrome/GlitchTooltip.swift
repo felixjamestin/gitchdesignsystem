@@ -82,7 +82,16 @@ private struct GlitchTooltipLayer: ViewModifier {
                         let gap = theme.metrics.spacing
 
                         GlitchTooltip(text: request.text)
-                            .fixedSize()
+                            // Caps the wrap width. An unbounded `fixedSize()`
+                            // here once let the text measure single-line and
+                            // re-wrap later, so bubble and text disagreed
+                            // about the line count and the text escaped the
+                            // bubble. A plain width proposal keeps the two in
+                            // the same layout pass.
+                            .frame(
+                                maxWidth: GlitchTooltip.maximumWidth,
+                                alignment: .bottomLeading
+                            )
                             // Pushed right to sit under its glyph, then held
                             // back from the trailing edge so a tooltip on a
                             // right-hand control doesn't hang off the panel.
@@ -160,10 +169,12 @@ struct GlitchTooltip: View {
             .font(GlitchType.label(theme))
             .foregroundStyle(theme.palette.textPrimary)
             .multilineTextAlignment(.leading)
+            // Wraps at whatever width the layer proposes and takes the height
+            // that wrapping needs; the bubble is then simply the padded
+            // bounds of the result. No second measurement to disagree with.
             .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: Self.maximumWidth, alignment: .leading)
-            .padding(.horizontal, metrics.hInset)
-            .padding(.vertical, metrics.hInset * 0.6)
+            .padding(.horizontal, max(metrics.hInset, 12))
+            .padding(.vertical, max(metrics.hInset * 0.7, 8))
             .background {
                 let shape = RoundedRectangle(
                     cornerRadius: metrics.controlRadius,

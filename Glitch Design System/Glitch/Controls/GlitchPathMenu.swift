@@ -85,7 +85,7 @@ public struct GlitchPathMenu: View {
                 onSelect(item)
             },
             trigger: { phase in trigger(phase) },
-            item: { item, phase in petal(item, phase) }
+            item: { item, phase in petal(item, phase, style: style) }
         )
         .background(alignment: .center) {
             if variant == .gooey {
@@ -218,8 +218,22 @@ public struct GlitchPathMenu: View {
             .clipShape(Circle())
     }
 
-    private func petal(_ item: PathMenuItem, _ phase: PathMenuItemPhase) -> some View {
+    private func petal(
+        _ item: PathMenuItem,
+        _ phase: PathMenuItemPhase,
+        style: PathMenuStyle
+    ) -> some View {
         let diameter = theme.metrics.rowHeight * 1.25
+        // Gooey petals open as one merged pile of liquid; an icon shown from
+        // frame one would sit in that pile with every other icon. So each
+        // icon materialises on its petal's own stagger, once the blob has
+        // visibly torn free. Closing dissolves immediately, both variants.
+        let appearDelay: Double = variant == .gooey && phase.isExpanded
+            ? GooMath.menuDelay(
+                index: phase.index, count: items.count,
+                stagger: style.stagger, opening: true
+            ) + style.duration * 0.45
+            : 0
 
         return Color.clear
             .glitchSurface(Circle(), fill: variant == .gooey
@@ -238,7 +252,7 @@ public struct GlitchPathMenu: View {
                     // dissolves the moment the close begins; the discs (or
                     // the liquid, in the gooey variant) travel home alone.
                     .opacity(phase.isExpanded ? 1 : 0)
-                    .animation(motion.snap, value: phase.isExpanded)
+                    .animation(motion.snap.delay(appearDelay), value: phase.isExpanded)
             }
             .clipShape(Circle())
             // With the gooey variant's clear fill the petal would otherwise
