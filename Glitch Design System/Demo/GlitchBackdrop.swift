@@ -140,7 +140,9 @@ struct GlitchPageBackground: View {
         switch theme.surface {
         case .solid:
             theme.palette.background
-        case .glass:
+        case .glass, .blurred:
+            // Both refract or diffuse what is behind them, so both need a
+            // backdrop worth looking through.
             GlitchBackdrop()
         }
     }

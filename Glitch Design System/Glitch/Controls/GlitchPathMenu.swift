@@ -199,6 +199,15 @@ public struct GlitchPathMenu: View {
                 ? Color.clear
                 : phase.isExpanded ? theme.palette.selectionFill : theme.palette.trackActive)
             .frame(width: diameter, height: diameter)
+            // The theme's fills are translucent, and the petals fly home
+            // *underneath* this button — without an opaque backing they show
+            // through it, stacking into a pile of overlapping discs. The
+            // gooey variant needs no backing: the liquid is the button.
+            .background {
+                if variant == .standard {
+                    Circle().fill(theme.palette.background)
+                }
+            }
             .overlay {
                 Image(systemName: systemImage)
                     .font(.system(size: theme.metrics.iconSize * 1.3, weight: .semibold))

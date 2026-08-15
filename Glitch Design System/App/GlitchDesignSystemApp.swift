@@ -17,6 +17,7 @@ struct RootView: View {
     /// it there also changes the Playground you go and look at next.
     @State private var style: GlitchThemeStyle = .glitch
     @State private var glass: GlitchGlassVariant = .regular
+    @State private var material: GlitchMaterial = .automatic
     @State private var scheme: ColorScheme = .dark
     @State private var density: GlitchDensity = .platformDefault
     @State private var delight = true
@@ -55,7 +56,7 @@ struct RootView: View {
                 content
             }
         }
-        .glitchTheme(style, glass: glass, fonts: fonts, density: density, colorScheme: scheme)
+        .glitchTheme(style, glass: glass, material: material, fonts: fonts, density: density, colorScheme: scheme)
         .glitchMotion(scale: motionScale, reduceMotion: forceReduceMotion)
         .glitchDelight(delight)
         // Told to the theme *and* to the window: the parameter makes the
@@ -73,6 +74,7 @@ struct RootView: View {
             GalleryView(
                 style: $style,
                 glass: $glass,
+                material: $material,
                 scheme: $scheme,
                 density: $density,
                 delight: $delight,

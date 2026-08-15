@@ -6,7 +6,7 @@ public struct GlitchTheme: Equatable, Sendable {
     public var palette: GlitchPalette
     public var metrics: GlitchMetrics
     public var typography: GlitchTypography
-    /// Whether surfaces are filled or made of glass.
+    /// Whether surfaces are filled, made of glass, or backed by a blur.
     public var surface: GlitchSurface
 
     /// Used when a control is rendered outside a `.glitchTheme()` subtree —
@@ -36,6 +36,7 @@ private struct GlitchThemeModifier: ViewModifier {
 
     var style: GlitchThemeStyle
     var glass: GlitchGlassVariant
+    var material: GlitchMaterial
     var colors: GlitchColors
     var fonts: GlitchFonts
     var density: GlitchDensity?
@@ -62,7 +63,7 @@ private struct GlitchThemeModifier: ViewModifier {
                     palette: palette,
                     metrics: .resolve(density, style: style),
                     typography: typography,
-                    surface: style.surface(glass: glass)
+                    surface: material.surface(style: style, glass: glass)
                 )
             )
             .environment(\.glitchDensity, density)
@@ -99,9 +100,14 @@ extension View {
     ///   by it: put it inside and the controls resolve a light palette while
     ///   everything nested under them turns dark. Passing it here removes the
     ///   ordering question entirely.
+    /// - Parameter material: what surfaces are made of. `.automatic` — the
+    ///   default — lets the style decide, which is what it always did; the
+    ///   other cases force flat fills, Liquid Glass, or the platform's blur
+    ///   material regardless of style.
     public func glitchTheme(
         _ style: GlitchThemeStyle = .glitch,
         glass: GlitchGlassVariant = .regular,
+        material: GlitchMaterial = .automatic,
         colors: GlitchColors = .none,
         fonts: GlitchFonts = .none,
         density: GlitchDensity? = nil,
@@ -111,6 +117,7 @@ extension View {
             GlitchThemeModifier(
                 style: style,
                 glass: glass,
+                material: material,
                 colors: colors,
                 fonts: fonts,
                 density: density,

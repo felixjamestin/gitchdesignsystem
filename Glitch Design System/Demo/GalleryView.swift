@@ -12,6 +12,7 @@ struct GalleryView: View {
 
     @Binding var style: GlitchThemeStyle
     @Binding var glass: GlitchGlassVariant
+    @Binding var material: GlitchMaterial
     @Binding var scheme: ColorScheme
     @Binding var density: GlitchDensity
     @Binding var delight: Bool
@@ -47,6 +48,27 @@ struct GalleryView: View {
     @State private var soundVolume = 70.0
     @State private var soundOn = true
     @State private var grilleStyle: GlitchGrilleStyle?
+
+    @State private var gooEmail = ""
+
+    /// The liquid shows best with an opaque fill and a touch more goo than
+    /// the control's own default, so the neck reads clearly. The signature
+    /// Ember rather than the theme accent: Glitch's accent is a near-white
+    /// alpha, which would wash the placeholder text out.
+    private var gooFieldStyle: GlitchGooFieldStyle {
+        var gooStyle = GlitchGooFieldStyle()
+        gooStyle.goo = 16
+        gooStyle.detachDistance = 18
+        gooStyle.tint = GlitchPalette.signatureAccent
+        return gooStyle
+    }
+
+    private var gooMenuStyle: GlitchGooMenuStyle {
+        var gooStyle = GlitchGooMenuStyle()
+        gooStyle.goo = 18
+        gooStyle.tint = GlitchPalette.signatureAccent
+        return gooStyle
+    }
 
     private var grilleStyleOptions: [GlitchOption<GlitchGrilleStyle?>] {
         [GlitchOption("Theme", value: nil)]
@@ -129,6 +151,12 @@ struct GalleryView: View {
                     )
                     GlitchSearchField(text: $query)
                     GlitchTextField("Locked", text: $name).disabled(true)
+                    GlitchGooField(
+                        text: $gooEmail,
+                        placeholder: "Enter your email",
+                        style: gooFieldStyle
+                    ) { _ in gooEmail = "" }
+                    explain("Focus it: the submit button buds off the end through a neck of liquid, and merges back on blur. Drawn by a signed-distance shader, so the edge stays crisp at any goo amount.")
                 }
 
                 group("Booleans") {
@@ -208,9 +236,15 @@ struct GalleryView: View {
                         Spacer()
                         GlitchPathMenu(items: menuItems) { _ in }
                         Spacer()
+                        GlitchPathMenu(
+                            items: menuItems,
+                            variant: .gooey,
+                            gooStyle: gooMenuStyle
+                        ) { _ in }
+                        Spacer()
                     }
                     .frame(height: 240)
-                    explain("Press and hold the trigger, then drag straight onto a petal to choose it in one gesture. Surface, motion, geometry and sound all come from the current theme.")
+                    explain("Press and hold the trigger, then drag straight onto a petal to choose it in one gesture. Surface, motion, geometry and sound all come from the current theme. The right menu is the gooey variant: the petals stay joined to the trigger by a liquid membrane while they travel, drawn by the same shader as the field above.")
                 }
             }
             .padding(16)
@@ -247,9 +281,16 @@ struct GalleryView: View {
                         GlitchOption("Light", value: ColorScheme.light),
                     ]
                 )
-                if style == .liquidGlass {
+                GlitchSegmented(
+                    "Material",
+                    selection: $material,
+                    options: GlitchMaterial.allCases.map {
+                        GlitchOption($0.title, value: $0)
+                    }
+                )
+                if material == .glass || (material == .automatic && style == .liquidGlass) {
                     GlitchSegmented(
-                        "Material",
+                        "Glass",
                         selection: $glass,
                         options: GlitchGlassVariant.allCases.map {
                             GlitchOption($0.title, value: $0)
@@ -375,16 +416,17 @@ struct GalleryView: View {
 #Preview {
     @Previewable @State var style = GlitchThemeStyle.glitch
     @Previewable @State var glass = GlitchGlassVariant.regular
+    @Previewable @State var material = GlitchMaterial.automatic
     @Previewable @State var scheme = ColorScheme.dark
     @Previewable @State var density = GlitchDensity.compact
     @Previewable @State var delight = true
     @Previewable @State var fonts = GlitchFonts.none
 
     GalleryView(
-        style: $style, glass: $glass, scheme: $scheme,
+        style: $style, glass: $glass, material: $material, scheme: $scheme,
         density: $density, delight: $delight, fonts: $fonts
     )
-    .glitchTheme(style, glass: glass, fonts: fonts, density: density)
+    .glitchTheme(style, glass: glass, material: material, fonts: fonts, density: density)
     .glitchMotion()
     .glitchDelight(delight)
     .preferredColorScheme(scheme)

@@ -19,11 +19,49 @@ public enum GlitchGlassVariant: String, CaseIterable, Sendable, Hashable {
 /// than described. This is the one axis where a style changes *how* a surface
 /// is drawn rather than merely what colour it is.
 public enum GlitchSurface: Sendable, Hashable {
-    /// A flat fill. Every style but one.
+    /// A flat fill. What every style but Glass prefers.
     case solid
     /// The platform's glass material, tinted by the same token a solid style
     /// would have filled with — so the two stay in step as the palette changes.
     case glass(GlitchGlassVariant)
+    /// The platform's blur material — `NSVisualEffectView` on macOS,
+    /// `UIVisualEffectView` on iOS, reached through SwiftUI's `Material` —
+    /// beneath the same token fill, which reads as a tint over the blur.
+    case blurred
+}
+
+/// Which material surfaces are made of, chosen independently of style.
+///
+/// Style used to decide this on its own — glass for the Glass style, flat
+/// fills for the rest. This axis unbolts the two: Engineering on glass, or
+/// Glitch over a blur, without either style changing its colours or voice.
+public enum GlitchMaterial: String, CaseIterable, Sendable, Hashable {
+    /// Whatever the style prefers. The default, and the prior behaviour.
+    case automatic
+    /// Flat token fills, whatever the style.
+    case solid
+    /// Liquid Glass, whatever the style.
+    case glass
+    /// The platform's blur material, whatever the style.
+    case blurred
+
+    public var title: String {
+        switch self {
+        case .automatic: "Auto"
+        case .solid: "Solid"
+        case .glass: "Glass"
+        case .blurred: "Blur"
+        }
+    }
+
+    func surface(style: GlitchThemeStyle, glass variant: GlitchGlassVariant) -> GlitchSurface {
+        switch self {
+        case .automatic: style.surface(glass: variant)
+        case .solid: .solid
+        case .glass: .glass(variant)
+        case .blurred: .blurred
+        }
+    }
 }
 
 private struct GlitchSurfaceModifier<S: Shape>: ViewModifier {
@@ -40,6 +78,11 @@ private struct GlitchSurfaceModifier<S: Shape>: ViewModifier {
             content.glassEffect(.regular.tint(fill), in: shape)
         case .glass(.clear):
             content.glassEffect(.clear.tint(fill), in: shape)
+        case .blurred:
+            content.background {
+                shape.fill(.thinMaterial)
+                    .overlay(shape.fill(fill))
+            }
         }
     }
 }
