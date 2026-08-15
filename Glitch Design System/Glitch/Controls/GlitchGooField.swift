@@ -80,14 +80,21 @@ public struct GlitchGooField: View {
         }
         .frame(height: height)
         .background {
+            // The smooth-min swells the union by up to a quarter of the blend
+            // range, and the detached blob's edge sits exactly on the control
+            // bound — without head-room the liquid renders with a sheared-off
+            // side. The canvas extends past the bounds; the blobs do not.
+            let margin = style.goo / 2 + 8
             GooFieldSurface(
                 progress: isFocused ? 1 : 0,
                 buttonDiameter: button,
                 detachDistance: style.detachDistance,
                 smoothing: style.goo,
                 edge: style.edgeSoftness,
-                fill: style.tint ?? theme.palette.trackActive
+                fill: style.tint ?? theme.palette.trackActive,
+                margin: margin
             )
+            .padding(-margin)
         }
         .contentShape(Rectangle())
         .onTapGesture { isFocused = true }
@@ -132,6 +139,9 @@ struct GooFieldSurface: View, Animatable {
     var smoothing: CGFloat
     var edge: CGFloat
     var fill: Color
+    /// Head-room around the control the canvas covers but the blobs keep out
+    /// of, so the swell and the antialiased edge never touch the canvas rim.
+    var margin: CGFloat = 0
 
     var animatableData: CGFloat {
         get { progress }
@@ -140,13 +150,22 @@ struct GooFieldSurface: View, Animatable {
 
     var body: some View {
         GeometryReader { proxy in
+            let inner = CGSize(
+                width: proxy.size.width - margin * 2,
+                height: proxy.size.height - margin * 2
+            )
             GooSurface(
                 blobs: GooMath.fieldBlobs(
-                    in: proxy.size,
+                    in: inner,
                     buttonDiameter: buttonDiameter,
                     detachDistance: detachDistance,
                     progress: progress
-                ),
+                ).map { blob in
+                    var moved = blob
+                    moved.center.x += margin
+                    moved.center.y += margin
+                    return moved
+                },
                 smoothing: smoothing,
                 edge: edge,
                 fill: fill
