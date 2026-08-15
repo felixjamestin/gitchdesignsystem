@@ -64,6 +64,7 @@ public struct GlitchSoundGrille: View {
     private let volume: Double
     private let range: ClosedRange<Double>
     private let styleOverride: GlitchGrilleStyle?
+    private let showsReadout: Bool
 
     /// How wide the lit edge fades, as a fraction of the whole.
     private let edgeSoftness: Double = 0.16
@@ -72,18 +73,25 @@ public struct GlitchSoundGrille: View {
     @State private var holeBounce: CGFloat = 1
     @State private var floaters: [SoundFloater] = []
 
+    /// - Parameter showsReadout: whether the numeric reading sits below the
+    ///   face. Off where the grille is standing next to the knob that sets it
+    ///   — the number is already on screen, and printing it twice makes the
+    ///   pair read as two controls rather than one. The face keeps reporting
+    ///   either way, and so does VoiceOver.
     public init(
         _ label: String? = "Output",
         isOn: Bool,
         volume: Double,
         in range: ClosedRange<Double> = 0...100,
-        style: GlitchGrilleStyle? = nil
+        style: GlitchGrilleStyle? = nil,
+        showsReadout: Bool = true
     ) {
         self.label = label
         self.isOn = isOn
         self.volume = volume
         self.range = range
         self.styleOverride = style
+        self.showsReadout = showsReadout
     }
 
     private var style: GlitchGrilleStyle {
@@ -110,8 +118,10 @@ public struct GlitchSoundGrille: View {
             if let label {
                 GlitchLabel(label, secondary: true)
             }
-            GlitchValueText(readout, value: isOn ? volume : nil)
-                .foregroundStyle(isOn ? theme.palette.label : theme.palette.labelSecondary)
+            if showsReadout {
+                GlitchValueText(readout, value: isOn ? volume : nil)
+                    .foregroundStyle(isOn ? theme.palette.label : theme.palette.labelSecondary)
+            }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label ?? "Output")
