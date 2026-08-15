@@ -94,7 +94,12 @@ public struct PathMenuClock: Equatable, Sendable {
         duration + stagger * Double(max(count - 1, 0))
     }
 
-    /// One petal's own progress, `0` to `1`, at a given point on the master clock.
+    /// One petal's own progress at a given point on the master clock.
+    ///
+    /// The normal range is `0...1`. A spring may carry the master past `1`.
+    /// Once every petal has arrived, that excess is preserved so the petal path
+    /// can overshoot and settle. Delay calculations remain clamped before that
+    /// point, so an early petal does not drift while it waits for the last one.
     public func petalProgress(
         master: Double,
         index: Int,
@@ -108,8 +113,14 @@ public struct PathMenuClock: Equatable, Sendable {
         let total = totalDuration(count: count, duration: duration, stagger: stagger)
         let delay = stagger * Double(reversed ? max(count - 1 - index, 0) : index)
         let elapsed = master.clamped01 * total - delay
+        let settled = (elapsed / duration).clamped01
 
-        return (elapsed / duration).clamped01
+        // The final delay and total duration use separate floating-point
+        // operations. Treat a sub-nanosecond remainder as settled, or the last
+        // petal alone can lose the spring overshoot.
+        let settlementTolerance = max(duration * 1e-9, Double.ulpOfOne)
+        guard master > 1, elapsed >= duration - settlementTolerance else { return settled }
+        return 1 + (master - 1) * total / duration
     }
 }
 

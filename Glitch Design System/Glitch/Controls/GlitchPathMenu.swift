@@ -7,10 +7,8 @@ import SwiftUI
 /// This wrapper supplies everything the design system already decides for
 /// every other control, so the menu doesn't arrive with opinions of its own:
 ///
-/// - **Surface** comes from `glitchSurface`, so a glass theme makes the petals
-///   glass by the same route every other control uses. The underlying
-///   component has its own glass support, deliberately left switched off — two
-///   materials in one view is how a system starts disagreeing with itself.
+/// - **Surface** is explicit. Solid, native Liquid Glass, and merged Goo stay
+///   distinct, so a lab control always changes the material it names.
 /// - **Motion** comes from the `travel` token, expressed as spring parameters,
 ///   so opening a menu and switching a tab move on the same physics.
 /// - **Geometry** scales with density, so the petals stay reachable on a thumb.
@@ -28,6 +26,13 @@ public struct GlitchPathMenu: View {
     private let systemImage: String
     private let surface: PathMenuSurface
     private let spread: CGFloat
+    private let wholeAngle: Angle
+    private let rotationOffset: Angle
+    private let petalScale: CGFloat
+    private let triggerScale: CGFloat
+    private let staggerScale: Double
+    private let bondsTrigger: Bool
+    private let glassBlendSpacing: CGFloat
     private let onSelect: (PathMenuItem) -> Void
 
     @State private var isExpanded = false
@@ -37,12 +42,26 @@ public struct GlitchPathMenu: View {
         systemImage: String = "plus",
         surface: PathMenuSurface = .solid,
         spread: CGFloat = 1,
+        wholeAngle: Angle = .degrees(360),
+        rotationOffset: Angle = .zero,
+        petalScale: CGFloat = 1,
+        triggerScale: CGFloat = 1,
+        staggerScale: Double = 1,
+        bondsTrigger: Bool = true,
+        glassBlendSpacing: CGFloat = 0,
         onSelect: @escaping (PathMenuItem) -> Void
     ) {
         self.items = items
         self.systemImage = systemImage
         self.surface = surface
         self.spread = spread
+        self.wholeAngle = wholeAngle
+        self.rotationOffset = rotationOffset
+        self.petalScale = petalScale
+        self.triggerScale = triggerScale
+        self.staggerScale = staggerScale
+        self.bondsTrigger = bondsTrigger
+        self.glassBlendSpacing = glassBlendSpacing
         self.onSelect = onSelect
     }
 
@@ -60,7 +79,6 @@ public struct GlitchPathMenu: View {
             item: { item, phase in petal(item, phase) }
         )
         .opacity(isEnabled ? 1 : 0.4)
-        .accessibilityLabel("Menu")
     }
 
     // MARK: - Style
@@ -68,12 +86,14 @@ public struct GlitchPathMenu: View {
     private var resolvedStyle: PathMenuStyle {
         var style = PathMenuStyle()
         let metrics = theme.metrics
+        let resolvedPetalScale = min(max(petalScale, 0.6), 1.8)
+        let resolvedTriggerScale = min(max(triggerScale, 0.6), 1.8)
 
         // Sized off the row height, so the whole menu grows with density
         // rather than staying pointer-sized on a touch screen.
         let unit = metrics.rowHeight
-        style.petalDiameter = unit * 1.25
-        style.triggerDiameter = unit * 1.55
+        style.petalDiameter = unit * 1.25 * resolvedPetalScale
+        style.triggerDiameter = unit * 1.55 * resolvedTriggerScale
         // How far the petals travel. Drawn close, they stay bonded to the trigger
         // and to each other on a gooey surface even at rest; drawn far, the
         // bridges form and break during the travel and the menu settles as
@@ -81,36 +101,37 @@ public struct GlitchPathMenu: View {
         style.endRadius = unit * 3.3 * spread
         style.nearRadius = style.endRadius * 0.92
         style.farRadius = style.endRadius * 1.17
+        style.wholeAngle = wholeAngle
+        style.rotationOffset = rotationOffset
 
         style.motion = .spring(
             response: motion.travelSpring.response,
             dampingRatio: motion.travelSpring.dampingRatio
         )
-        style.stagger = motion.staggerDelay
+        style.stagger = motion.staggerDelay * min(max(staggerScale, 0), 3)
 
-        // Our own material path draws the petals, so the component's glass is
-        // left off; enabling both would put glass on glass. Goo is different in
-        // kind — one silhouette beneath all of them rather than a material on
-        // each — so it is the one surface this wrapper does pass through.
-        //
-        // And, being a flourish, it goes the way the other flourishes go when
-        // delight is switched off.
-        style.surface = (surface == .gooey && delight) ? .gooey : .solid
+        style.surface = resolvedSurface
+        style.glassBlendSpacing = min(max(glassBlendSpacing, 0), 96)
         style.goo = gooStyle
-        // The petals draw their own discs on top, so the goo takes the resting
-        // surface colour and lets those carry the states.
         if style.goo.fill == nil {
             style.goo.fill = theme.palette.trackActive
         }
+        style.bondsTrigger = bondsTrigger
         style.hapticsEnabled = true
         style.highlightsOnHover = true
         style.dragToSelect = true
         // The blow-up is a flourish, and flourishes are what the delight
         // switch governs.
-        style.selectionEffect = delight ? .blowUp : .close
+        // The Goo body is one surface. It must remain present while the petals
+        // travel home, so it uses the normal close path.
+        style.selectionEffect = delight && resolvedSurface != .gooey ? .blowUp : .close
         style.rotatesPetals = delight
 
         return style
+    }
+
+    private var resolvedSurface: PathMenuSurface {
+        surface == .gooey && !delight ? .solid : surface
     }
 
     /// Plays the open and close through the system's own voice, which the
@@ -129,39 +150,23 @@ public struct GlitchPathMenu: View {
     // MARK: - Views
 
     private func trigger(_ phase: PathMenuTriggerPhase) -> some View {
-        let diameter = theme.metrics.rowHeight * 1.55
-
-        return Color.clear
-            .glitchSurface(Circle(), fill: phase.isExpanded
-                ? theme.palette.selectionFill
-                : theme.palette.trackActive)
-            .frame(width: diameter, height: diameter)
-            .overlay {
-                Image(systemName: systemImage)
-                    .font(.system(size: theme.metrics.iconSize * 1.3, weight: .semibold))
-                    .foregroundStyle(phase.isExpanded
-                        ? theme.palette.onSelection
-                        : theme.palette.label)
-            }
-            .clipShape(Circle())
+        menuDisc(
+            systemImage: systemImage,
+            diameter: theme.metrics.rowHeight * 1.55 * min(max(triggerScale, 0.6), 1.8),
+            iconSize: theme.metrics.iconSize * 1.3,
+            fill: phase.isExpanded ? theme.palette.selectionFill : theme.palette.trackActive,
+            foreground: phase.isExpanded ? theme.palette.onSelection : theme.palette.label
+        )
     }
 
     private func petal(_ item: PathMenuItem, _ phase: PathMenuItemPhase) -> some View {
-        let diameter = theme.metrics.rowHeight * 1.25
-
-        return Color.clear
-            .glitchSurface(Circle(), fill: phase.isHighlighted
-                ? theme.palette.selectionFill
-                : theme.palette.trackActive)
-            .frame(width: diameter, height: diameter)
-            .overlay {
-                Image(systemName: item.systemImage)
-                    .font(.system(size: theme.metrics.iconSize, weight: .semibold))
-                    .foregroundStyle(phase.isHighlighted
-                        ? theme.palette.onSelection
-                        : theme.palette.label)
-            }
-            .clipShape(Circle())
+        menuDisc(
+            systemImage: item.systemImage,
+            diameter: theme.metrics.rowHeight * 1.25 * min(max(petalScale, 0.6), 1.8),
+            iconSize: theme.metrics.iconSize,
+            fill: phase.isHighlighted ? theme.palette.selectionFill : theme.palette.trackActive,
+            foreground: phase.isHighlighted ? theme.palette.onSelection : theme.palette.label
+        )
             .scaleEffect(phase.isHighlighted ? 1.14 : 1)
             .animation(motion.pop, value: phase.isHighlighted)
             // The same tick a segmented control makes as the selection moves,
@@ -171,6 +176,73 @@ public struct GlitchPathMenu: View {
             }
             .accessibilityLabel(item.title)
     }
+
+    @ViewBuilder
+    private func menuDisc(
+        systemImage: String,
+        diameter: CGFloat,
+        iconSize: CGFloat,
+        fill: Color,
+        foreground: Color
+    ) -> some View {
+        #if os(visionOS)
+        if resolvedSurface == .gooey {
+            menuSymbol(systemImage, diameter: diameter, iconSize: iconSize, foreground: foreground)
+        } else {
+            solidDisc(systemImage, diameter: diameter, iconSize: iconSize,
+                      fill: fill, foreground: foreground)
+        }
+        #else
+        if resolvedSurface == .gooey {
+            // `PathMenu` draws the one merged surface below this symbol.
+            menuSymbol(systemImage, diameter: diameter, iconSize: iconSize, foreground: foreground)
+        } else if #available(iOS 26.0, macOS 26.0, *), resolvedSurface.isGlass {
+            menuSymbol(systemImage, diameter: diameter, iconSize: iconSize, foreground: foreground)
+                .glassEffect(glass(fill: fill), in: .circle)
+        } else {
+            solidDisc(systemImage, diameter: diameter, iconSize: iconSize,
+                      fill: fill, foreground: foreground)
+        }
+        #endif
+    }
+
+    private func solidDisc(
+        _ systemImage: String,
+        diameter: CGFloat,
+        iconSize: CGFloat,
+        fill: Color,
+        foreground: Color
+    ) -> some View {
+        Circle()
+            .fill(fill)
+            .frame(width: diameter, height: diameter)
+            .overlay {
+                Image(systemName: systemImage)
+                    .font(.system(size: iconSize, weight: .semibold))
+                    .foregroundStyle(foreground)
+            }
+    }
+
+    private func menuSymbol(
+        _ systemImage: String,
+        diameter: CGFloat,
+        iconSize: CGFloat,
+        foreground: Color
+    ) -> some View {
+        Image(systemName: systemImage)
+            .font(.system(size: iconSize, weight: .semibold))
+            .foregroundStyle(foreground)
+            .frame(width: diameter, height: diameter)
+            .contentShape(Circle())
+    }
+
+    #if !os(visionOS)
+    @available(iOS 26.0, macOS 26.0, *)
+    private func glass(fill: Color) -> Glass {
+        let base: Glass = resolvedSurface == .clearGlass ? .clear : .regular
+        return base.tint(fill.opacity(0.62))
+    }
+    #endif
 }
 
 #Preview("Path menu") {

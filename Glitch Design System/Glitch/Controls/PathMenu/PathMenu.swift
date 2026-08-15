@@ -128,12 +128,14 @@ where
                 // trigger — matching the original's `insertSubview:belowSubview:` —
                 // and, more importantly, so neither contributes to the layout size.
                 .background(alignment: .center) {
-                    if runtime != .collapsed {
-                        if style.surface == .gooey {
-                            gooey(style: style, geometry: geometry)
+                    if style.surface == .gooey {
+                        if runtime == .collapsed {
+                            collapsedGoo(style: style)
                         } else {
-                            petals(style: style, geometry: geometry)
+                            gooey(style: style, geometry: geometry)
                         }
+                    } else if runtime != .collapsed {
+                        petals(style: style, geometry: geometry)
                     }
                 }
                 .background(alignment: .center) {
@@ -333,7 +335,10 @@ where
         let duration = reduceMotion ? 0.2 : style.duration
 
         return KeyframeAnimator(
-            initialValue: 0.0,
+            // A style change rebuilds the animator. Keep an open menu open
+            // instead of returning every petal to the trigger while its state
+            // still says Expanded.
+            initialValue: runtime == .open ? 1.0 : 0.0,
             trigger: armedRuntime
         ) { master in
             ZStack {
@@ -430,6 +435,20 @@ where
             + style.goo.shadowRadius
             + style.goo.blend
         return CGSize(width: extent * 2, height: extent * 2)
+    }
+
+    /// The closed trigger uses the same single surface as the open menu. This
+    /// lets trigger and petal content stay surface-free for the whole gooey
+    /// variant, so no internal rings can be drawn over the merged silhouette.
+    private func collapsedGoo(style: PathMenuStyle) -> some View {
+        let padding = style.goo.shadowRadius + style.goo.blend
+        let extent = style.triggerDiameter + padding * 2
+        return GlitchGooLayer(
+            shapes: [.circle(center: .zero, diameter: style.triggerDiameter)],
+            style: style.goo,
+            fill: gooFill(style: style),
+            size: CGSize(width: extent, height: extent)
+        )
     }
 
     private func gooFill(style: PathMenuStyle) -> Color {

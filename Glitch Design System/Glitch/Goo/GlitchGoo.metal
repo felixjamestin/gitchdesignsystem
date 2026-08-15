@@ -27,24 +27,50 @@ static float smoothMin(float a, float b, float k) {
     return min(a, b) - h * h * k * 0.25;
 }
 
-/// Distance to the merged silhouette of every shape.
-static float gooDistance(
+struct GooDistances {
+    float body;
+    float shadow;
+    float lift;
+};
+
+static float2 warpedPosition(
     float2 p,
-    device const float *shapes,
-    int count,
-    float blend,
     float wobble,
     float wobbleSpeed,
     float phase
 ) {
-    if (wobble > 0.0) {
-        // Rippled while the shapes are moving and still when they are at rest,
-        // because `phase` is the control's own progress rather than a clock.
-        p += wobble * float2(
-            sin(p.y * 0.06 * wobbleSpeed + phase * 6.283),
-            cos(p.x * 0.06 * wobbleSpeed + phase * 6.283)
-        );
-    }
+    if (wobble <= 0.0) return p;
+
+    return p + wobble * float2(
+        sin(p.y * 0.06 * wobbleSpeed + phase * 6.283),
+        cos(p.x * 0.06 * wobbleSpeed + phase * 6.283)
+    );
+}
+
+/// Distances for the body and its two optional lighting samples.
+///
+/// All three values share one loop and one load of each shape. The previous
+/// version ran the complete shape loop three times per pixel.
+static GooDistances gooDistances(
+    float2 position,
+    device const float *shapes,
+    int count,
+    float blend,
+    float shadowOffsetY,
+    float rimOffsetY,
+    float wobble,
+    float wobbleSpeed,
+    float phase,
+    bool needsShadow,
+    bool needsLift
+) {
+    float2 bodyPosition = warpedPosition(position, wobble, wobbleSpeed, phase);
+    float2 shadowPosition = needsShadow
+        ? warpedPosition(position - float2(0.0, shadowOffsetY), wobble, wobbleSpeed, phase)
+        : bodyPosition;
+    float2 liftPosition = needsLift
+        ? warpedPosition(position - float2(0.0, rimOffsetY), wobble, wobbleSpeed, phase)
+        : bodyPosition;
 
     // `count` is the length of the array in floats, not in shapes — SwiftUI
     // supplies it for the buffer it was handed, and knows nothing of how the
@@ -58,15 +84,33 @@ static float gooDistance(
     // that still bridges — rather than twice that.
     float k = blend * 2.0;
 
-    float d = 1e6;
+    GooDistances distances = { 1e6, 1e6, 1e6 };
     for (int i = 0; i < shapeCount; ++i) {
         int base = i * 5;
         float2 center = float2(shapes[base], shapes[base + 1]);
         float2 halfSize = float2(shapes[base + 2], shapes[base + 3]);
         float radius = shapes[base + 4];
-        d = smoothMin(d, sdRoundedBox(p - center, halfSize, radius), k);
+        distances.body = smoothMin(
+            distances.body,
+            sdRoundedBox(bodyPosition - center, halfSize, radius),
+            k
+        );
+        if (needsShadow) {
+            distances.shadow = smoothMin(
+                distances.shadow,
+                sdRoundedBox(shadowPosition - center, halfSize, radius),
+                k
+            );
+        }
+        if (needsLift) {
+            distances.lift = smoothMin(
+                distances.lift,
+                sdRoundedBox(liftPosition - center, halfSize, radius),
+                k
+            );
+        }
     }
-    return d;
+    return distances;
 }
 
 /// Coverage of the silhouette at a distance, antialiased over `softness`.
@@ -95,16 +139,30 @@ static float gooCoverage(float d, float softness) {
 ) {
     float softness = max(edgeSoftness, 0.01);
 
-    float d = gooDistance(position, shapes, count, blend, wobble, wobbleSpeed, phase);
+    bool needsShadow = shadowOpacity > 0.0001 && shadowRadius > 0.0001;
+    bool needsLift = rimSecondaryOpacity > 0.0001 && abs(rimOffsetY) > 0.0001;
+    GooDistances distances = gooDistances(
+        position,
+        shapes,
+        count,
+        blend,
+        shadowOffsetY,
+        rimOffsetY,
+        wobble,
+        wobbleSpeed,
+        phase,
+        needsShadow,
+        needsLift
+    );
+
+    float d = distances.body;
     float body = gooCoverage(d, softness);
 
     // Shadow: the band just outside the silhouette, sampled from a copy shifted
     // the other way so the light appears to come from above.
-    float dShadow = gooDistance(
-        position - float2(0.0, shadowOffsetY),
-        shapes, count, blend, wobble, wobbleSpeed, phase
-    );
-    float shadow = (1.0 - smoothstep(0.0, max(shadowRadius, 0.01), dShadow)) * shadowOpacity;
+    float shadow = needsShadow
+        ? (1.0 - smoothstep(0.0, max(shadowRadius, 0.01), distances.shadow)) * shadowOpacity
+        : 0.0;
     // Only outside the body — a shadow showing through the shape it belongs to
     // would darken the fill rather than seat it.
     shadow *= (1.0 - body);
@@ -115,11 +173,9 @@ static float gooCoverage(float d, float softness) {
     // Its offset twin. The reference subtracts a downward-shifted copy of the
     // silhouette from itself, which leaves the upper edge — a lit top rather
     // than a uniform outline.
-    float dLift = gooDistance(
-        position - float2(0.0, rimOffsetY),
-        shapes, count, blend, wobble, wobbleSpeed, phase
-    );
-    float lit = body * (1.0 - gooCoverage(dLift, softness)) * rimSecondaryOpacity;
+    float lit = needsLift
+        ? body * (1.0 - gooCoverage(distances.lift, softness)) * rimSecondaryOpacity
+        : 0.0;
 
     // Composited bottom-up, premultiplied throughout: shadow, then the fill over
     // it, then the two highlights.
@@ -131,11 +187,19 @@ static float gooCoverage(float d, float softness) {
     // `fill` arrives premultiplied, as everything in this pipeline is, so it is
     // composited as it stands. Premultiplying it again here is the reason an
     // earlier version drew a blob you could barely see.
-    half4 result = half4(0.0h, 0.0h, 0.0h, half(shadow));
-    result = result * half(1.0 - body) + fill * half(body);
-    result += half4(half3(1.0h), 1.0h) * half(rim + lit);
+    half bodyCoverage = half(body);
+    half surfaceAlpha = fill.a * bodyCoverage;
+    half3 surfaceRGB = fill.rgb * bodyCoverage;
 
-    return min(result, half4(1.0h));
+    // Brighten the surface inside its existing alpha. Adding an opaque white
+    // band changed the silhouette and produced chalky seams on translucent
+    // controls.
+    half highlight = half(saturate(rim + lit));
+    surfaceRGB = mix(surfaceRGB, half3(surfaceAlpha), highlight);
+
+    half shadowAlpha = half(shadow);
+    half outputAlpha = surfaceAlpha + shadowAlpha * (1.0h - surfaceAlpha);
+    return half4(surfaceRGB, outputAlpha);
 }
 
 /// The blur path's second half: threshold what has already been blurred.

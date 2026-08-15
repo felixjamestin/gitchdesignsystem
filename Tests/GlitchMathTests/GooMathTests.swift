@@ -72,6 +72,48 @@ struct GooMathTests {
     }
 }
 
+@Suite("Goo field geometry")
+struct GooFieldGeometryTests {
+
+    private let geometry = GlitchGooFieldGeometry(
+        fieldWidth: 260,
+        fieldHeight: 50,
+        buttonDiameter: 50,
+        reach: 1.2,
+        reservedReach: 1.5
+    )
+
+    @Test("the field keeps a stable layout while the button moves")
+    func stableLayout() {
+        #expect(geometry.stageWidth == 335)
+        #expect(geometry.capsuleCenterX == -37.5)
+        #expect(geometry.mergedButtonCenterX == 67.5)
+        #expect(geometry.expandedButtonCenterX == 127.5)
+    }
+
+    @Test("button progress starts merged and ends at the full reach")
+    func fullTravel() {
+        #expect(geometry.buttonCenterX(progress: 0) == geometry.mergedButtonCenterX)
+        #expect(geometry.buttonCenterX(progress: 1) == geometry.expandedButtonCenterX)
+        #expect(geometry.buttonCenterX(progress: 0.5) == 97.5)
+    }
+
+    @Test("progress and reserved space cannot make invalid geometry")
+    func clampsInvalidValues() {
+        let expanded = GlitchGooFieldGeometry(
+            fieldWidth: 260,
+            fieldHeight: 50,
+            buttonDiameter: 50,
+            reach: 2,
+            reservedReach: 0.5
+        )
+
+        #expect(expanded.reservedReach == 2)
+        #expect(expanded.buttonCenterX(progress: -1) == expanded.mergedButtonCenterX)
+        #expect(expanded.buttonCenterX(progress: 3) == expanded.expandedButtonCenterX)
+    }
+}
+
 /// The derivation that keeps the merged blob and the icons drawn on it in step.
 ///
 /// Worth testing rather than eyeballing: a defect here desynchronises the two
@@ -109,13 +151,28 @@ struct PathMenuClockTests {
         #expect(clock.petalProgress(master: 0.5, index: 0, count: 1, duration: 0.5, stagger: 0.2, reversed: false) == 0.5)
     }
 
-    @Test("progress never leaves nought to one")
+    @Test("normal progress stays between zero and one")
     func staysBounded() {
-        for master in stride(from: -0.5, through: 1.5, by: 0.1) {
+        for master in stride(from: -0.5, through: 1.0, by: 0.1) {
             for index in 0 ..< 6 {
                 let p = clock.petalProgress(master: master, index: index, count: 6, duration: 0.5, stagger: 0.04, reversed: false)
                 #expect(p >= 0 && p <= 1)
             }
+        }
+    }
+
+    @Test("spring overshoot reaches every settled petal")
+    func preservesSpringOvershoot() {
+        for index in 0 ..< 6 {
+            let progress = clock.petalProgress(
+                master: 1.1,
+                index: index,
+                count: 6,
+                duration: 0.5,
+                stagger: 0.04,
+                reversed: false
+            )
+            #expect(progress > 1)
         }
     }
 

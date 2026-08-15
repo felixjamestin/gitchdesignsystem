@@ -41,12 +41,13 @@ struct GlitchGooLayer: View {
     /// Which technique actually runs.
     ///
     /// Delight comes first: the merge is an embellishment, and that switch
-    /// governs embellishment. Then availability — a distance field asked for
-    /// without a compiled shader to draw it falls to the blur rather than
-    /// drawing nothing.
+    /// governs embellishment. Both merged renderers use functions from the
+    /// compiled Metal library, so a missing library must fall all the way back
+    /// to plain shapes. This keeps a missing optional effect from becoming a
+    /// draw-time failure.
     private var resolvedRenderer: GlitchGooRenderer {
         guard delight else { return .plain }
-        if style.renderer == .sdf, !GlitchShaderLibrary.isAvailable { return .blurThreshold }
+        guard GlitchShaderLibrary.isAvailable || style.renderer == .plain else { return .plain }
         return style.renderer
     }
 
@@ -80,9 +81,8 @@ struct GlitchGooLayer: View {
 
     private var distanceField: some View {
         // Opaque, not clear: a `colorEffect` only runs where the view it is
-        // attached to actually puts pixels, so the rectangle is the canvas the
-        // kernel draws over rather than an image it filters. The kernel ignores
-        // the colour it is handed.
+        // attached to puts pixels. The rectangle provides the exact small
+        // canvas that the kernel replaces; the kernel samples no source image.
         Rectangle()
             .fill(.white)
             .colorEffect(
@@ -111,8 +111,8 @@ struct GlitchGooLayer: View {
     ///
     /// Costs an offscreen composite and a full Gaussian every frame — the exact
     /// cost the rest of this system goes out of its way to avoid — so it is
-    /// never the default. It earns its place by running without a compiled
-    /// shader, and by being the only path that could merge arbitrary views.
+    /// never the default. It earns its place as the direct comparison with the
+    /// source effect, and as the only path that could merge arbitrary views.
     private var blurred: some View {
         // The silhouette is built opaque and the colour applied through it,
         // rather than the shapes being drawn in the fill colour directly.

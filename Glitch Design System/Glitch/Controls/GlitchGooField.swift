@@ -46,6 +46,7 @@ public struct GlitchGooField: View {
     @Environment(\.glitchTheme) private var theme
     @Environment(\.glitchMotion) private var motion
     @Environment(\.glitchGooStyle) private var gooStyle
+    @Environment(\.glitchGooFieldStyle) private var fieldStyle
     @Environment(\.isEnabled) private var isEnabled
 
     @Binding private var text: String
@@ -55,6 +56,8 @@ public struct GlitchGooField: View {
     private let reach: CGFloat
     private let onSubmit: () -> Void
 
+    private var widthOverride: CGFloat?
+
     @FocusState private var isFocused: Bool
     @State private var isHovering = false
 
@@ -63,7 +66,7 @@ public struct GlitchGooField: View {
         placeholder: String = "",
         trigger: GlitchGooFieldTrigger = .focus,
         submitImage: String = "arrow.right",
-        reach: CGFloat = 1,
+        reach: CGFloat = 1.55,
         onSubmit: @escaping () -> Void = {}
     ) {
         self._text = text
@@ -76,20 +79,22 @@ public struct GlitchGooField: View {
 
     // MARK: Geometry
 
-    private var height: CGFloat { theme.metrics.rowHeight * 1.15 }
-    private var buttonDiameter: CGFloat { height }
-    /// How far the button's centre sits from the capsule's trailing edge once
-    /// fully separated.
-    ///
-    /// `reach` scales it. Below about 1 the two never quite let go of each other
-    /// and the neck is permanent; above it the bridge thins until it snaps,
-    /// which is the reference's own behaviour. Which of those is right depends
-    /// on the blend it is paired with, so it is a knob rather than a constant.
-    private var detachDistance: CGFloat { buttonDiameter * 0.72 * reach }
+    private var height: CGFloat { theme.metrics.rowHeight * fieldStyle.heightScale }
+    private var buttonDiameter: CGFloat { height * fieldStyle.buttonScale }
+    private var fieldWidth: CGFloat { widthOverride ?? fieldStyle.width }
+    private var geometry: GlitchGooFieldGeometry {
+        GlitchGooFieldGeometry(
+            fieldWidth: fieldWidth,
+            fieldHeight: height,
+            buttonDiameter: buttonDiameter,
+            reach: reach,
+            reservedReach: fieldStyle.reservedReach
+        )
+    }
 
     /// `0` merged into the capsule, `1` fully separated. One animatable number
-    /// drives the button's travel, the capsule's contraction and the shapes the
-    /// goo is built from, so the blob cannot disagree with what is drawn on it.
+    /// drives the button's travel and the shapes the goo is built from, so the
+    /// blob cannot disagree with what is drawn on it.
     private var detachment: Double {
         guard isEnabled else { return 0 }
         return switch trigger {
@@ -99,19 +104,17 @@ public struct GlitchGooField: View {
         }
     }
 
-    private var capsuleWidth: CGFloat { fieldWidth - detachDistance * detachment * 0.5 }
-    /// The layout width the whole control occupies, button included.
-    private var fieldWidth: CGFloat = 260
-
     public var body: some View {
         ZStack {
             goo
             capsule
             button
         }
-        .frame(width: fieldWidth + detachDistance, height: height + gooStyle.shadowRadius * 2)
+        .frame(width: geometry.stageWidth, height: height + gooStyle.shadowRadius * 2)
+        .scaleEffect(isHovering ? fieldStyle.hoverScale : 1, anchor: .leading)
         .opacity(isEnabled ? 1 : 0.4)
         .animation(motion.glide, value: detachment)
+        .animation(motion.snap, value: isHovering)
     }
 
     // MARK: Goo
@@ -121,15 +124,15 @@ public struct GlitchGooField: View {
         GlitchGooLayer(
             shapes: [
                 .capsule(
-                    center: CGPoint(x: -detachDistance / 2, y: 0),
-                    size: CGSize(width: capsuleWidth, height: height)
+                    center: CGPoint(x: geometry.capsuleCenterX, y: 0),
+                    size: CGSize(width: fieldWidth, height: height)
                 ),
                 .circle(center: CGPoint(x: buttonOffset, y: 0), diameter: buttonDiameter),
             ],
             style: separatingStyle,
             fill: theme.palette.trackActive,
             size: CGSize(
-                width: fieldWidth + detachDistance + gooStyle.shadowRadius * 4,
+                width: geometry.stageWidth + gooStyle.shadowRadius * 4,
                 height: height + gooStyle.shadowRadius * 4
             ),
             phase: detachment
@@ -151,14 +154,9 @@ public struct GlitchGooField: View {
         return style
     }
 
-    /// Where the button sits, relative to the control's centre. At rest it is
-    /// tucked inside the capsule's trailing end, which is what gives the merge
-    /// something to pull apart.
-    private var buttonOffset: CGFloat {
-        let merged = capsuleWidth / 2 - detachDistance / 2 - buttonDiameter / 2
-        let separated = fieldWidth / 2 - detachDistance / 2 + detachDistance * 0.55
-        return merged + (separated - merged) * detachment
-    }
+    /// Where the button sits, relative to the stable stage centre. Reach moves
+    /// the button. It does not resize the text field.
+    private var buttonOffset: CGFloat { geometry.buttonCenterX(progress: detachment) }
 
     // MARK: Field
 
@@ -177,12 +175,12 @@ public struct GlitchGooField: View {
             .onSubmit(submit)
         }
         .padding(.horizontal, theme.metrics.hInset * 1.4)
-        .frame(width: capsuleWidth, height: height)
+        .frame(width: fieldWidth, height: height)
         // Only the goo draws a surface. A second one here would show through it
         // as a seam wherever the two disagreed about their edges.
         .contentShape(Capsule())
         .onTapGesture { isFocused = true }
-        .offset(x: -detachDistance / 2)
+        .offset(x: geometry.capsuleCenterX)
         .glitchHover { hovering in
             withAnimation(motion.snap) { isHovering = hovering }
         }
@@ -203,12 +201,22 @@ public struct GlitchGooField: View {
         // Below the point where it has cleared the capsule there is nothing to
         // aim at, so it neither takes the pointer nor announces itself.
         .opacity(detachment)
+        .blur(radius: (1 - detachment) * fieldStyle.iconBlur)
+        .animation(
+            detachment > 0
+                ? motion.tint.delay(fieldStyle.iconRevealDelay)
+                : motion.tint,
+            value: detachment
+        )
         .allowsHitTesting(detachment > 0.9)
         .accessibilityHidden(detachment < 0.9)
         .accessibilityLabel("Submit")
     }
 
     private func submit() {
+        if fieldStyle.dismissesOnSubmit {
+            isFocused = false
+        }
         GlitchHaptics.impact()
         GlitchSound.commit()
         onSubmit()
@@ -225,7 +233,7 @@ extension GlitchGooField {
     /// and a shape that has not been laid out yet cannot say how wide that is.
     public func glitchGooFieldWidth(_ width: CGFloat) -> Self {
         var copy = self
-        copy.fieldWidth = width
+        copy.widthOverride = width
         return copy
     }
 }

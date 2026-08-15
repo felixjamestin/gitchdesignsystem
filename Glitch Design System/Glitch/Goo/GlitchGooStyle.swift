@@ -16,9 +16,8 @@ public enum GlitchGooRenderer: String, CaseIterable, Hashable, Sendable, Identif
     case sdf
 
     /// Blur the shapes and threshold the result — a port of the SVG filter the
-    /// effect is borrowed from. Kept because it is what runs where the compiled
-    /// shader is unavailable, and because it is the only path that could ever
-    /// merge arbitrary views.
+    /// effect is borrowed from. Kept as a reference renderer and because it is
+    /// the only path that could ever merge arbitrary views.
     case blurThreshold
 
     /// No merging: the shapes are drawn as they are. What the delight switch

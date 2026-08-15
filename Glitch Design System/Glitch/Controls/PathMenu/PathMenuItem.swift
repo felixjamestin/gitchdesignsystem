@@ -46,9 +46,11 @@ public struct PathMenuPetalLabel: View {
     public var body: some View {
         Group {
             #if os(visionOS)
-            solid
+            if style.surface == .gooey { gooForeground } else { solid }
             #else
-            if #available(iOS 26.0, macOS 26.0, *), style.surface.isGlass {
+            if style.surface == .gooey {
+                gooForeground
+            } else if #available(iOS 26.0, macOS 26.0, *), style.surface.isGlass {
                 glass
             } else {
                 solid
@@ -72,6 +74,15 @@ public struct PathMenuPetalLabel: View {
             .overlay { Circle().strokeBorder(.white.opacity(0.28), lineWidth: 0.8) }
             .frame(width: style.petalDiameter, height: style.petalDiameter)
             .shadow(color: .black.opacity(0.22), radius: 5, y: 2)
+    }
+
+    /// The goo renderer owns the complete surface. A second disc here would
+    /// reveal every input circle as an internal ring.
+    private var gooForeground: some View {
+        symbol
+            .foregroundStyle(.primary)
+            .frame(width: style.petalDiameter, height: style.petalDiameter)
+            .contentShape(Circle())
     }
 
     #if !os(visionOS)
@@ -120,9 +131,11 @@ public struct PathMenuTriggerLabel: View {
 
     public var body: some View {
         #if os(visionOS)
-        solid
+        if style.surface == .gooey { gooForeground } else { solid }
         #else
-        if #available(iOS 26.0, macOS 26.0, *), style.surface.isGlass {
+        if style.surface == .gooey {
+            gooForeground
+        } else if #available(iOS 26.0, macOS 26.0, *), style.surface.isGlass {
             glass
         } else {
             solid
@@ -143,6 +156,13 @@ public struct PathMenuTriggerLabel: View {
             .overlay { symbol.foregroundStyle(.background) }
             .frame(width: style.triggerDiameter, height: style.triggerDiameter)
             .shadow(color: .black.opacity(0.28), radius: 8, y: 3)
+    }
+
+    private var gooForeground: some View {
+        symbol
+            .foregroundStyle(.primary)
+            .frame(width: style.triggerDiameter, height: style.triggerDiameter)
+            .contentShape(Circle())
     }
 
     #if !os(visionOS)

@@ -237,13 +237,17 @@ struct PathMenuPetal<Content: View>: View {
         // width even for the first petal.
         let hold = max(timeline.delay, 1e-4)
 
-        Group {
-            if let externalProgress {
-                driven(by: externalProgress, timeline)
-            } else {
-                selfAnimating(timeline, hold: hold)
+        Button(action: onTap) {
+            Group {
+                if let externalProgress {
+                    driven(by: externalProgress, timeline)
+                } else {
+                    selfAnimating(timeline, hold: hold)
+                }
             }
         }
+        .buttonStyle(.plain)
+        .disabled(!isInteractive)
         // Keeps the petal's animating geometry from propagating into the container.
         .geometryGroup()
         .onAppear { armedPhase = phase }
@@ -252,7 +256,6 @@ struct PathMenuPetal<Content: View>: View {
         // These branches are constant for the duration of a phase, and the phase and
         // the animator's trigger change together, so no identity churn mid-flight.
         .accessibilityHidden(!isInteractive)
-        .onTapGesture(perform: onTap)
         .onHover { hovering in onHover(isInteractive && hovering) }
     }
 
