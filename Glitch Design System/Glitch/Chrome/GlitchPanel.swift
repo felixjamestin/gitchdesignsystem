@@ -82,7 +82,9 @@ private struct GlitchPanelSurface<S: InsettableShape>: ViewModifier {
             content
                 .glitchSurface(shape, fill: theme.palette.panel)
                 .overlay {
-                    shape.strokeBorder(theme.palette.stroke, lineWidth: theme.metrics.borderWidth)
+                    if theme.metrics.borderWidth > 0 {
+                        shape.strokeBorder(theme.palette.stroke, lineWidth: theme.metrics.borderWidth)
+                    }
                 }
         case .transparent:
             content

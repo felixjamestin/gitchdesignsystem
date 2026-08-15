@@ -58,7 +58,10 @@ public enum GlitchThemeStyle: String, CaseIterable, Sendable, Hashable {
     public func adjust(_ metrics: inout GlitchMetrics) {
         switch self {
         case .glitch:
-            break
+            // Panels separate from the page by tone alone. The hairline that
+            // used to edge them added nothing the fill contrast wasn't already
+            // saying, and read as clutter on a dark ground.
+            metrics.borderWidth = 0
 
         case .engineering:
             // Almost no radius: these are parts milled into a chassis, not
