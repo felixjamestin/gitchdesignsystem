@@ -23,6 +23,13 @@ struct CompileGlitchShaders: BuildToolPlugin {
 
         let output = context.pluginWorkDirectoryURL.appending(path: "default.metallib")
 
+        // No `-sdk` flag: `xcrun` already honours `SDKROOT`, which Xcode sets
+        // per destination, so an iOS build compiles against the iOS SDK and a
+        // plain `swift build` falls back to macOS. Passing one explicitly would
+        // pin every platform to whichever we named.
+        //
+        // Verified on macOS only — this machine has no iOS platform installed.
+
         return [
             .buildCommand(
                 displayName: "Compiling Glitch shaders",
