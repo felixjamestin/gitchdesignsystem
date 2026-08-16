@@ -65,6 +65,7 @@ public struct GlitchSoundGrille: View {
     private let range: ClosedRange<Double>
     private let styleOverride: GlitchGrilleStyle?
     private let showsReadout: Bool
+    private let plateFill: Color?
 
     /// How wide the lit edge fades, as a fraction of the whole.
     private let edgeSoftness: Double = 0.16
@@ -73,18 +74,30 @@ public struct GlitchSoundGrille: View {
     @State private var holeBounce: CGFloat = 1
     @State private var floaters: [SoundFloater] = []
 
-    /// - Parameter showsReadout: whether the numeric reading sits below the
-    ///   face. Off where the grille is standing next to the knob that sets it
-    ///   — the number is already on screen, and printing it twice makes the
-    ///   pair read as two controls rather than one. The face keeps reporting
-    ///   either way, and so does VoiceOver.
+    /// - Parameters:
+    ///   - showsReadout: whether the numeric reading sits below the face. Off
+    ///     where the grille is standing next to the knob that sets it — the
+    ///     number is already on screen, and printing it twice makes the pair
+    ///     read as two controls rather than one. The face keeps reporting
+    ///     either way, and so does VoiceOver.
+    ///   - plateFill: what fills the plate the holes are punched through.
+    ///     Left `nil` it takes the theme's `track`, as it always has. Pass
+    ///     `.clear` to remove the plate entirely, which is what you want when
+    ///     the grille is sitting on a backdrop the caller has already drawn —
+    ///     otherwise the track wash lands on top of it and both are visible.
+    ///     A per-instance parameter rather than a palette token because two
+    ///     grilles in one panel can legitimately want different answers.
+    ///
+    ///     The `.dotted` style draws no plate at all — a hairline row of dots
+    ///     has nothing behind it — so this changes nothing there.
     public init(
         _ label: String? = "Output",
         isOn: Bool,
         volume: Double,
         in range: ClosedRange<Double> = 0...100,
         style: GlitchGrilleStyle? = nil,
-        showsReadout: Bool = true
+        showsReadout: Bool = true,
+        plateFill: Color? = nil
     ) {
         self.label = label
         self.isOn = isOn
@@ -92,6 +105,7 @@ public struct GlitchSoundGrille: View {
         self.range = range
         self.styleOverride = style
         self.showsReadout = showsReadout
+        self.plateFill = plateFill
     }
 
     private var style: GlitchGrilleStyle {
@@ -319,7 +333,7 @@ public struct GlitchSoundGrille: View {
 
     private func plate(_ shape: some Shape) -> some View {
         shape
-            .fill(theme.palette.track)
+            .fill(plateFill ?? theme.palette.track)
     }
 
     /// The universal mute slash, drawn over everything so it cannot be
@@ -465,6 +479,25 @@ private struct SoundFloaterLabel: View {
     }
     .padding(28)
     .frame(width: 620)
+    .background(GlitchPalette.dark.background)
+    .glitchTheme()
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Plate fills") {
+    // The middle one sits on a backdrop the caller drew: with the plate left
+    // to the theme, the track wash would land on top of that rectangle and
+    // both would be visible at once.
+    HStack(alignment: .top, spacing: 24) {
+        GlitchSoundGrille("Track", isOn: true, volume: 70)
+        GlitchSoundGrille("Clear", isOn: true, volume: 70, plateFill: .clear)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(.white.opacity(0.14))
+            )
+        GlitchSoundGrille("Tinted", isOn: true, volume: 70, plateFill: .indigo.opacity(0.35))
+    }
+    .padding(28)
     .background(GlitchPalette.dark.background)
     .glitchTheme()
     .preferredColorScheme(.dark)
