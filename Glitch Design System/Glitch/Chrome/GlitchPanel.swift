@@ -100,17 +100,35 @@ public struct GlitchSection<Content: View>: View {
 
     private let title: String
     private let content: Content
+    private let bottomPadding: CGFloat
+    private let collapsedBottomPadding: CGFloat?
 
     @State private var isExpanded: Bool
     @State private var isHovering = false
 
+    /// - Parameters:
+    ///   - bottomPadding: extra space below the section, *on top of* the gap
+    ///     the panel already puts between its children. The panel's stack
+    ///     spaces every pair by `metrics.spacing`; this adds to that rather
+    ///     than replacing it, so zero — the default — leaves the panel's
+    ///     rhythm exactly as it was, and small numbers go a long way.
+    ///   - collapsedBottomPadding: the same space while the section is shut.
+    ///     `nil` follows `bottomPadding`, so a section that should breathe the
+    ///     same either way needs only the one number. Give it a value when a
+    ///     shut section should sit closer to the next one than its open form
+    ///     does — a row of collapsed headers reads as a list, and a list wants
+    ///     tighter leading than a set of open panels.
     public init(
         _ title: String,
         initiallyExpanded: Bool = true,
+        bottomPadding: CGFloat = 0,
+        collapsedBottomPadding: CGFloat? = nil,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self._isExpanded = State(initialValue: initiallyExpanded)
+        self.bottomPadding = bottomPadding
+        self.collapsedBottomPadding = collapsedBottomPadding
         self.content = content()
     }
 
@@ -148,6 +166,16 @@ public struct GlitchSection<Content: View>: View {
         // squares off the track's rounded end at the one moment the control is
         // trying to say it has run out of room.
         .clipShape(GlitchRowClip())
+        // Outside the clip on purpose. This is space *between* sections, not
+        // section content — the clip's job is to hold the rows, and empty
+        // margin has no business inside it. (Inside would render the same:
+        // bottom padding grows the frame downward rather than pushing content
+        // up under the header. Outside just keeps the clip meaning one thing.)
+        //
+        // The expand toggle already runs inside `withAnimation(motion.drift)`,
+        // so when the two values differ the height change rides the same curve
+        // as the rows rather than snapping ahead of them.
+        .padding(.bottom, isExpanded ? bottomPadding : (collapsedBottomPadding ?? bottomPadding))
         .accessibilityElement(children: .contain)
     }
 
@@ -259,5 +287,33 @@ public struct GlitchDivider: View {
     .frame(width: 320)
     .background(GlitchPalette.dark.background)
     .glitchTheme()
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Section spacing and chevron") {
+    @Previewable @State var flow = 40.0
+    @Previewable @State var loop = true
+
+    // Collapse "Roomy" to watch its 24pt gap fall to 4pt on the drift curve —
+    // and hover either chevron, which is on its own tokens here rather than
+    // following the labels.
+    GlitchPanel {
+        GlitchSection("Roomy", bottomPadding: 24, collapsedBottomPadding: 4) {
+            GlitchSlider("X", value: $flow, in: -180...180)
+            GlitchSlider("Y", value: $flow, in: -180...180)
+        }
+        GlitchSection("Snug") {
+            GlitchToggle("Loop", isOn: $loop)
+        }
+    }
+    .padding(24)
+    .frame(width: 320)
+    .background(GlitchPalette.dark.background)
+    .glitchTheme(
+        colors: GlitchColors(
+            disclosure: .orange.opacity(0.45),
+            disclosureHover: .orange
+        )
+    )
     .preferredColorScheme(.dark)
 }
