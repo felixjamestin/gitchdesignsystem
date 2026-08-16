@@ -14,4 +14,10 @@ final class GlitchConfigurabilityTests: XCTestCase {
             floaterTextColor: .orange,
             floaterBackground: .black.opacity(0.6))
     }
+
+    func testSliderAcceptsEditingSwitch() {
+        _ = GlitchSlider(
+            "Volume", value: .constant(0.5), in: 0...1,
+            allowsValueEditing: false)
+    }
 }

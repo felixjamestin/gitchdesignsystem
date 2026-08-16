@@ -68,6 +68,11 @@ public struct GlitchSlider: View {
     private let decimalsOverride: Int?
     private let notchSnapping: GlitchNotchSnapping
     private let accessory: GlitchLabelAccessory
+    /// Whether the readout offers itself for typing. Off, the value can only
+    /// be reached through the track — some products want a slider to stay a
+    /// slider, and a text field appearing under a resting pointer is the kind
+    /// of surprise that decision exists to remove.
+    private let allowsValueEditing: Bool
 
     /// Movement beyond this many points turns a press into a drag.
     private let dragThreshold: CGFloat = 3
@@ -122,7 +127,8 @@ public struct GlitchSlider: View {
         step: Double = 1,
         decimals: Int? = nil,
         notches: GlitchNotchSnapping = .off,
-        accessory: GlitchLabelAccessory = .none
+        accessory: GlitchLabelAccessory = .none,
+        allowsValueEditing: Bool = true
     ) {
         self.label = label
         self._value = value
@@ -131,6 +137,7 @@ public struct GlitchSlider: View {
         self.decimalsOverride = decimals
         self.notchSnapping = notches
         self.accessory = accessory
+        self.allowsValueEditing = allowsValueEditing
     }
 
     public var body: some View {
@@ -569,7 +576,7 @@ public struct GlitchSlider: View {
                     // otherwise the only way to discover the editor.
                     if let previous = lastClickAt,
                        ContinuousClock.now - previous <= GlitchDelightTuning.doubleClickWindow,
-                       delight {
+                       delight, allowsValueEditing {
                         lastClickAt = nil
                         beginEditing()
                     } else {
@@ -823,7 +830,7 @@ public struct GlitchSlider: View {
         withAnimation(motion.tint) { isHovering = hovering }
 
         revealTask?.cancel()
-        guard hovering, isEnabled, !isEditing else {
+        guard hovering, isEnabled, !isEditing, allowsValueEditing else {
             cancelEditOffer()
             return
         }
@@ -843,6 +850,7 @@ public struct GlitchSlider: View {
     }
 
     private func beginEditing() {
+        guard allowsValueEditing else { return }
         draft = formattedValue
         isEditing = true
         isFieldFocused = true
