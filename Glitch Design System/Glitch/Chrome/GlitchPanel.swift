@@ -208,7 +208,7 @@ public struct GlitchSection<Content: View>: View {
                 .foregroundStyle(theme.palette.textPrimary)
             Spacer()
             Image(systemName: "chevron.down")
-                .font(.system(size: theme.metrics.iconSize, weight: .medium))
+                .font(.system(size: theme.metrics.disclosureSize ?? theme.metrics.iconSize, weight: .medium))
                 .foregroundStyle(
                     isHovering
                         ? (theme.palette.disclosureHover ?? theme.palette.label)

@@ -20,4 +20,11 @@ final class GlitchConfigurabilityTests: XCTestCase {
             "Volume", value: .constant(0.5), in: 0...1,
             allowsValueEditing: false)
     }
+
+    /// The token ships unset in every density preset, so existing themes
+    /// keep sizing the chevron from `iconSize` exactly as before.
+    func testDisclosureSizeDefaultsToFollowingIconSize() {
+        XCTAssertNil(GlitchMetrics.resolve(.compact, style: .film).disclosureSize)
+        XCTAssertNil(GlitchMetrics.resolve(.comfortable, style: .glitch).disclosureSize)
+    }
 }

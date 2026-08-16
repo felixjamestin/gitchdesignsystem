@@ -55,6 +55,11 @@ public struct GlitchMetrics: Equatable, Sendable {
     public var spacing: CGFloat
     public var panelPadding: CGFloat
     public var iconSize: CGFloat
+    /// Point size of the disclosure chevron on a section header. `nil`
+    /// follows `iconSize`, as it always has — a token of its own because the
+    /// chevron is an affordance rather than an icon, and a design can
+    /// reasonably want it a size the icon scale doesn't offer.
+    public var disclosureSize: CGFloat? = nil
     public var labelSize: CGFloat
     public var valueSize: CGFloat
     public var titleSize: CGFloat
