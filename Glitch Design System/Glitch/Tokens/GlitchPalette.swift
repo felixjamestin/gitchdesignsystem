@@ -34,6 +34,22 @@ public struct GlitchPalette: Equatable, Sendable {
     public var label: Color
     public var labelSecondary: Color
 
+    /// A section header's disclosure chevron, at rest and under the pointer.
+    ///
+    /// Optional where every other role is a plain colour, because the right
+    /// default here is not a colour but a relationship: left unset, the
+    /// chevron reads `labelSecondary` at rest and `label` on hover, and goes
+    /// on tracking them through every palette, every scheme and every
+    /// override. Freezing that into a literal would mean a palette that
+    /// retunes its labels leaves the chevron behind.
+    ///
+    /// Set these only when the chevron should stop following the labels — a
+    /// brand colour on the disclosure, say. Set both: the pair is what makes
+    /// the header read as something you can press, and a rest colour with the
+    /// old hover colour under it lands somewhere neither was designed for.
+    public var disclosure: Color? = nil
+    public var disclosureHover: Color? = nil
+
     public var stroke: Color
 
     /// Used only for focus rings and any opt-in tinting. Neutral by default so
@@ -130,6 +146,8 @@ public struct GlitchPalette: Equatable, Sendable {
 ///   `trackActive` as its two raised states.
 /// - `label` / `textPrimary` / `labelSecondary` — text, in descending
 ///   prominence.
+/// - `disclosure` / `disclosureHover` — a section header's chevron, for when
+///   it should stop following the labels.
 public struct GlitchColors: Equatable, Sendable {
     public var background: Color?
     public var panel: Color?
@@ -147,6 +165,9 @@ public struct GlitchColors: Equatable, Sendable {
     public var textPrimary: Color?
     public var label: Color?
     public var labelSecondary: Color?
+
+    public var disclosure: Color?
+    public var disclosureHover: Color?
 
     public var stroke: Color?
 
@@ -177,7 +198,9 @@ public struct GlitchColors: Equatable, Sendable {
         danger: Color? = nil,
         selectionFill: Color? = nil,
         onSelection: Color? = nil,
-        onFill: Color? = nil
+        onFill: Color? = nil,
+        disclosure: Color? = nil,
+        disclosureHover: Color? = nil
     ) {
         self.background = background
         self.panel = panel
@@ -198,6 +221,8 @@ public struct GlitchColors: Equatable, Sendable {
         self.selectionFill = selectionFill
         self.onSelection = onSelection
         self.onFill = onFill
+        self.disclosure = disclosure
+        self.disclosureHover = disclosureHover
     }
 
     /// Nothing overridden.
@@ -224,6 +249,8 @@ public struct GlitchColors: Equatable, Sendable {
         if let selectionFill { result.selectionFill = selectionFill }
         if let onSelection { result.onSelection = onSelection }
         if let onFill { result.onFill = onFill }
+        if let disclosure { result.disclosure = disclosure }
+        if let disclosureHover { result.disclosureHover = disclosureHover }
         return result
     }
 }

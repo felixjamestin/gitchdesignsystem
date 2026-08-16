@@ -182,7 +182,9 @@ public struct GlitchSection<Content: View>: View {
             Image(systemName: "chevron.down")
                 .font(.system(size: theme.metrics.iconSize, weight: .medium))
                 .foregroundStyle(
-                    isHovering ? theme.palette.label : theme.palette.labelSecondary
+                    isHovering
+                        ? (theme.palette.disclosureHover ?? theme.palette.label)
+                        : (theme.palette.disclosure ?? theme.palette.labelSecondary)
                 )
                 .rotationEffect(.degrees(isExpanded ? 0 : -90))
         }

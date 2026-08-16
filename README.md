@@ -219,6 +219,7 @@ The roles you'll reach for first:
 | `panel` | The panel itself — the system's one opaque surface |
 | `track` | Every control's resting surface (`trackHover`, `trackActive` are its raised states) |
 | `label` | Control labels (`textPrimary` for emphasis, `labelSecondary` for captions) |
+| `disclosure` / `disclosureHover` | A section header's chevron; unset, it follows `labelSecondary` and `label` |
 | `handle` | Slider handles, dial pointers, lit grille holes |
 | `stroke` | Borders, in the styles that draw them |
 | `selectionFill` / `onSelection` | A segmented pill and its text |
