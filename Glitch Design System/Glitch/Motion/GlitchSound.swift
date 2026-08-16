@@ -37,7 +37,7 @@ public final class GlitchSound {
     /// little vibrato and an amplitude decay — which is enough for a click, a
     /// beep and, with a slow sweep up and back down, something that reads as a
     /// small animal.
-    private struct Recipe {
+    struct Recipe {
         /// Pitch at the start, and where it heads.
         var start: Double
         var end: Double
@@ -68,7 +68,7 @@ public final class GlitchSound {
         }
     }
 
-    private enum Voice: Hashable, CaseIterable {
+    enum Voice: Hashable, CaseIterable {
         // The working vocabulary.
         case tick, commit, reject
         // The playful one, for when someone pokes the speaker.
@@ -281,7 +281,17 @@ public final class GlitchSound {
     /// with a moving frequency the second form is wrong — it jumps the phase
     /// every time the pitch changes, and a sweep built that way clicks its way
     /// up the scale instead of gliding.
-    private nonisolated static func render(
+    /// Scales every rendered voice above the level the recipes were authored
+    /// at, matching the Glitch Sound FX library's convention: boost until the
+    /// loudest voice lands just under the peak ceiling. The loudest recipe
+    /// (`meow`, level 0.13) × 5.5 sits just below 0.72, which is the same
+    /// ceiling that library limits to — so at equal volume settings the two
+    /// systems speak at the same level.
+    nonisolated static let outputBoost: Float = 5.5
+    /// The most any rendered sample may reach, after the boost.
+    nonisolated static let peakCeiling: Float = 0.72
+
+    nonisolated static func render(
         _ recipe: Recipe,
         format: AVAudioFormat
     ) -> AVAudioPCMBuffer? {
@@ -326,6 +336,18 @@ public final class GlitchSound {
             let envelope = exp(-decay * t) * attack
 
             channel[frame] = Float((tone + noise) * envelope) * recipe.level
+        }
+
+        // Boosted after synthesis, and limited per buffer rather than trusting
+        // the levels: a retuned recipe must never be able to clip.
+        var peak: Float = 0
+        for frame in 0..<Int(frames) {
+            peak = max(peak, abs(channel[frame]))
+        }
+        let boosted = peak * outputBoost
+        let gain = boosted > peakCeiling ? peakCeiling / peak : outputBoost
+        for frame in 0..<Int(frames) {
+            channel[frame] *= gain
         }
         return buffer
     }
