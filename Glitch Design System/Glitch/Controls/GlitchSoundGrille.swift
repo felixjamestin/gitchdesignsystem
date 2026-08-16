@@ -66,6 +66,9 @@ public struct GlitchSoundGrille: View {
     private let styleOverride: GlitchGrilleStyle?
     private let showsReadout: Bool
     private let plateFill: Color?
+    private let floaterFontSize: CGFloat?
+    private let floaterTextColor: Color?
+    private let floaterBackground: Color?
 
     /// How wide the lit edge fades, as a fraction of the whole.
     private let edgeSoftness: Double = 0.16
@@ -90,6 +93,14 @@ public struct GlitchSoundGrille: View {
     ///
     ///     The `.dotted` style draws no plate at all — a hairline row of dots
     ///     has nothing behind it — so this changes nothing there.
+    ///   - floaterFontSize: point size of the word that floats off a poke.
+    ///     `nil` follows the theme, a shade under the label size — the word is
+    ///     an aside, and it is competing with the control it came out of.
+    ///   - floaterTextColor: the word's colour. `nil` is white, which reads on
+    ///     the dark capsule regardless of theme.
+    ///   - floaterBackground: what fills the capsule behind the word. `nil` is
+    ///     a translucent black. Per-instance for the same reason `plateFill`
+    ///     is: the right answer depends on what the grille is sitting on.
     public init(
         _ label: String? = "Output",
         isOn: Bool,
@@ -97,7 +108,10 @@ public struct GlitchSoundGrille: View {
         in range: ClosedRange<Double> = 0...100,
         style: GlitchGrilleStyle? = nil,
         showsReadout: Bool = true,
-        plateFill: Color? = nil
+        plateFill: Color? = nil,
+        floaterFontSize: CGFloat? = nil,
+        floaterTextColor: Color? = nil,
+        floaterBackground: Color? = nil
     ) {
         self.label = label
         self.isOn = isOn
@@ -106,6 +120,9 @@ public struct GlitchSoundGrille: View {
         self.styleOverride = style
         self.showsReadout = showsReadout
         self.plateFill = plateFill
+        self.floaterFontSize = floaterFontSize
+        self.floaterTextColor = floaterTextColor
+        self.floaterBackground = floaterBackground
     }
 
     private var style: GlitchGrilleStyle {
@@ -123,7 +140,11 @@ public struct GlitchSoundGrille: View {
                 .overlay(alignment: .center) {
                     ZStack {
                         ForEach(floaters) { floater in
-                            SoundFloaterLabel(floater: floater)
+                            SoundFloaterLabel(
+                                floater: floater,
+                                fontSize: floaterFontSize,
+                                textColor: floaterTextColor,
+                                background: floaterBackground)
                         }
                     }
                     .offset(y: -theme.metrics.rowHeight * 0.55)
@@ -430,6 +451,9 @@ private struct SoundFloaterLabel: View {
     @Environment(\.glitchMotion) private var motion
 
     let floater: SoundFloater
+    var fontSize: CGFloat?
+    var textColor: Color?
+    var background: Color?
 
     @State private var hasFlown = false
     @State private var hasFaded = false
@@ -439,15 +463,15 @@ private struct SoundFloaterLabel: View {
             // Smaller than a readout: this is an aside, and it is competing
             // with the control it just came out of.
             .font(.system(
-                size: max(8, theme.metrics.labelSize - 3),
+                size: fontSize ?? max(8, theme.metrics.labelSize - 3),
                 weight: .semibold,
                 design: .monospaced
             ))
-            .foregroundStyle(.white)
+            .foregroundStyle(textColor ?? .white)
             .lineLimit(1)
             .padding(.horizontal, 7)
             .padding(.vertical, 2.5)
-            .background(Capsule().fill(.black.opacity(0.4)))
+            .background(Capsule().fill(background ?? .black.opacity(0.4)))
             .scaleEffect(hasFlown ? floater.endScale : floater.startScale)
             .rotationEffect(.degrees(hasFlown ? floater.tilt : 0))
             .offset(x: hasFlown ? floater.drift : 0, y: hasFlown ? floater.rise : 0)
