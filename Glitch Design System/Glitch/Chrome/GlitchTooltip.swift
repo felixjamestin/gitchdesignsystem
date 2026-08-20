@@ -20,7 +20,11 @@ public enum GlitchLabelAccessory: Equatable, Sendable {
 
     /// A symbol that reveals `text` when asked — tapped anywhere, and also
     /// hovered where there is a pointer.
-    case info(String, symbol: String = "info.circle")
+    ///
+    /// Filled rather than outlined: at label size the thin ring reads as a
+    /// smudge beside a word, and the glyph has to survive being the smallest
+    /// hittable thing on the row.
+    case info(String, symbol: String = "info.circle.fill")
 
     /// The explanation, where there is one.
     ///
@@ -105,11 +109,9 @@ private struct GlitchTooltipLayer: ViewModifier {
                                 height: max(0, glyph.minY - gap),
                                 alignment: .bottomLeading
                             )
-                            .transition(
-                                .offset(y: 8)
-                                .combined(with: .opacity)
-                                .animation(motion.drift)
-                            )
+                            // The arrival lives in the bubble itself: the
+                            // lean it takes is rolled there, and a transition
+                            // declared out here could not see it.
                     }
                 }
                 .allowsHitTesting(false)
@@ -155,6 +157,8 @@ extension View {
 /// point.
 struct GlitchTooltip: View {
     @Environment(\.glitchTheme) private var theme
+    @Environment(\.glitchMotion) private var motion
+    @Environment(\.glitchTooltipStyle) private var style
 
     /// Wide enough for a sentence or two, narrow enough to stay a tooltip
     /// rather than becoming a paragraph.
@@ -162,12 +166,27 @@ struct GlitchTooltip: View {
 
     let text: String
 
+    /// Where this one lands inside the tilt budget, and how far it slides in
+    /// from, both as fractions of what `GlitchMotion` allows.
+    ///
+    /// Rolled once, when the bubble is built — which is once per appearance,
+    /// since the layer drops it between showings. Rolling anywhere else would
+    /// either fix every tooltip at the same angle or re-roll it on every
+    /// redraw, and the second reads as a shiver rather than a landing.
+    @State private var lean = Double.random(in: -1...1)
+    @State private var slip = Double.random(in: -1...1)
+
     var body: some View {
         let metrics = theme.metrics
+        let shape = RoundedRectangle(
+            cornerRadius: style.cornerRadius ?? metrics.controlRadius,
+            style: .continuous
+        )
 
         Text(text)
-            .font(GlitchType.label(theme))
-            .foregroundStyle(theme.palette.textPrimary)
+            .font(style.font(theme))
+            .tracking(style.tracking)
+            .foregroundStyle(style.textColour ?? theme.palette.textPrimary)
             .multilineTextAlignment(.leading)
             // Wraps at whatever width the layer proposes and takes the height
             // that wrapping needs; the bubble is then simply the padded
@@ -175,24 +194,100 @@ struct GlitchTooltip: View {
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, max(metrics.hInset, 12))
             .padding(.vertical, max(metrics.hInset * 0.7, 8))
-            .background {
-                let shape = RoundedRectangle(
-                    cornerRadius: metrics.controlRadius,
-                    style: .continuous
-                )
-                // Two layers, because one is not reliably enough. `panel` is
-                // the same colour as `background` in the film style, so a
-                // tooltip over a panel would be invisible; `trackActive` on
-                // top of it guarantees a step in tone against whatever it
-                // covers, in every style.
-                shape
-                    .fill(theme.palette.panel)
-                    .overlay { shape.fill(theme.palette.trackActive) }
-                    .shadow(color: .black.opacity(0.28), radius: 12, y: 4)
+            .background { background(shape) }
+            .overlay {
+                if let stroke = style.stroke {
+                    shape.strokeBorder(stroke, lineWidth: style.strokeWidth)
+                }
             }
+            .shadow(color: .black.opacity(0.28), radius: 12, y: 4)
             // Read out by the control's accessibility hint instead, so a screen
             // reader hears the explanation once rather than twice.
             .accessibilityHidden(true)
+            // It keeps its lean at rest rather than straightening up. A bubble
+            // that lands crooked and stays that way reads as a thing that was
+            // put there; one that settles level reads as a thing that was
+            // drawn there.
+            .transition(
+                .modifier(
+                    active: GlitchTooltipArrival(
+                        progress: 0, lean: lean, slip: slip, tilt: motion.arrivalTilt
+                    ),
+                    identity: GlitchTooltipArrival(
+                        progress: 1, lean: lean, slip: slip, tilt: motion.arrivalTilt
+                    )
+                )
+                .animation(motion.bounce)
+            )
+    }
+
+    /// The bubble's own surface.
+    ///
+    /// Its own switch rather than `glitchSurface`, which reads the surface off
+    /// the theme: a tooltip picks its own, so that a page on flat controls can
+    /// still float glass over them.
+    ///
+    /// The solid case is two layers, because one is not reliably enough:
+    /// `panel` is the same colour as `background` in the film style, so a
+    /// tooltip over a panel would be invisible; `trackActive` on top of it
+    /// guarantees a step in tone against whatever it covers, in every style.
+    @ViewBuilder
+    private func background(_ shape: RoundedRectangle) -> some View {
+        let fill = style.resolvedFill(theme)
+
+        switch style.surface {
+        case .solid:
+            shape
+                .fill(fill ?? theme.palette.panel)
+                .overlay { shape.fill(theme.palette.trackActive) }
+        case .glass(let variant):
+            switch variant {
+            case .regular:
+                Color.clear.glassEffect(glass(.regular, tint: fill), in: shape)
+            case .clear:
+                Color.clear.glassEffect(glass(.clear, tint: fill), in: shape)
+            }
+        case .blurred:
+            shape.fill(.thinMaterial)
+                .overlay { if let fill { shape.fill(fill) } }
+        }
+    }
+
+    /// Tinted only when asked. An untinted clear glass is the whole reason
+    /// `fill` is optional — tinting it with a panel colour by default would
+    /// make every "clear" tooltip a frosted one.
+    private func glass(_ base: Glass, tint: Color?) -> Glass {
+        guard let tint else { return base }
+        return base.tint(tint)
+    }
+}
+
+/// The bubble's arrival, as one interpolable state.
+///
+/// A modifier transition rather than a stack of `.scale`/`.offset`/`.opacity`
+/// ones, because those compose as separate effects and each would need its own
+/// anchor to agree with the others. Here one `progress` drives all four, and
+/// the anchor is stated once.
+private struct GlitchTooltipArrival: ViewModifier {
+    var progress: Double
+    /// −1…1, the fraction of the tilt budget this bubble took.
+    var lean: Double
+    /// −1…1, the fraction of the slide it came in on.
+    var slip: Double
+    /// The budget itself, in degrees. Zero under Reduce Motion.
+    var tilt: Double
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(0.86 + 0.14 * progress, anchor: .top)
+            // Leans further out on the way in than it will keep, so the spring
+            // has an angle to overshoot through rather than only a position.
+            .rotationEffect(
+                .degrees(lean * tilt * (2.6 - 1.6 * progress)),
+                anchor: .top
+            )
+            .offset(x: slip * tilt * (1 - progress) * 2, y: (1 - progress) * 10)
+            .opacity(progress)
     }
 }
 

@@ -40,6 +40,22 @@ public struct GlitchMotion: Equatable, Sendable {
     public var float: Animation
     /// Color and opacity crossfades only. (ease-out 0.15s)
     public var tint: Animation
+    /// Something small arriving under its own steam and landing with a kick.
+    ///
+    /// The bounciest token in the system, and deliberately so: it is for
+    /// things that appear beside what you are already looking at — a tooltip,
+    /// a badge — where the overshoot is what draws the eye without a colour
+    /// change or a sound. Too much for anything you have to read immediately
+    /// afterwards at a fixed position, which is why `drift` still exists.
+    public var bounce: Animation
+
+    /// How far, in degrees, something arriving on `bounce` may lean.
+    ///
+    /// A budget rather than an angle: whatever arrives picks its own lean
+    /// inside it, so no two arrivals are quite alike. Zero under Reduce
+    /// Motion, which is what turns the whole effect back into a fade without
+    /// any component testing for it.
+    public var arrivalTilt: Double
 
     /// Seconds between one staggered sibling and the next. Zero under Reduce
     /// Motion, which collapses a stagger into a single simultaneous change.
@@ -68,7 +84,8 @@ public struct GlitchMotion: Equatable, Sendable {
             let flat = Animation.easeOut(duration: 0.10 * s)
             return GlitchMotion(
                 snap: flat, glide: flat, pop: flat, drift: flat, travel: flat,
-                float: flat, tint: flat,
+                float: flat, tint: flat, bounce: flat,
+                arrivalTilt: 0,
                 staggerDelay: 0,
                 travelSpring: Spring(duration: 0.10 * s, bounce: 0)
             )
@@ -86,6 +103,12 @@ public struct GlitchMotion: Equatable, Sendable {
             travel: .spring(duration: 0.46 * s, bounce: 0.26),
             float: .spring(duration: 0.85 * s, bounce: 0.10),
             tint: .easeOut(duration: 0.15 * s),
+            // A spring at a damping ratio of about 0.58 — one clear overshoot
+            // and done. Past the 0.34 the rest of the system tops out at,
+            // because the things this carries are small: the same bounce that
+            // reads as unstable on a panel reads as spirited on a bubble.
+            bounce: .spring(duration: 0.36 * s, bounce: 0.42),
+            arrivalTilt: 2.5,
             staggerDelay: 0.035 * s,
             travelSpring: Spring(duration: 0.46 * s, bounce: 0.26)
         )
