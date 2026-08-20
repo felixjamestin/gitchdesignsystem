@@ -18,7 +18,34 @@ import SwiftUI
 /// .glitchTooltipStyle(GlitchTooltipStyle(surface: .solid, fill: .black, fillOpacity: 0.8))
 /// .glitchTooltipStyle(GlitchTooltipStyle(size: 13, tracking: 0, stroke: .white.opacity(0.15)))
 /// ```
+/// The outline a tooltip is cut to.
+public enum GlitchTooltipShape: String, CaseIterable, Sendable, Hashable {
+    /// Hard corners. Reads as a label rather than a bubble.
+    case rectangle
+    /// The theme's control radius, matching the parts underneath it.
+    case roundedRectangle
+    /// Fully round ends. Wants a single line of text — a pill that wraps to
+    /// three lines has a lot of empty corner.
+    case pill
+    /// A scalloped bubble, re-rolled on every appearance. See
+    /// `GlitchThoughtCloud`.
+    case thoughtCloud
+
+    public var title: String {
+        switch self {
+        case .rectangle: "Rectangle"
+        case .roundedRectangle: "Rounded"
+        case .pill: "Pill"
+        case .thoughtCloud: "Thought cloud"
+        }
+    }
+}
+
 public struct GlitchTooltipStyle: Equatable, Sendable {
+    /// The outline. `thoughtCloud` takes a new set of lobes each time a
+    /// tooltip appears; the rest are fixed.
+    public var shape: GlitchTooltipShape
+
     /// What the bubble is made of: a flat fill, either glass, or the
     /// platform's blur material.
     public var surface: GlitchSurface
@@ -53,6 +80,7 @@ public struct GlitchTooltipStyle: Equatable, Sendable {
     public var cornerRadius: CGFloat?
 
     public init(
+        shape: GlitchTooltipShape = .roundedRectangle,
         surface: GlitchSurface = .glass(.clear),
         fill: Color? = nil,
         fillOpacity: Double = 1,
@@ -65,6 +93,7 @@ public struct GlitchTooltipStyle: Equatable, Sendable {
         strokeWidth: CGFloat = 1,
         cornerRadius: CGFloat? = nil
     ) {
+        self.shape = shape
         self.surface = surface
         self.fill = fill
         self.fillOpacity = fillOpacity
@@ -87,6 +116,33 @@ public struct GlitchTooltipStyle: Equatable, Sendable {
             return .system(size: size, weight: weight, design: theme.typography.labelDesign)
         }
         return .custom(face, size: size).weight(weight)
+    }
+
+    /// The outline itself, ready to fill, stroke and clip glass to.
+    ///
+    /// Type-erased because the four cases are four different shape types and a
+    /// tooltip has to pick between them at runtime. `GlitchAnyInsettableShape` rather
+    /// than `AnyShape` because the stroke is drawn with `strokeBorder`, which
+    /// keeps the hairline inside the bubble instead of straddling its edge.
+    ///
+    /// `seed` is only read by the cloud. The caller re-rolls it per appearance,
+    /// which is what makes that case randomized rather than merely irregular.
+    public func resolvedShape(_ theme: GlitchTheme, seed: UInt64) -> GlitchAnyInsettableShape {
+        switch shape {
+        case .rectangle:
+            GlitchAnyInsettableShape(Rectangle())
+        case .roundedRectangle:
+            GlitchAnyInsettableShape(
+                RoundedRectangle(
+                    cornerRadius: cornerRadius ?? theme.metrics.controlRadius,
+                    style: .continuous
+                )
+            )
+        case .pill:
+            GlitchAnyInsettableShape(Capsule())
+        case .thoughtCloud:
+            GlitchAnyInsettableShape(GlitchThoughtCloud(seed: seed))
+        }
     }
 
     /// What the surface is handed to draw with, once opacity is folded in.

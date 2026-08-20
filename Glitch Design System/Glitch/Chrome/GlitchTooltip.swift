@@ -175,13 +175,13 @@ struct GlitchTooltip: View {
     /// redraw, and the second reads as a shiver rather than a landing.
     @State private var lean = Double.random(in: -1...1)
     @State private var slip = Double.random(in: -1...1)
+    /// Which cloud this showing is, when the style asks for one. Rolled beside
+    /// the lean, and for the same reason.
+    @State private var cloudSeed = UInt64.random(in: .min ... .max)
 
     var body: some View {
         let metrics = theme.metrics
-        let shape = RoundedRectangle(
-            cornerRadius: style.cornerRadius ?? metrics.controlRadius,
-            style: .continuous
-        )
+        let shape = style.resolvedShape(theme, seed: cloudSeed)
 
         Text(text)
             .font(style.font(theme))
@@ -232,7 +232,7 @@ struct GlitchTooltip: View {
     /// tooltip over a panel would be invisible; `trackActive` on top of it
     /// guarantees a step in tone against whatever it covers, in every style.
     @ViewBuilder
-    private func background(_ shape: RoundedRectangle) -> some View {
+    private func background(_ shape: GlitchAnyInsettableShape) -> some View {
         let fill = style.resolvedFill(theme)
 
         switch style.surface {
