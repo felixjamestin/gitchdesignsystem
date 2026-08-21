@@ -180,7 +180,6 @@ struct GlitchTooltip: View {
     @State private var cloudSeed = UInt64.random(in: .min ... .max)
 
     var body: some View {
-        let metrics = theme.metrics
         let shape = style.resolvedShape(theme, seed: cloudSeed)
 
         Text(text)
@@ -192,8 +191,8 @@ struct GlitchTooltip: View {
             // that wrapping needs; the bubble is then simply the padded
             // bounds of the result. No second measurement to disagree with.
             .fixedSize(horizontal: false, vertical: true)
-            .padding(.horizontal, max(metrics.hInset, 12))
-            .padding(.vertical, max(metrics.hInset * 0.7, 8))
+            .padding(.horizontal, style.resolvedHorizontalPadding(theme))
+            .padding(.vertical, style.resolvedVerticalPadding(theme))
             .background { background(shape) }
             .overlay {
                 if let stroke = style.stroke {

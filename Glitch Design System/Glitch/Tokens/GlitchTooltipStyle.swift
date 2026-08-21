@@ -79,6 +79,15 @@ public struct GlitchTooltipStyle: Equatable, Sendable {
     /// `nil` follows the theme's control radius.
     public var cornerRadius: CGFloat?
 
+    /// The air around the text. `nil` follows the theme's own inset, which is
+    /// what every other part of the system is spaced by.
+    ///
+    /// Worth setting by hand for a pill: round ends eat the corners, so a
+    /// capsule needs more horizontal room than a rounded rectangle to keep the
+    /// first and last letter off the curve.
+    public var horizontalPadding: CGFloat?
+    public var verticalPadding: CGFloat?
+
     public init(
         shape: GlitchTooltipShape = .roundedRectangle,
         surface: GlitchSurface = .glass(.clear),
@@ -91,7 +100,9 @@ public struct GlitchTooltipStyle: Equatable, Sendable {
         textColour: Color? = nil,
         stroke: Color? = nil,
         strokeWidth: CGFloat = 1,
-        cornerRadius: CGFloat? = nil
+        cornerRadius: CGFloat? = nil,
+        horizontalPadding: CGFloat? = nil,
+        verticalPadding: CGFloat? = nil
     ) {
         self.shape = shape
         self.surface = surface
@@ -105,6 +116,21 @@ public struct GlitchTooltipStyle: Equatable, Sendable {
         self.stroke = stroke
         self.strokeWidth = strokeWidth
         self.cornerRadius = cornerRadius
+        self.horizontalPadding = horizontalPadding
+        self.verticalPadding = verticalPadding
+    }
+
+    /// The padding actually applied, theme fallbacks folded in.
+    ///
+    /// Public for the same reason `resolvedFill` is: an app drawing a tooltip
+    /// of its own should land on the same numbers rather than re-deriving the
+    /// fallbacks and drifting from them.
+    public func resolvedHorizontalPadding(_ theme: GlitchTheme) -> CGFloat {
+        horizontalPadding ?? max(theme.metrics.hInset, 12)
+    }
+
+    public func resolvedVerticalPadding(_ theme: GlitchTheme) -> CGFloat {
+        verticalPadding ?? max(theme.metrics.hInset * 0.7, 8)
     }
 
     /// The bubble's own font, resolved the same way every other role is: a
