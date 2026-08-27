@@ -14,6 +14,7 @@ public struct GlitchStepper: View {
     @Binding private var value: Double
     private let range: ClosedRange<Double>
     private let step: Double
+    private let stepOrigin: Double?
     private let decimals: Int
     private let accessory: GlitchLabelAccessory
 
@@ -26,6 +27,7 @@ public struct GlitchStepper: View {
         value: Binding<Double>,
         in range: ClosedRange<Double> = 0...100,
         step: Double = 1,
+        stepOrigin: Double? = nil,
         decimals: Int = 0,
         accessory: GlitchLabelAccessory = .none
     ) {
@@ -33,6 +35,7 @@ public struct GlitchStepper: View {
         self._value = value
         self.range = range
         self.step = step
+        self.stepOrigin = stepOrigin
         self.decimals = decimals
         self.accessory = accessory
     }
@@ -107,7 +110,12 @@ public struct GlitchStepper: View {
     /// half-finished transitions and turn the number into a smear. Held
     /// repeats set the value outright, which also reads as more responsive.
     private func adjust(by delta: Double, animated: Bool = true) {
-        let next = GlitchValueMath.snap(value + delta, step: step, in: range)
+        let next = GlitchValueMath.snap(
+            value + delta,
+            step: step,
+            origin: stepOrigin,
+            in: range
+        )
         guard next != value else {
             stopRepeating()
             GlitchHaptics.limit()

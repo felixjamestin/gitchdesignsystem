@@ -76,6 +76,13 @@ struct GlitchValueMathTests {
         #expect(GlitchValueMath.snap(7, step: 5, in: 1...100) == 6)
     }
 
+    @Test("snap can measure steps from a separate origin")
+    func snapUsesExplicitOrigin() {
+        #expect(GlitchValueMath.snap(6, step: 5, origin: 0, in: 1...240) == 5)
+        #expect(GlitchValueMath.snap(10, step: 5, origin: 0, in: 1...240) == 10)
+        #expect(GlitchValueMath.snap(0, step: 5, origin: 0, in: 1...240) == 1)
+    }
+
     @Test("snap never leaves the range, even when a step would")
     func snapStaysInRange() {
         #expect(GlitchValueMath.snap(99, step: 10, in: 0...95) == 95)

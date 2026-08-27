@@ -36,16 +36,18 @@ public enum GlitchValueMath {
         return clamp(x / width, to: 0...1)
     }
 
-    /// Rounds `v` to the nearest multiple of `step`, measured from the range's
-    /// lower bound, then constrains the result to `range`.
-    ///
-    /// The range wins: when the nearest step falls outside it, the clamped
-    /// bound is returned even though it is not a multiple of `step`.
-    /// A non-positive `step` means "continuous" and only clamps.
-    public static func snap(_ v: Double, step: Double, in range: ClosedRange<Double>) -> Double {
+    /* Snap `v` to the nearest step from `origin` and keep the result in `range`.
+    When `origin` is nil, use the range lower bound, and only clamp when `step` is not positive. */
+    public static func snap(
+        _ v: Double,
+        step: Double,
+        origin: Double? = nil,
+        in range: ClosedRange<Double>
+    ) -> Double {
         guard step > 0 else { return clamp(v, to: range) }
-        let steps = ((v - range.lowerBound) / step).rounded()
-        return clamp(range.lowerBound + steps * step, to: range)
+        let resolvedOrigin = origin ?? range.lowerBound
+        let steps = ((v - resolvedOrigin) / step).rounded()
+        return clamp(resolvedOrigin + steps * step, to: range)
     }
 
     /// How far the track itself stretches when the pointer is dragged beyond
