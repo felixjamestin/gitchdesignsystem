@@ -421,7 +421,24 @@ public struct GlitchSoundGrille: View {
 /// The point is that two pokes never look the same: a decoration that replays
 /// identically stops being noticed after the third time, and the whole reason
 /// to put a word on screen is that someone keeps pressing the thing.
-private struct SoundFloater: Identifiable, Equatable {
+/// When the word disappears, as fractions of its own flight.
+///
+/// The fade is a property of the flight, not of the container: opacity
+/// reaches zero at ~60 % of the climb, so the word evaporates mid-air and
+/// can never be sliced by a clipping edge above the grille — wherever the
+/// grille happens to be sitting.
+enum SoundFloaterTiming {
+    /// Mirrors the `motion.float` token's duration at speed 1.
+    static let flightBase: TimeInterval = 0.85
+    /// How long the word stays fully readable before the fade begins.
+    static let fadeDelayFraction: Double = 0.18
+    /// How long the fade itself runs.
+    static let fadeDurationFraction: Double = 0.42
+    /// Where in the flight the word is fully gone.
+    static var fadeEndFraction: Double { fadeDelayFraction + fadeDurationFraction }
+}
+
+struct SoundFloater: Identifiable, Equatable {
     let id = UUID()
     let text: String
     let drift: CGFloat
@@ -479,11 +496,18 @@ private struct SoundFloaterLabel: View {
             .onAppear {
                 // Two animations rather than one: sharing the flight's curve
                 // would fade the word out over the whole climb, and it needs
-                // to be readable for the first half of it.
+                // to be readable for the first stretch of it.
                 withAnimation(motion.float.speed(floater.speed)) { hasFlown = true }
-                withAnimation(motion.float.speed(floater.speed * 1.3).delay(0.22)) {
-                    hasFaded = true
-                }
+
+                // The fade is timed off the flight and ends at ~60 % of it —
+                // `easeIn` holds the word readable, then accelerates it to
+                // nothing while it is still mid-air, clear of any container
+                // edge that would otherwise slice it.
+                let flight = SoundFloaterTiming.flightBase / floater.speed
+                withAnimation(
+                    .easeIn(duration: flight * SoundFloaterTiming.fadeDurationFraction)
+                        .delay(flight * SoundFloaterTiming.fadeDelayFraction)
+                ) { hasFaded = true }
             }
     }
 }
