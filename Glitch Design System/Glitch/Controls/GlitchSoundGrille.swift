@@ -66,6 +66,7 @@ public struct GlitchSoundGrille: View {
     private let styleOverride: GlitchGrilleStyle?
     private let showsReadout: Bool
     private let plateFill: Color?
+    private let ramp: [Color]?
     private let floaterFontSize: CGFloat?
     private let floaterTextColor: Color?
     private let floaterBackground: Color?
@@ -93,6 +94,12 @@ public struct GlitchSoundGrille: View {
     ///
     ///     The `.dotted` style draws no plate at all — a hairline row of dots
     ///     has nothing behind it — so this changes nothing there.
+    ///   - ramp: colours the lit holes run through, darkest first, from the
+    ///     centre of the field outward. `nil` keeps the single accent every
+    ///     grille has used until now. Pass a ramp where the palette a page is
+    ///     built on has more than one colour worth showing — the reading is
+    ///     unchanged, since level still decides how far the light reaches; the
+    ///     ramp only decides what colour arrives when it does.
     ///   - floaterFontSize: point size of the word that floats off a poke.
     ///     `nil` follows the theme, a shade under the label size — the word is
     ///     an aside, and it is competing with the control it came out of.
@@ -109,6 +116,7 @@ public struct GlitchSoundGrille: View {
         style: GlitchGrilleStyle? = nil,
         showsReadout: Bool = true,
         plateFill: Color? = nil,
+        ramp: [Color]? = nil,
         floaterFontSize: CGFloat? = nil,
         floaterTextColor: Color? = nil,
         floaterBackground: Color? = nil
@@ -120,6 +128,7 @@ public struct GlitchSoundGrille: View {
         self.styleOverride = style
         self.showsReadout = showsReadout
         self.plateFill = plateFill
+        self.ramp = ramp
         self.floaterFontSize = floaterFontSize
         self.floaterTextColor = floaterTextColor
         self.floaterBackground = floaterBackground
@@ -398,7 +407,21 @@ public struct GlitchSoundGrille: View {
         )
         return brightness <= 0
             ? theme.palette.hashmark
-            : theme.palette.accent.opacity(0.25 + 0.75 * brightness)
+            : lit(at: position).opacity(0.25 + 0.75 * brightness)
+    }
+
+    /// The colour a lit position wears, before the level's own fade.
+    ///
+    /// Blended across the ramp rather than snapped to the nearest stop: the
+    /// holes sit close enough together that banding would read as an error in
+    /// the drawing rather than as a decision.
+    private func lit(at position: Double) -> Color {
+        guard let ramp, let first = ramp.first else { return theme.palette.accent }
+        guard ramp.count > 1 else { return first }
+
+        let spot = position * Double(ramp.count - 1)
+        let lower = min(Int(spot), ramp.count - 2)
+        return ramp[lower].mix(with: ramp[lower + 1], by: spot - Double(lower))
     }
 
     private var readout: String {
