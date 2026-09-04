@@ -60,6 +60,22 @@ private struct SoundSetting: Equatable {
 /// Tuning for the game-feel layer, kept together so the numbers can be
 /// compared against each other rather than hunted through call sites.
 public enum GlitchDelightTuning {
+    /// How still a panel's frame must be before it unrolls its children.
+    ///
+    /// The reveal animates position as well as opacity — that is what SwiftUI
+    /// does to a view whose geometry is still being resolved — so it has to
+    /// wait for the layout to come to rest. Long enough to outlast the moves a
+    /// window makes while it opens, short enough that nobody reads the wait as
+    /// the panel being slow to draw.
+    public static let panelSettleQuiet: Duration = .milliseconds(40)
+
+    /// How long it waits for that stillness before giving up.
+    ///
+    /// A panel inside something that never stops moving would otherwise never
+    /// appear at all, which is a far worse failure than the interpolation this
+    /// is avoiding.
+    public static let panelRevealDeadline: Duration = .milliseconds(500)
+
     /// How long a value freezes on arriving at a limit.
     ///
     /// Borrowed from fighting games, where the same trick sells a hit. The

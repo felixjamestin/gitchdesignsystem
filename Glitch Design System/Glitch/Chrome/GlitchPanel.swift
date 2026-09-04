@@ -24,7 +24,11 @@ public struct GlitchPanel<Content: View>: View {
     private let background: GlitchPanelBackground
     private let content: Content
 
-    @State private var hasAppeared = false
+    @State private var isRevealed = false
+    /// Bumped every time the panel's frame moves. `task(id:)` keys off it, so
+    /// each move restarts the wait for a quiet spell.
+    @State private var movements = 0
+    @State private var appearedAt: ContinuousClock.Instant?
 
     public init(
         background: GlitchPanelBackground = .surface,
@@ -47,11 +51,11 @@ public struct GlitchPanel<Content: View>: View {
             Group(subviews: content) { children in
                 ForEach(children.indices, id: \.self) { index in
                     children[index]
-                        .opacity(isRevealed ? 1 : 0)
-                        .offset(y: isRevealed ? 0 : 10)
+                        .opacity(revealed ? 1 : 0)
+                        .offset(y: revealed ? 0 : 10)
                         .animation(
                             motion.staggered(motion.drift, index: delight ? index : 0),
-                            value: isRevealed
+                            value: revealed
                         )
                 }
             }
@@ -61,12 +65,46 @@ public struct GlitchPanel<Content: View>: View {
         // Outside the sections, which clip. A tooltip opened on any row in this
         // panel is drawn here, where nothing crops it.
         .glitchTooltipLayer()
-        .onAppear { hasAppeared = true }
+        .onAppear { if appearedAt == nil { appearedAt = .now } }
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { _ in
+            movements &+= 1
+        }
+        // The unroll waits for the panel to stop moving.
+        //
+        // This is not politeness, it is the difference between the effect
+        // working and the panel appearing to fall in from the corner of the
+        // window. An animation that is live while the frame is still being
+        // resolved does not only animate what it was pointed at: SwiftUI has
+        // no previous geometry for the rows on that pass, so it interpolates
+        // their *positions* too, from the panel's origin. Every row then flies
+        // in diagonally, staggered by index, and the whole panel reads as
+        // arriving from the top-left of the window rather than unrolling in
+        // place. A window opening, a split view resolving its columns, a sheet
+        // settling — all of them move the panel several times before it comes
+        // to rest, and all of them produced that.
+        //
+        // Keyed on `movements`, so each move cancels the wait and starts it
+        // again; only an uninterrupted quiet spell reaches the reveal.
+        .task(id: movements) {
+            guard delight, !isRevealed else { return }
+
+            // A panel that never stops moving would otherwise never appear.
+            // Past the deadline it gives up waiting and shows itself, taking
+            // the ugly interpolation over an invisible panel.
+            if let appearedAt, ContinuousClock.now - appearedAt >= GlitchDelightTuning.panelRevealDeadline {
+                isRevealed = true
+                return
+            }
+
+            try? await Task.sleep(for: GlitchDelightTuning.panelSettleQuiet)
+            guard !Task.isCancelled else { return }
+            isRevealed = true
+        }
     }
 
     /// With the game-feel layer off there is nothing to reveal — the panel is
     /// simply present from the first frame.
-    private var isRevealed: Bool { !delight || hasAppeared }
+    private var revealed: Bool { !delight || isRevealed }
 }
 
 /// Draws a panel's surface, or declines to draw anything.
