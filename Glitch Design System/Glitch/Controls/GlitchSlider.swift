@@ -218,14 +218,8 @@ public struct GlitchSlider: View {
             .opacity(isEnabled ? 1 : 0.4)
     }
 
-    /// Ticks the click-snapping actually lands on: one per step when the range
-    /// is coarse, otherwise every 10%.
-    ///
-    /// Hidden until the row is engaged, unless the style prints its scale onto
-    /// the chassis. The nearest one brightens as the value approaches — size
-    /// held constant, so the target never moves while you aim — announcing the
-    /// pull before it happens, which a magnet that only ever grabbed silently
-    /// would not do.
+    /* Show notches at each step for coarse ranges, or every 10% for other ranges.
+       Notches are visible by default, and the nearest notch becomes brighter as the value approaches. */
     private var hashmarks: some View {
         let metrics = theme.metrics
         let approaching = approachingNotch

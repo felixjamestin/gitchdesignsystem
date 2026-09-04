@@ -89,10 +89,8 @@ public struct GlitchMetrics: Equatable, Sendable {
     public var outlinesControls: Bool = false
     /// Squares off the handle and hashmarks, which are otherwise capsules.
     public var sharpEdges: Bool = false
-    /// Keeps the notch marks permanently visible instead of revealing them on
-    /// engagement. Instrument panels print their scales onto the chassis; the
-    /// marks are part of the object, not a response to being touched.
-    public var hashmarksAlwaysVisible: Bool = false
+    /* Show slider notches by default. Set to false to show them only during interaction. */
+    public var hashmarksAlwaysVisible: Bool = true
     /// Extra tracking applied to labels on top of the style's own.
     public var labelTracking: CGFloat = 0
 
