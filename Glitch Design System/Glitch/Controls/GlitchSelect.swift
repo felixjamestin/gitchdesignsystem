@@ -11,6 +11,8 @@ private enum GlitchSelectList {
     static let inset: CGFloat = 8
     /// How round the highlight behind a row is.
     static let highlightRadius: CGFloat = 5
+    /// Rows shown before the list starts scrolling.
+    static let maxVisibleRows: CGFloat = 9.5
 }
 
 /// A dropdown whose list is ours, not the system's.
@@ -122,17 +124,30 @@ public struct GlitchSelect<Value: Hashable>: View {
     // MARK: - List
 
     private var list: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            if options.isEmpty {
-                // An empty list must still render something sane.
-                GlitchLabel("No options", secondary: true)
-                    .padding(.horizontal, theme.metrics.hInset)
-                    .frame(height: theme.metrics.rowHeight, alignment: .leading)
-            } else {
-                ForEach(options) { option in
-                    row(for: option)
+        // Long lists scroll instead of running off the screen: the popover is
+        // capped at `GlitchSelectList.maxVisibleRows` rows and the highlighted
+        // row is kept in view as the arrow keys move it.
+        ScrollViewReader { proxy in
+            ScrollView(.vertical) {
+                VStack(alignment: .leading, spacing: 1) {
+                    if options.isEmpty {
+                        // An empty list must still render something sane.
+                        GlitchLabel("No options", secondary: true)
+                            .padding(.horizontal, theme.metrics.hInset)
+                            .frame(height: theme.metrics.rowHeight, alignment: .leading)
+                    } else {
+                        ForEach(options) { option in
+                            row(for: option).id(option.value)
+                        }
+                    }
                 }
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: listHeight)
+            .onChange(of: highlighted) { _, value in
+                if let value { proxy.scrollTo(value) }
+            }
+            .onAppear { if let value = highlighted ?? Optional(selection) { proxy.scrollTo(value, anchor: .center) } }
         }
         // Concentric radii, the honest way round.
         //
@@ -202,6 +217,13 @@ public struct GlitchSelect<Value: Hashable>: View {
     }
 
     // MARK: - Behavior
+
+    /// Height of the visible list: every row when short, a capped scrolling window when long.
+    private var listHeight: CGFloat {
+        let rows = CGFloat(max(options.count, 1))
+        let rowPitch = theme.metrics.rowHeight + 1
+        return min(rows, GlitchSelectList.maxVisibleRows) * rowPitch
+    }
 
     private var selectedTitle: String {
         options.first { $0.value == selection }?.title ?? placeholder
