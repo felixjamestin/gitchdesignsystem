@@ -285,7 +285,10 @@ public struct GlitchSlider: View {
                             .foregroundStyle(theme.palette.onFill)
                             .lineLimit(1)
                             .contentTransition(.numericText(value: value))
-                            .animation(isDragging ? nil : motion.glide, value: value)
+                            .animation(motion.glide, value: value)
+                            .transaction { transaction in
+                                transaction.disablesAnimations = false
+                            }
                     }
                     .padding(.trailing, metrics.labelInset)
                 }
@@ -366,17 +369,13 @@ public struct GlitchSlider: View {
                 .font(GlitchType.value(theme))
                 .foregroundStyle(isActive ? theme.palette.textPrimary : theme.palette.label)
                 .lineLimit(1)
-                // Digits roll, in the direction the value moved — but never
-                // under a finger, where rolling digits would lag the drag for
-                // exactly the reason rule 7 forbids springing the fill.
-                //
-                // The animation is bound to `value` here rather than left to
-                // the caller's `withAnimation`: a content transition needs an
-                // animation on the update that changes the text, and an
-                // ambient one does not reliably reach a Text this deep inside
-                // overlays and geometry readers.
+                // Digits roll in the direction that the value moves, including during a drag.
+                // Keep this animation on the text so the track can follow the pointer without delay.
                 .contentTransition(.numericText(value: value))
-                .animation(isDragging ? nil : motion.glide, value: value)
+                .animation(motion.glide, value: value)
+                .transaction { transaction in
+                    transaction.disablesAnimations = false
+                }
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { valueWidth = $0 }
                 .overlay(alignment: .bottom) {
                     Rectangle()
