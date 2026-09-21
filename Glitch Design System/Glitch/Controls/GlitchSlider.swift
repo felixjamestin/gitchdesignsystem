@@ -76,6 +76,7 @@ public struct GlitchSlider: View {
 
     /// Movement beyond this many points turns a press into a drag.
     private let dragThreshold: CGFloat = 3
+    private let readoutGap: CGFloat = 8
     /// How long the pointer must rest on the row before the value offers to be
     /// typed. Long enough that it never appears while passing over.
     private let editRevealDelay: Duration = .milliseconds(800)
@@ -211,7 +212,8 @@ public struct GlitchSlider: View {
                     .padding(.leading, metrics.labelInset)
             }
             .overlay(alignment: .trailing) {
-                readout.padding(.trailing, metrics.labelInset)
+                positionedReadout(readout)
+                    .padding(.trailing, metrics.labelInset)
             }
             .overlay { invertedText }
             .clipShape(shape)
@@ -280,15 +282,17 @@ public struct GlitchSlider: View {
                 if !isEditing {
                     HStack(spacing: 0) {
                         Spacer(minLength: 0)
-                        Text(formattedValue)
-                            .font(GlitchType.value(theme))
-                            .foregroundStyle(theme.palette.onFill)
-                            .lineLimit(1)
-                            .contentTransition(.numericText(value: value))
-                            .animation(motion.glide, value: value)
-                            .transaction { transaction in
-                                transaction.disablesAnimations = false
-                            }
+                        positionedReadout(
+                            Text(formattedValue)
+                                .font(GlitchType.value(theme))
+                                .foregroundStyle(theme.palette.onFill)
+                                .lineLimit(1)
+                                .contentTransition(.numericText(value: value))
+                                .animation(motion.glide, value: value)
+                                .transaction { transaction in
+                                    transaction.disablesAnimations = false
+                                }
+                        )
                     }
                     .padding(.trailing, metrics.labelInset)
                 }
@@ -392,6 +396,15 @@ public struct GlitchSlider: View {
         }
     }
 
+    private func positionedReadout<Content: View>(_ content: Content) -> some View {
+        content
+            .offset(x: readoutOffset)
+            .animation(motion.glide, value: readoutMovesBeforeHandle)
+            .transaction { transaction in
+                transaction.disablesAnimations = false
+            }
+    }
+
     // MARK: - Label and accessory
 
     /// The label and whatever follows it, as one run.
@@ -459,15 +472,27 @@ public struct GlitchSlider: View {
         max(5, fillWidth - theme.metrics.handleInset)
     }
 
+    private var readoutMovesBeforeHandle: Bool {
+        guard isActive, !isEditing, stretchedWidth > 0, valueWidth > 0 else { return false }
+        let metrics = theme.metrics
+        let restingLeading = stretchedWidth - metrics.labelInset - valueWidth
+        return handleX + metrics.handleWidth + readoutGap >= restingLeading
+    }
+
+    private var readoutOffset: CGFloat {
+        guard readoutMovesBeforeHandle else { return 0 }
+        return min(0, handleX - readoutGap - stretchedWidth + theme.metrics.labelInset)
+    }
+
     /// True when the handle would sit on top of the label or the value.
     /// It fades almost away rather than crossing them, because a 3pt bar
     /// through the middle of a word is worse than no handle at all.
     private var handleCollidesWithText: Bool {
         guard stretchedWidth > 0 else { return false }
-        let gap: CGFloat = 8
-        let labelEdge = theme.metrics.labelInset + labelWidth + gap
-        let valueEdge = stretchedWidth - theme.metrics.labelInset - valueWidth - gap
-        return fillWidth < labelEdge || fillWidth > valueEdge
+        let labelEdge = theme.metrics.labelInset + labelWidth + readoutGap
+        let valueEdge = stretchedWidth - theme.metrics.labelInset - valueWidth - readoutGap
+        let overlapsReadout = !readoutMovesBeforeHandle && fillWidth > valueEdge
+        return fillWidth < labelEdge || overlapsReadout
     }
 
     private var handleOpacity: Double {
