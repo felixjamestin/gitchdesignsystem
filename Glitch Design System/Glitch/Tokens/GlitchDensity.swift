@@ -125,9 +125,12 @@ public struct GlitchMetrics: Equatable, Sendable {
         hashmarkWidth: 1.5, hashmarkHeight: 10
     )
 
+    /// - Parameter controlRadius: replaces the style's control radius when
+    ///   set. Applied last, so it holds in every style and at every density.
     public static func resolve(
         _ density: GlitchDensity,
-        style: GlitchThemeStyle = .glitch
+        style: GlitchThemeStyle = .glitch,
+        controlRadius: CGFloat? = nil
     ) -> GlitchMetrics {
         var metrics: GlitchMetrics
         switch density {
@@ -135,6 +138,7 @@ public struct GlitchMetrics: Equatable, Sendable {
         case .comfortable: metrics = .comfortable
         }
         style.adjust(&metrics)
+        if let controlRadius { metrics.controlRadius = max(0, controlRadius) }
         return metrics
     }
 }

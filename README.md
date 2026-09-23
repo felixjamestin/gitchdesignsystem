@@ -158,6 +158,13 @@ ContentView().glitchTheme(.film, density: .comfortable)  // or .compact
 `.compact` is the pointer default (36pt rows), `.comfortable` the touch default
 (48pt). Both are always available.
 
+Control corners follow the style unless you set them. One radius then holds in
+every style and at every density; panels keep their own:
+
+```swift
+ContentView().glitchTheme(.engineering, cornerRadius: 6)
+```
+
 ### Light and dark
 
 By default the palette follows the system. To pin it, pass the scheme to the

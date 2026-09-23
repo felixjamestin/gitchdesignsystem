@@ -35,4 +35,17 @@ final class GlitchConfigurabilityTests: XCTestCase {
         XCTAssertNil(GlitchMetrics.resolve(.compact, style: .film).disclosureSize)
         XCTAssertNil(GlitchMetrics.resolve(.comfortable, style: .glitch).disclosureSize)
     }
+
+    /// One radius holds across every style and density; unset keeps each style's own.
+    func testControlRadiusOverridesEveryStyle() {
+        for style in GlitchThemeStyle.allCases {
+            for density in GlitchDensity.allCases {
+                XCTAssertEqual(
+                    GlitchMetrics.resolve(density, style: style, controlRadius: 5).controlRadius, 5)
+            }
+        }
+        XCTAssertEqual(GlitchMetrics.resolve(.compact, style: .engineering).controlRadius, 2)
+        XCTAssertEqual(GlitchMetrics.resolve(.compact, style: .liquidGlass).controlRadius, 18)
+        XCTAssertEqual(GlitchMetrics.resolve(.compact, style: .film, controlRadius: -4).controlRadius, 0)
+    }
 }

@@ -46,6 +46,7 @@ private struct GlitchThemeModifier: ViewModifier {
     var colors: GlitchColors
     var fonts: GlitchFonts
     var density: GlitchDensity?
+    var cornerRadius: CGFloat?
     var colorScheme: ColorScheme?
 
     func body(content: Content) -> some View {
@@ -67,7 +68,7 @@ private struct GlitchThemeModifier: ViewModifier {
                 GlitchTheme(
                     style: style,
                     palette: palette,
-                    metrics: .resolve(density, style: style),
+                    metrics: .resolve(density, style: style, controlRadius: cornerRadius),
                     typography: typography,
                     surface: material.surface(style: style, glass: glass)
                 )
@@ -96,8 +97,12 @@ extension View {
     ///     .glitchTheme(colors: GlitchColors(accent: .mint))   // one colour
     ///     .glitchTheme(fonts: GlitchFonts("Departure Mono"))  // a typeface
     ///     .glitchTheme(colorScheme: .dark)                    // always dark
+    ///     .glitchTheme(.engineering, cornerRadius: 6)         // softer parts
     /// ```
     ///
+    /// - Parameter cornerRadius: the corner radius of every control, in
+    ///   points, whatever the style. Leave it `nil` — the default — for the
+    ///   style's own radius. Panels keep theirs.
     /// - Parameter colorScheme: forces light or dark for this subtree. Leave
     ///   it `nil` — the default — to follow the system.
     ///
@@ -117,6 +122,7 @@ extension View {
         colors: GlitchColors = .none,
         fonts: GlitchFonts = .none,
         density: GlitchDensity? = nil,
+        cornerRadius: CGFloat? = nil,
         colorScheme: ColorScheme? = nil
     ) -> some View {
         modifier(
@@ -127,6 +133,7 @@ extension View {
                 colors: colors,
                 fonts: fonts,
                 density: density,
+                cornerRadius: cornerRadius,
                 colorScheme: colorScheme
             )
         )
