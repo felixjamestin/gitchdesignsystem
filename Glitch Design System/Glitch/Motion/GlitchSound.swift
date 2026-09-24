@@ -168,6 +168,13 @@ public final class GlitchSound {
     /// system; it can't make it speak.
     public static var isSuppressed = false
 
+    /// Seconds of silence before the audio engine pauses; `nil` keeps it
+    /// running. A running engine keeps the Mac's audio hardware awake and
+    /// stops it from idle-sleeping, so an app that is open all day sets this.
+    public static var idlePauseDelay: TimeInterval?
+
+    private var idlePause: Task<Void, Never>?
+
     private init() {}
 
     // MARK: - Public
@@ -214,10 +221,32 @@ public final class GlitchSound {
         }
         lastVariant[voice] = index
 
+        guard resumeIfPaused() else { return }
         // `.interrupts` rather than queueing: during a fast drag the ticks
         // would otherwise pile into a buzz.
         player.scheduleBuffer(variants[index], at: nil, options: [.interrupts])
         if !player.isPlaying { player.play() }
+        scheduleIdlePause()
+    }
+
+    private func resumeIfPaused() -> Bool {
+        if engine.isRunning { return true }
+        do {
+            try engine.start()
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private func scheduleIdlePause() {
+        idlePause?.cancel()
+        guard let delay = Self.idlePauseDelay, delay > 0 else { return }
+        idlePause = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(delay))
+            guard !Task.isCancelled else { return }
+            self?.engine.pause()
+        }
     }
 
     private func playRandom() -> String? {
