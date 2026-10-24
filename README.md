@@ -433,6 +433,61 @@ Sections unroll their rows with a stagger on every expand.
 
 ---
 
+## Type scale and spacing
+
+Every font comes from the type scale, and every padding, margin and gap from the spacing tokens.
+
+```swift
+// Once, at launch: the faces the scale's families draw in. Nil keeps the system font.
+GlitchFontFamilies.installed = GlitchFontFamilies(sans: "IBM Plex Sans", mono: "IBM Plex Mono")
+
+Text("Daily goal").glitchFont(.caps)
+Text("Hold to stop").glitchFont(.button)
+Text("Breathe").glitchFont(.h3.weight(.medium))
+Image(systemName: "gear").glitchFont(.body.family(.system))
+```
+
+| Style | Size | Weight | Use |
+| --- | --- | --- | --- |
+| `micro` | 8 | semibold, rounded | Glyphs inside keycaps. Never words. |
+| `caps` | 9 | semibold, caps, 0.16em | Tiny uppercase labels. |
+| `caption` | 10 | regular | Helper text, badges. |
+| `footnote` | 11 | regular | Secondary details, tooltips. |
+| `callout` | 12 | regular | Labels, key hints. |
+| `body` | 13 | regular | Menus, rows, running text. The macOS default. |
+| `bodyLarge` | 14 | medium | List titles, inputs. |
+| `h4` | 15 | semibold | Heading 4. |
+| `h3` | 18 | semibold | Heading 3. |
+| `h2` | 22 | semibold | Heading 2. |
+| `h1` | 28 | semibold | Heading 1. |
+| `display` | 36 | medium | Empty states. |
+| `hero` | 76 | thin | One hero number. |
+
+`button` (12, mono caps) and `controlCaps` (10, mono caps) are the two composed styles.
+
+Spacing is a multiple of 8, named as the web tokens are: `GlitchSpace.s100` is 8, `s200` 16, `s300` 24. The 4 and 12 steps (`s050`, `s150`) are for the inside of a component only. Use the role names where one fits: `GlitchInset.control / panel / card / dialog` and `GlitchGap.inline / stack / group / section`.
+
+---
+
+## Glass buttons
+
+`GlitchGlassButton` is the liquid glass capsule. With `hold: 0` it fires on a tap. With a hold it fills from the leading edge and fires when full.
+
+```swift
+GlitchGlassGroup {                       // the buttons' glass melts together
+    GlitchGlassButton("Hold to stop", hold: 0.5) { _ in stop() }
+        .glitchGlassID("stop")
+    if showsOptions {
+        GlitchGlassButton("5m") { _ in snooze(5) }
+            .glitchGlassID("five")
+    }
+}
+```
+
+`keyboardPressed` and `keyboardActivation` let a shortcut key hold or tap the button. `feedback` voices the tap, each hold step and the completed hold; the default plays `GlitchSound`.
+
+---
+
 ## Composing a screen
 
 ```swift
